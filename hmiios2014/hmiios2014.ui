@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>hmiios2014Class</class>
+ <widget class="QMainWindow" name="hmiios2014Class">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1478</width>
+    <height>1143</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>hmiios2014</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QWidget" name="widget" native="true"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1478</width>
+     <height>38</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuWindow">
+    <property name="title">
+     <string>Window</string>
+    </property>
+    <addaction name="actionFullscreen"/>
+    <addaction name="actionNormalscreen"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuGfx_Effect">
+    <property name="title">
+     <string>Gfx Effect</string>
+    </property>
+    <addaction name="actionAutoZoom"/>
+    <addaction name="actionAutoSwing"/>
+   </widget>
+   <widget class="QMenu" name="menuLanguage">
+    <property name="title">
+     <string>Language</string>
+    </property>
+    <addaction name="separator"/>
+    <addaction name="actionChineseLang"/>
+    <addaction name="actionDefaultLang"/>
+   </widget>
+   <addaction name="menuWindow"/>
+   <addaction name="menuGfx_Effect"/>
+   <addaction name="menuLanguage"/>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <property name="windowTitle">
+    <string>Main Toolbar</string>
+   </property>
+   <property name="whatsThis">
+    <string>A tool bar... does provide tool buttons</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>36</width>
+     <height>36</height>
+    </size>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonIconOnly</enum>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>LeftToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionFullscreen"/>
+   <addaction name="actionNormalscreen"/>
+   <addaction name="actionCenterMap"/>
+   <addaction name="actionMapLayerFilter"/>
+   <addaction name="actionAutoSwing"/>
+   <addaction name="actionAutoZoom"/>
+  </widget>
+  <widget class="QToolBar" name="subToolBar">
+   <property name="windowTitle">
+    <string>Sub toolbar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>36</width>
+     <height>36</height>
+    </size>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonIconOnly</enum>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionExit"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QDockWidget" name="dockWidget">
+   <property name="windowTitle">
+    <string>Map Filter</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <property name="spacing">
+      <number>0</number>
+     </property>
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
+      <number>0</number>
+     </property>
+     <item>
+      <widget class="MapFilterWidget" name="widgetMapFilter" native="true"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <action name="actionFullscreen">
+   <property name="icon">
+    <iconset resource="hmiios2014.qrc">
+     <normaloff>:/hmiios2014/fullscreen</normaloff>:/hmiios2014/fullscreen</iconset>
+   </property>
+   <property name="text">
+    <string>Fullscreen</string>
+   </property>
+  </action>
+  <action name="actionNormalscreen">
+   <property name="icon">
+    <iconset resource="hmiios2014.qrc">
+     <normaloff>:/hmiios2014/normalscreen</normaloff>:/hmiios2014/normalscreen</iconset>
+   </property>
+   <property name="text">
+    <string>Normal Screen</string>
+   </property>
+   <property name="toolTip">
+    <string>Normal Screen</string>
+   </property>
+  </action>
+  <action name="actionSelect">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/hmiios2014/pick</normaloff>:/hmiios2014/pick</iconset>
+   </property>
+   <property name="text">
+    <string>Select</string>
+   </property>
+   <property name="toolTip">
+    <string>Select Object</string>
+   </property>
+  </action>
+  <action name="actionEBL">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/hmiios2014/ebl</normaloff>:/hmiios2014/ebl</iconset>
+   </property>
+   <property name="text">
+    <string>EBL</string>
+   </property>
+   <property name="toolTip">
+    <string>Elastic Bearer Line</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="icon">
+    <iconset resource="hmiios2014.qrc">
+     <normaloff>:/hmiios2014/quit</normaloff>:/hmiios2014/quit</iconset>
+   </property>
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionCenterMap">
+   <property name="icon">
+    <iconset resource="hmiios2014.qrc">
+     <normaloff>:/hmiios2014/center</normaloff>:/hmiios2014/center</iconset>
+   </property>
+   <property name="text">
+    <string>Center Map</string>
+   </property>
+  </action>
+  <action name="actionMapLayerFilter">
+   <property name="icon">
+    <iconset resource="hmiios2014.qrc">
+     <normaloff>:/hmiios2014/layer</normaloff>:/hmiios2014/layer</iconset>
+   </property>
+   <property name="text">
+    <string>Map Layer Filter</string>
+   </property>
+   <property name="toolTip">
+    <string>Declutter map layers</string>
+   </property>
+  </action>
+  <action name="actionAutoZoom">
+   <property name="icon">
+    <iconset resource="hmiios2014.qrc">
+     <normaloff>:/hmiios2014/zoom</normaloff>:/hmiios2014/zoom</iconset>
+   </property>
+   <property name="text">
+    <string>Zoom!</string>
+   </property>
+  </action>
+  <action name="actionAutoSwing">
+   <property name="icon">
+    <iconset resource="hmiios2014.qrc">
+     <normaloff>:/hmiios2014/swing</normaloff>:/hmiios2014/swing</iconset>
+   </property>
+   <property name="text">
+    <string>Swing!</string>
+   </property>
+   <property name="toolTip">
+    <string>Swing!</string>
+   </property>
+  </action>
+  <action name="actionChineseLang">
+   <property name="text">
+    <string>Chinese</string>
+   </property>
+  </action>
+  <action name="actionDefaultLang">
+   <property name="text">
+    <string>Default</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>MapFilterWidget</class>
+   <extends>QWidget</extends>
+   <header>mapFilterWidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="hmiios2014.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>actionFullscreen</sender>
+   <signal>triggered()</signal>
+   <receiver>hmiios2014Class</receiver>
+   <slot>showFullScreen()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>299</x>
+     <y>199</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionNormalscreen</sender>
+   <signal>triggered()</signal>
+   <receiver>hmiios2014Class</receiver>
+   <slot>showNormal()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>299</x>
+     <y>199</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionExit</sender>
+   <signal>triggered()</signal>
+   <receiver>hmiios2014Class</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>299</x>
+     <y>199</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

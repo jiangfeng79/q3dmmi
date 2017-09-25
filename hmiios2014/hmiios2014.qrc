@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/hmiios2014">
+        <file alias="close">Resources/gtk-close.png</file>
+        <file alias="fullscreen">Resources/gtk-fullscreen.png</file>
+        <file alias="ebl">Resources/gtk-cdrom.png</file>
+        <file>Resources/gtk-about.png</file>
+        <file alias="swing">Resources/gtk-refresh.png</file>
+        <file alias="zoom">Resources/gtk-zoom-fit.png</file>
+        <file alias="quit">Resources/gtk-quit.png</file>
+        <file alias="normalscreen">Resources/gtk-leave-fullscreen.png</file>
+        <file alias="center">Resources/gtk-find.png</file>
+        <file alias="pick">Resources/gtk-color-picker.png</file>
+        <file alias="layer">Resources/gtk-dnd-multiple.png</file>
+        <file alias="splash.png">Resources/hmiios.png</file>
+    </qresource>
+</RCC>

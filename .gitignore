@@ -3,3 +3,8 @@
 ################################################################################
 
 /.vs/hmiios2014/v15
+/x64/Debug
+/hmiios2014/GeneratedFiles64
+/hmiios2014/x64/Debug
+/hmiios2014/x64/Release
+/x64/Release
