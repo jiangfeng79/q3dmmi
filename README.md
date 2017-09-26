@@ -1,37 +1,14 @@
-## Welcome to GitHub Pages
+## Welcome to q3dmmi
 
-You can use the [editor on GitHub](https://github.com/jiangfeng79/q3dmmi/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+This is a hobby project I started from 2007.
+The purpose is to use modern widget lib with opengl support to draw hardware accel. vector graphics(maps).
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+Screenshots will be provided.
 
-### Markdown
+## History
+Due to work requirement, 2D vector graphics engine is explored. Linux/Xlib/motif was the platform used.
+Initial attemp of using gtk/gtkglext was performed. Later it becomes a demo project for the employer and it becomes propriete.
+QT draws my attention on 2013 but it has poor support for opengl by the time. With the release of QT5, the time become ripe, an initial version was release in 2014.
+Hence the project halts.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/jiangfeng79/q3dmmi/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+I wish the project could help people who are doing GIS systems and demands fluent performance with PC hardware. 
