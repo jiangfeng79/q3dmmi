@@ -59,20 +59,18 @@ void hmiios2014::on_actionEBL_triggered()
 	if (m_tsd)
 		m_tsd->setMapOpMask(TSDWindow::EBL);
 }
+
 void hmiios2014::on_actionMapLayerFilter_triggered()
 {
 	qDebug() << "on_actionMapLayerFilter_triggered";
-	ui.widgetMapFilter->show();
-	ui.widgetMapFilter->raise();
-	ui.widgetMapFilter->activateWindow();
-
+	if(ui.dockWidget->isHidden())
+		ui.dockWidget->show();
 }
 
 void hmiios2014::on_actionCenterMap_triggered()
 {
 	if (m_tsd)
 		m_tsd->centerMap();
-
 }
 
 void hmiios2014::setTsdWindow(TSDWindow * a_tsd)
