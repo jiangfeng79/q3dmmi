@@ -3,7 +3,10 @@
 This is a hobby project I started from 2007.
 The purpose is to use modern widget lib with opengl support to draw hardware accel. vector graphics(maps).
 
-Screenshots will be provided.
+Screenshots:
+[[https://github.com/jiangfeng79/q3dmmi/blob/master/hmiios2014/Screenshots/1.png|alt=screenshot1]]
+[[https://github.com/jiangfeng79/q3dmmi/blob/master/hmiios2014/Screenshots/2.png|alt=screenshot2]]
+[[https://github.com/jiangfeng79/q3dmmi/blob/master/hmiios2014/Screenshots/3.png|alt=screenshot3]]
 
 ## History
 - Due to work requirement, 2D vector graphics engine was explored. Linux/Xlib/motif was the platform used.
