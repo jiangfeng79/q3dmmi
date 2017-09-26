@@ -11,4 +11,7 @@ Screenshots will be provided.
 - QT drew my attention on 2013 but it had poor support for opengl by the time. With the release of QT5, the time became ripe, an initial version was release in 2014.
 - Hence the project halted.
 
+## Howto
+Check [wiki](https://github.com/jiangfeng79/q3dmmi/wiki) for building guide
+
 I wish the project could help people who are doing GIS systems and demands fluent performance with PC hardware. 
