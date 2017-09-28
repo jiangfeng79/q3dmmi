@@ -65,6 +65,8 @@ void hmiios2014::on_actionMapLayerFilter_triggered()
 	qDebug() << "on_actionMapLayerFilter_triggered";
 	if(ui.dockWidget->isHidden())
 		ui.dockWidget->show();
+	else
+		ui.dockWidget->hide();
 }
 
 void hmiios2014::on_actionCenterMap_triggered()
