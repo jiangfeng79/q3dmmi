@@ -100,7 +100,7 @@ TSDWindow::TSDWindow()
 	,m_sgMinorRoads("./sgMap/singapore.osm-minorroads", MINOR_ROADS, MINOR_ROADS_TEXT)
 	,m_sgAirWays("./sgMap/singapore.osm-aeroways", AIR_WAYS ,AIR_WAYS_TEXT)
 	,m_sgManMade("./sgMap/singapore.osm-polygon","man_made",  MAN_MADE ,MAN_MADE_TEXT)
-	,m_displayMask(DIPLAY_ALL)
+	,m_displayMask(0xff5c033f)
 	,m_bAutoZoom(false)
 	,m_bAutoSwing(false)
 {
@@ -540,11 +540,12 @@ void TSDWindow::render()
 	//glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
 	glEnable( GL_BLEND );
 	//glEnable(GL_DEPTH_TEST);
-	glEnable( GL_POINT_SMOOTH);
+	//glEnable( GL_POINT_SMOOTH);
 	//glEnable( GL_POLYGON_SMOOTH);
 	//glEnable( GL_LINE_SMOOTH );
 	//glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	glEnable(GL_MULTISAMPLE);
 
 	GLfloat time = (GLfloat)clock() / (GLfloat)CLOCKS_PER_SEC;
 	GLfloat mouse[] = { (GLfloat)m_iMousePosX, (GLfloat)m_iMousePosY };

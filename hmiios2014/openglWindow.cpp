@@ -255,7 +255,9 @@ void OpenglWindow::renderNow()
 
 	if (!m_context) {
 		m_context = new QOpenGLContext(this);
-		m_context->setFormat(requestedFormat());
+		QSurfaceFormat format = requestedFormat();
+		format.setSamples(4);    // Set the number of samples used for multisampling
+		m_context->setFormat(format);
 		m_context->create();
 		/*m_funcs = m_context->versionFunctions<QOpenGLFunctions_3_3_Core>();
 		if ( !m_funcs ) {
