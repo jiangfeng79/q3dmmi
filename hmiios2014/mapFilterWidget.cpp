@@ -1,5 +1,5 @@
 #include "mapFilterWidget.h"
-#include <qDebug>
+#include <QDebug>
 #include "TSDWindow.h"
 
 MapFilterWidget::MapFilterWidget(QWidget* parent)

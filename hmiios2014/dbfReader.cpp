@@ -1,6 +1,4 @@
 #include "dbfReader.h"
-#include <qDebug>
-
 
 DBFReader::DBFReader(void) :entity(NULL)
 {

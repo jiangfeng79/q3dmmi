@@ -6,7 +6,8 @@
 #include <QPainter>
 
 #include <time.h>
-#include <qDebug>
+#include <math.h>
+#include <QDebug>
 
 #define MOTION_TIMEOUT 20
 //! [1]

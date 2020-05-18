@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include "ui_hmiios2014.h"
-#include <qDebug>
+#include <QDebug>
 #include <QTranslator>
 #include "TSDWindow.h"
 #include "mapFilterWidget.h"
