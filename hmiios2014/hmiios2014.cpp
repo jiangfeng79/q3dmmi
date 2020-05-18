@@ -2,7 +2,7 @@
 #include <QMessageBox>
 #include <QLibraryInfo>
 
-hmiios2014::hmiios2014(QWidget *parent)
+hmiios2014::hmiios2014(QWidget* parent)
 	: QMainWindow(parent), m_tsd(nullptr)
 {
 	ui.setupUi(this);
@@ -24,13 +24,14 @@ hmiios2014::hmiios2014(QWidget *parent)
 
 	QSurfaceFormat format;
 	format.setSamples(16);
+	format.setStencilBufferSize(8);
 
 	m_tsd = new TSDWindow();
 	m_tsd->setFormat(format);
 	m_tsd->setAnimating(true);
 
 
-	QWidget *centralWidget = QWidget::createWindowContainer(m_tsd);
+	QWidget* centralWidget = QWidget::createWindowContainer(m_tsd);
 	setTsdWindow(m_tsd);
 	setCentralWidget(centralWidget);
 
@@ -63,7 +64,7 @@ void hmiios2014::on_actionEBL_triggered()
 void hmiios2014::on_actionMapLayerFilter_triggered()
 {
 	qDebug() << "on_actionMapLayerFilter_triggered";
-	if(ui.dockWidget->isHidden())
+	if (ui.dockWidget->isHidden())
 		ui.dockWidget->show();
 	else
 		ui.dockWidget->hide();
@@ -75,7 +76,7 @@ void hmiios2014::on_actionCenterMap_triggered()
 		m_tsd->centerMap();
 }
 
-void hmiios2014::setTsdWindow(TSDWindow * a_tsd)
+void hmiios2014::setTsdWindow(TSDWindow* a_tsd)
 {
 	m_tsd = a_tsd;
 	connect(ui.widgetMapFilter, SIGNAL(signal_checkBox_state(TSDWindow::DisplayMaskBits, int)), this, SLOT(slot_setMapFilter(TSDWindow::DisplayMaskBits, int)));

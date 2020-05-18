@@ -2,7 +2,7 @@
 #include <qDebug>
 #include "TSDWindow.h"
 
-MapFilterWidget::MapFilterWidget(QWidget *parent)
+MapFilterWidget::MapFilterWidget(QWidget* parent)
 	: QWidget(parent)
 {
 	setupUi(this);

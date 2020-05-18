@@ -2,21 +2,20 @@
 #define TSDWINDOW_H
 
 #include "OpenglWindow.h"
-#include <QtGui/QGuiApplication>
-#include <QtGui/QMatrix4x4>
-#include <QtGui/QOpenGLShaderProgram>
-#include <QtGui/QScreen>
+#include <QGuiApplication>
+#include <QMatrix4x4>
+#include <QOpenGLShaderProgram>
+#include <QScreen>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QtGui/QOpenGLPaintDevice>
+#include <QOpenGLPaintDevice>
 #include <time.h>
-#include <QtCore/qmath.h>
-#include <QtWidgets/QApplication>
+#include <qmath.h>
+#include <QApplication>
 #include <QLabel>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QActionGroup>
-
 
 #include "shpReader.h"
 #include "dbfReader.h"
@@ -65,8 +64,8 @@ public:
 		return targetlevel;
 	}
 
-	template<int N> void printMrtStringToScreen();
-	template<> void printMrtStringToScreen<0>();
+	//template<int N> void printMrtStringToScreen();
+	//template<> void printMrtStringToScreen<0>();
 
 	typedef struct _mapProperty
 	{
@@ -80,14 +79,14 @@ public:
 	class MapLayer
 	{
 	public:
-		MapLayer(const char * fileName) :m_vertex(NULL), m_color(NULL) {
+		MapLayer(const char* fileName) :m_vertex(NULL), m_color(NULL) {
 			m_property.totalNumberOfVertex = 0;
 			m_property.mapBuildScale = 111319.4907777778;
 			m_property.scale = 0.1;
 			m_fileName = QString(fileName);
 		}
 
-		MapLayer(const char * fileName, DisplayMaskBits id, DisplayMaskBits text_id) :
+		MapLayer(const char* fileName, DisplayMaskBits id, DisplayMaskBits text_id) :
 			m_vertex(NULL)
 			, m_color(NULL)
 			, m_id(id)
@@ -101,7 +100,7 @@ public:
 			m_layerName.clear();
 		}
 
-		MapLayer(const char * fileName, const char * layerName, DisplayMaskBits id, DisplayMaskBits text_id) :
+		MapLayer(const char* fileName, const char* layerName, DisplayMaskBits id, DisplayMaskBits text_id) :
 			m_vertex(NULL)
 			, m_color(NULL)
 			, m_id(id)
@@ -124,8 +123,8 @@ public:
 		DBFReader m_dbfFileReader;
 		//DbfReader m_dbfFileReader
 		GLuint m_VBO_ID[2];
-		GLfloat *m_vertex;
-		GLfloat *m_color;
+		GLfloat* m_vertex;
+		GLfloat* m_color;
 
 		DisplayMaskBits m_id;
 		DisplayMaskBits m_text_id;
@@ -148,11 +147,11 @@ public:
 			}
 		}
 		void buildLayer();
-		void buildLayer(MapProperty & a_property, int a_iLayerId);
+		void buildLayer(MapProperty& a_property, int a_iLayerId);
 	};
 
-	template<int N> void printStringToScreen(MapLayer & a_layer);
-	template<> void printStringToScreen<0>(MapLayer & a_layer);
+	//template<int N> void printStringToScreen(MapLayer & a_layer);
+	//template<> void printStringToScreen<0>(MapLayer & a_layer);
 
 	TSDWindow();
 	~TSDWindow();
@@ -161,10 +160,10 @@ public:
 	inline int getFps() { return m_fps; }
 
 	//void drawLayer(MapLayer & a_layer, bool a_bFillPolygon = false, int a_iColorId = 0);
-	void drawLayerAndFill(MapLayer & a_layer, int a_iColorId = 0);
-	void drawLayer(MapLayer & a_layer, int a_iColorId = 0);
-	void drawText(MapLayer &a_layer);
-	void drawTextWithAngle(MapLayer &a_layer);
+	void drawLayerAndFill(MapLayer& a_layer, int a_iColorId = 0);
+	void drawLayer(MapLayer& a_layer, int a_iColorId = 0);
+	void drawText(MapLayer& a_layer);
+	void drawTextWithAngle(MapLayer& a_layer);
 	void drawEBL(float x, float y, float r);
 	void drawMRTStation();
 	void centerMap();
@@ -175,10 +174,8 @@ public:
 	inline void setAutoSwing(bool value) { m_bAutoSwing = value; }
 	inline bool getAutoSwing() { return m_bAutoSwing; }
 
-	private slots:
-	void slot_process_msg();
 private:
-	GLuint loadShader(GLenum type, const char *source);
+	GLuint loadShader(GLenum type, const char* source);
 	/*
 	GLvoid buildFont(GLvoid);
 	GLvoid glPrint(const char *fmt, ...);
@@ -195,7 +192,7 @@ private:
 
 	GLuint m_listIndex;
 
-	QOpenGLShaderProgram *m_program;
+	QOpenGLShaderProgram* m_program;
 
 	MapLayer m_sgCoastal;
 	MapLayer m_sgAmenities;
@@ -209,9 +206,9 @@ private:
 	MapLayer m_sgMinorRoads;
 	MapLayer m_sgAirWays;
 	MapLayer m_sgManMade;
-	QVector <TSDWindow::MapLayer *> m_listOfLayers;
+	QVector <TSDWindow::MapLayer*> m_listOfLayers;
 
-	GLfloat *m_mrt;
+	GLfloat* m_mrt;
 
 	unsigned int m_displayMask;
 

@@ -18,15 +18,15 @@ public:
 		unsigned int totalVertex;
 		double minX, minY;
 		double maxX, maxY;
-		double **coordinate;//[MAX_VERTEX][3];
-		unsigned char *isRing;//[MAX_VERTEX];
+		double** coordinate;//[MAX_VERTEX][3];
+		unsigned char* isRing;//[MAX_VERTEX];
 		unsigned int type;
 	}ShpEntity;
 
-	int read(const char * filename);
-	int readLayer(const char * filename, DBFReader & layer);
+	int read(const char* filename);
+	int readLayer(const char* filename, DBFReader& layer);
 
-	inline ShpEntity * getEntity() { return entity; };
+	inline ShpEntity* getEntity() { return entity; };
 	inline double getShpMinX() { return shpMinX; };
 	inline double getShpMinY() { return shpMinY; };
 	inline double getShpMaxX() { return shpMaxX; };
@@ -34,7 +34,7 @@ public:
 	inline unsigned int getNumberOfEntity() { return numberOfEntity; };
 
 protected:
-	ShpEntity * entity;
+	ShpEntity* entity;
 	unsigned int numberOfEntity;
 	double shpMinX, shpMinY;
 	double shpMaxX, shpMaxY;

@@ -1,8 +1,8 @@
 #ifndef OPENGLWINDOW_H
 #define OPENGLWINDOW_H
 
-#include <QtGui/QWindow>
-#include <QtGui/QOpenGLFunctions>
+#include <QWindow>
+#include <QOpenGLFunctions>
 #include <QTimer>
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -34,10 +34,10 @@ public:
 	virtual void initialize();
 
 	void setAnimating(bool animating);
-	void renderText(int posX, int posY, QString &text);
-	void renderText(int posX, int posY, QString & text, QString &font);
-	void renderText(int posX, int posY, QString & text, QString &font, qreal angle);
-	void renderShape(QRect &rec);
+    void renderText(int posX, int posY, const QString & text);
+    void renderText(int posX, int posY, const QString & text, const QString &font);
+    void renderText(int posX, int posY, const QString & text, const QString &font, qreal angle);
+    void renderShape(const QRect &rec);
 	void drawLines(const QVector<QPointF> & pointPairs);
 
 	void setMapOpMask(MapOpMaskBits layer);

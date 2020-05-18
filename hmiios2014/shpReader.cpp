@@ -34,12 +34,12 @@ void ShpReader::freeMemory()
 	}
 }
 
-int ShpReader::read(const char * filename)
+int ShpReader::read(const char* filename)
 {
 	SHPHandle	hSHP;
 	int			nShapeType, nEntities, i, iPart, bValidate = 0, nInvalidCount = 0;
 	int			bHeaderOnly = 0;
-	const char	*pszPlus;
+	const char* pszPlus;
 	double 		adfMinBound[4], adfMaxBound[4];
 
 	/* -------------------------------------------------------------------- */
@@ -64,7 +64,7 @@ int ShpReader::read(const char * filename)
 	printf("File Bounds: (%f,%f,%f,%f) to  (%f,%f,%f,%f)\n\n", adfMinBound[0], adfMinBound[1], adfMinBound[2], adfMinBound[3], adfMaxBound[0], adfMaxBound[1], adfMaxBound[2], adfMaxBound[3]);
 
 	//jiangfeng: create the memory
-	entity = (ShpEntity *)malloc(sizeof(ShpEntity)*nEntities);
+	entity = (ShpEntity*)malloc(sizeof(ShpEntity) * nEntities);
 	shpMinX = adfMinBound[0];
 	shpMinY = adfMinBound[1];
 	shpMaxX = adfMaxBound[0];
@@ -80,7 +80,7 @@ int ShpReader::read(const char * filename)
 		for (i = 0; i < nEntities && !bHeaderOnly; i++)
 		{
 			int		j;
-			SHPObject	*psShape;
+			SHPObject* psShape;
 
 			psShape = SHPReadObject(hSHP, i);
 
@@ -93,11 +93,11 @@ int ShpReader::read(const char * filename)
 
 			entity[i].type = psShape->nSHPType;
 			//jiangfeng: now allocate the memory space for vertexes
-			entity[i].coordinate = (double **)malloc(sizeof(double)*(psShape->nVertices));
+			entity[i].coordinate = (double**)malloc(sizeof(double) * (psShape->nVertices));
 			for (j = 0; j < psShape->nVertices; j++)
-				entity[i].coordinate[j] = (double *)malloc(3 * sizeof(double));
+				entity[i].coordinate[j] = (double*)malloc(3 * sizeof(double));
 
-			entity[i].isRing = (unsigned char*)malloc(sizeof(unsigned char)*(psShape->nVertices));
+			entity[i].isRing = (unsigned char*)malloc(sizeof(unsigned char) * (psShape->nVertices));
 
 			if (psShape->nParts > 0 && psShape->panPartStart[0] != 0)
 				printf("panPartStart[0] = %d, not zero as expected.\n", psShape->panPartStart[0]);
@@ -105,7 +105,7 @@ int ShpReader::read(const char * filename)
 			entity[i].totalVertex = psShape->nVertices;
 			for (j = 0, iPart = 1; j < psShape->nVertices; j++)
 			{
-				const char	*pszPartType = "";
+				const char* pszPartType = "";
 
 				if (j == 0 && psShape->nParts > 0)
 					pszPartType = SHPPartTypeName(psShape->panPartType[0]);
@@ -150,12 +150,12 @@ int ShpReader::read(const char * filename)
 	return 0;
 }
 
-int ShpReader::readLayer(const char * filename, DBFReader & layer)
+int ShpReader::readLayer(const char* filename, DBFReader& layer)
 {
 	SHPHandle	hSHP;
 	int			nShapeType, nEntities, i, iPart, bValidate = 0, nInvalidCount = 0;
 	int			bHeaderOnly = 0;
-	const char	*pszPlus;
+	const char* pszPlus;
 	double 		adfMinBound[4], adfMaxBound[4];
 
 	/* -------------------------------------------------------------------- */
@@ -182,7 +182,7 @@ int ShpReader::readLayer(const char * filename, DBFReader & layer)
 	nEntities = layer.getNumberOfRecords();
 
 	//jiangfeng: create the memory
-	entity = (ShpEntity *)malloc(sizeof(ShpEntity)*nEntities);
+	entity = (ShpEntity*)malloc(sizeof(ShpEntity) * nEntities);
 	shpMinX = adfMinBound[0];
 	shpMinY = adfMinBound[1];
 	shpMaxX = adfMaxBound[0];
@@ -198,7 +198,7 @@ int ShpReader::readLayer(const char * filename, DBFReader & layer)
 		for (i = 0; i < nEntities && !bHeaderOnly; i++)
 		{
 			int		j;
-			SHPObject	*psShape;
+			SHPObject* psShape;
 
 			psShape = SHPReadObject(hSHP, (layer.getEntity())[i].id);
 
@@ -211,11 +211,11 @@ int ShpReader::readLayer(const char * filename, DBFReader & layer)
 
 			entity[i].type = psShape->nSHPType;
 			//jiangfeng: now allocate the memory space for vertexes
-			entity[i].coordinate = (double **)malloc(sizeof(double)*(psShape->nVertices));
+			entity[i].coordinate = (double**)malloc(sizeof(double) * (psShape->nVertices));
 			for (j = 0; j < psShape->nVertices; j++)
-				entity[i].coordinate[j] = (double *)malloc(3 * sizeof(double));
+				entity[i].coordinate[j] = (double*)malloc(3 * sizeof(double));
 
-			entity[i].isRing = (unsigned char*)malloc(sizeof(unsigned char)*(psShape->nVertices));
+			entity[i].isRing = (unsigned char*)malloc(sizeof(unsigned char) * (psShape->nVertices));
 
 			if (psShape->nParts > 0 && psShape->panPartStart[0] != 0)
 				printf("panPartStart[0] = %d, not zero as expected.\n", psShape->panPartStart[0]);
@@ -223,7 +223,7 @@ int ShpReader::readLayer(const char * filename, DBFReader & layer)
 			entity[i].totalVertex = psShape->nVertices;
 			for (j = 0, iPart = 1; j < psShape->nVertices; j++)
 			{
-				const char	*pszPartType = "";
+				const char* pszPartType = "";
 
 				if (j == 0 && psShape->nParts > 0)
 					pszPartType = SHPPartTypeName(psShape->panPartType[0]);

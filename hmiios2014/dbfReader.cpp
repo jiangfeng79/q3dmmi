@@ -45,7 +45,7 @@ void DBFReader::freeMemory()
 	}
 }
 
-int DBFReader::read(const char * filename)
+int DBFReader::read(const char* filename)
 {
 	DBFHandle	hDBF;
 	int		i, iRecord;
@@ -74,7 +74,7 @@ int DBFReader::read(const char * filename)
 
 	//jiangfeng: create the memory
 	numberOfEntity = DBFGetRecordCount(hDBF);
-	entity = (DBFEntity *)malloc(sizeof(DBFEntity)*numberOfEntity);
+	entity = (DBFEntity*)malloc(sizeof(DBFEntity) * numberOfEntity);
 
 	if (entity)
 	{
@@ -96,7 +96,7 @@ int DBFReader::read(const char * filename)
 						{
 						case FTString:
 						{
-							entity[iRecord].stringValue = (char *)malloc(strlen(DBFReadStringAttribute(hDBF, iRecord, i)) + 1);
+							entity[iRecord].stringValue = (char*)malloc(strlen(DBFReadStringAttribute(hDBF, iRecord, i)) + 1);
 							sprintf(entity[iRecord].stringValue, DBFReadStringAttribute(hDBF, iRecord, i));
 						}
 						break;
@@ -122,7 +122,7 @@ int DBFReader::read(const char * filename)
 	return(0);
 }
 
-int DBFReader::readLayer(const char * filename, const char * layername)
+int DBFReader::readLayer(const char* filename, const char* layername)
 {
 	DBFHandle	hDBF;
 	int		i, iRecord;
@@ -151,7 +151,7 @@ int DBFReader::readLayer(const char * filename, const char * layername)
 
 	//jiangfeng: create the memory
 	numberOfEntity = DBFGetRecordCount(hDBF);
-	entity = (DBFEntity *)malloc(sizeof(DBFEntity)*numberOfEntity);
+	entity = (DBFEntity*)malloc(sizeof(DBFEntity) * numberOfEntity);
 
 	int l_iNumberOfLayerItem = 0;
 	if (entity)
@@ -177,7 +177,7 @@ int DBFReader::readLayer(const char * filename, const char * layername)
 							//if(!strcmp(szTitle,"name"))
 							//{
 							entity[l_iNumberOfLayerItem].id = iRecord;
-							entity[l_iNumberOfLayerItem].stringValue = (char *)malloc(strlen(DBFReadStringAttribute(hDBF, iRecord, i)) + 1);
+							entity[l_iNumberOfLayerItem].stringValue = (char*)malloc(strlen(DBFReadStringAttribute(hDBF, iRecord, i)) + 1);
 							sprintf(entity[l_iNumberOfLayerItem].stringValue, DBFReadStringAttribute(hDBF, iRecord, i));
 							//}
 						}

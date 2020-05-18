@@ -23,18 +23,18 @@ public:
 		union {
 			int intValue;
 			double doubleValue;
-			char *stringValue;
+			char* stringValue;
 		};
 	}DBFEntity;
 
-	int read(const char * filename);
-	int readLayer(const char * filename, const char * layername);
+	int read(const char* filename);
+	int readLayer(const char* filename, const char* layername);
 
-	inline DBFEntity * getEntity() { return entity; };
+	inline DBFEntity* getEntity() { return entity; };
 	inline unsigned int getNumberOfRecords() { return numberOfEntity; }
 
 protected:
-	DBFEntity * entity;
+	DBFEntity* entity;
 	unsigned int numberOfEntity;
 };
 #endif /* DBFREAD_H_ */

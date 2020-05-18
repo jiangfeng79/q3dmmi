@@ -1,16 +1,16 @@
-﻿#include "openglWindow.h"
-#include <QtCore/QCoreApplication>
+﻿#include "OpenglWindow.h"
+#include <QCoreApplication>
 
-#include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLPaintDevice>
-#include <QtGui/QPainter>
+#include <QOpenGLContext>
+#include <QOpenGLPaintDevice>
+#include <QPainter>
 
 #include <time.h>
 #include <qDebug>
 
 #define MOTION_TIMEOUT 20
 //! [1]
-OpenglWindow::OpenglWindow(QWindow *parent)
+OpenglWindow::OpenglWindow(QWindow* parent)
 	: QWindow(parent)
 	, m_update_pending(false)
 	, m_animating(false)
@@ -53,7 +53,7 @@ OpenglWindow::~OpenglWindow()
 	delete m_device;
 }
 //! [2]
-void OpenglWindow::render(QPainter *painter)
+void OpenglWindow::render(QPainter* painter)
 {
 	Q_UNUSED(painter);
 }
@@ -86,7 +86,7 @@ void OpenglWindow::renderLater()
 	}
 }
 
-bool OpenglWindow::event(QEvent *event)
+bool OpenglWindow::event(QEvent* event)
 {
 	switch (event->type()) {
 	case QEvent::UpdateRequest:
@@ -97,7 +97,7 @@ bool OpenglWindow::event(QEvent *event)
 	}
 	case QEvent::MouseMove:
 	{
-		QMouseEvent *l_mouseEvent = static_cast<QMouseEvent*>(event);
+		QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
 		m_iMousePosX = l_mouseEvent->x();
 		m_iMousePosY = l_mouseEvent->y();
 		if (m_bMouseIsPressing)
@@ -140,10 +140,10 @@ bool OpenglWindow::event(QEvent *event)
 	}
 	case QEvent::MouseButtonPress:
 	{
-		QMouseEvent *l_mouseEvent = static_cast<QMouseEvent*>(event);
+		QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
 		if (l_mouseEvent->buttons() & Qt::LeftButton /*|| l_mouseEvent->buttons() == Qt::RightButton*/)
 		{
-			qDebug() << "left click";
+			//qDebug() << "left click";
 			m_iMouseInitX = l_mouseEvent->x();
 			m_iMouseInitY = l_mouseEvent->y();
 			m_iMouseDeltaX = 0;
@@ -155,7 +155,7 @@ bool OpenglWindow::event(QEvent *event)
 		}
 		else if (l_mouseEvent->buttons() & Qt::RightButton)
 		{
-			qDebug() << "right click";
+			//qDebug() << "right click";
 			m_iMouseInitX = l_mouseEvent->x();
 			m_iMouseInitY = l_mouseEvent->y();
 			m_iMouseDeltaX = 0;
@@ -167,7 +167,7 @@ bool OpenglWindow::event(QEvent *event)
 	}
 	case QEvent::MouseButtonRelease:
 	{
-		QMouseEvent *l_mouseEvent = static_cast<QMouseEvent*>(event);
+		QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
 		m_bMouseIsPressing = false;
 		float l_fMouseReleaseTime = (GLfloat)clock() / (GLfloat)CLOCKS_PER_SEC;
 		//m_iCenterDeltaX += m_iMouseDeltaX;
@@ -179,7 +179,7 @@ bool OpenglWindow::event(QEvent *event)
 
 			if ((l_fMouseReleaseTime - m_fMousePressTime) < 0.2)
 			{
-				m_fMotionSpeed = sqrt(m_iMouseDeltaX*m_iMouseDeltaX + m_iMouseDeltaY*m_iMouseDeltaY) / (l_fMouseReleaseTime - m_fMousePressTime) / m_fScaleFactor;
+				m_fMotionSpeed = sqrt(m_iMouseDeltaX * m_iMouseDeltaX + m_iMouseDeltaY * m_iMouseDeltaY) / (l_fMouseReleaseTime - m_fMousePressTime) / m_fScaleFactor;
 				m_fMotionDir = atan2((float)m_iMouseDeltaY, (float)m_iMouseDeltaX);
 			}
 		}
@@ -195,23 +195,20 @@ bool OpenglWindow::event(QEvent *event)
 	}
 	case QEvent::Wheel:
 	{
-		QWheelEvent *l_wheelEvent = static_cast<QWheelEvent*>(event);
+		QWheelEvent* l_wheelEvent = static_cast<QWheelEvent*>(event);
 		int numDegrees = l_wheelEvent->delta() / 8;
 		int numSteps = numDegrees / 15;
 		m_fScaleFactor *= pow(1.2, numSteps);
 		if (m_fScaleFactor > 1600.0)
 			m_fScaleFactor = 1600.0;
-
 		if (m_fScaleFactor < .0001)
 			m_fScaleFactor = .0001;
-
-
 
 		return true;
 	}
 	case QEvent::KeyPress:
 	{
-		QKeyEvent *l_keyevent = static_cast<QKeyEvent*>(event);
+		QKeyEvent* l_keyevent = static_cast<QKeyEvent*>(event);
 		if (l_keyevent->key() == Qt::Key_F)
 		{
 			if (m_windowMaximized)
@@ -236,7 +233,7 @@ bool OpenglWindow::event(QEvent *event)
 	}
 }
 
-void OpenglWindow::exposeEvent(QExposeEvent *event)
+void OpenglWindow::exposeEvent(QExposeEvent* event)
 {
 	Q_UNUSED(event);
 
@@ -259,12 +256,6 @@ void OpenglWindow::renderNow()
 		format.setSamples(4);    // Set the number of samples used for multisampling
 		m_context->setFormat(format);
 		m_context->create();
-		/*m_funcs = m_context->versionFunctions<QOpenGLFunctions_3_3_Core>();
-		if ( !m_funcs ) {
-		qWarning( "Could not obtain OpenGL versions object" );
-		exit( 1 );
-		}
-		m_funcs->initializeOpenGLFunctions();	*/
 		needsInitialize = true;
 	}
 
@@ -298,7 +289,7 @@ void OpenglWindow::setAnimating(bool animating)
 //! [5]
 
 //! [6]
-void OpenglWindow::renderText(int posX, int posY, QString & text)
+void OpenglWindow::renderText(int posX, int posY, const QString& text)
 {
 	if (!m_device)
 		m_device = new QOpenGLPaintDevice;
@@ -332,7 +323,7 @@ void OpenglWindow::calculateFPS()
 }
 //! [7]
 //! [8]
-void OpenglWindow::renderShape(QRect & rec)
+void OpenglWindow::renderShape(const QRect& rec)
 {
 	if (!m_device)
 		m_device = new QOpenGLPaintDevice;
@@ -351,7 +342,7 @@ void OpenglWindow::renderShape(QRect & rec)
 	}
 }
 
-void OpenglWindow::drawLines(const QVector<QPointF> & pointPairs)
+void OpenglWindow::drawLines(const QVector<QPointF>& pointPairs)
 {
 	if (!m_device)
 		m_device = new QOpenGLPaintDevice;
@@ -391,7 +382,7 @@ void OpenglWindow::setMapOpMask(MapOpMaskBits a_layer/*, bool a_b*/)
 //! [10]
 
 //! [11]
-void OpenglWindow::renderText(int posX, int posY, QString & text, QString &font)
+void OpenglWindow::renderText(int posX, int posY, const QString& text, const QString& font)
 {
 	if (!m_device)
 		m_device = new QOpenGLPaintDevice;
@@ -425,7 +416,7 @@ void OpenglWindow::renderText(int posX, int posY, QString & text, QString &font)
 //! [11]
 
 //! [12]
-void OpenglWindow::renderText(int posX, int posY, QString & text, QString &a_font, qreal a_angle)
+void OpenglWindow::renderText(int posX, int posY, const QString& text, const QString& a_font, qreal a_angle)
 {
 	if (!m_device)
 		m_device = new QOpenGLPaintDevice;

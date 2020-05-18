@@ -11,13 +11,13 @@ class MapFilterWidget : public QWidget, Ui::MapFilterWidget
 	Q_OBJECT
 
 public:
-	MapFilterWidget(QWidget *parent);
+	MapFilterWidget(QWidget* parent);
 	~MapFilterWidget();
 	void retranslate();
 
 private:
 
-signals :
+signals:
 	void signal_checkBox_state(TSDWindow::DisplayMaskBits layer, int state);
 
 private slots:
