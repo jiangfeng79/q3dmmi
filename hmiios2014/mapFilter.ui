@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>134</width>
+    <width>150</width>
     <height>294</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>150</width>
+    <height>0</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Map Filter</string>

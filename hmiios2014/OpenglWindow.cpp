@@ -71,7 +71,7 @@ void OpenglWindow::render()
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	m_device->setSize(size());
+    m_device->setSize(size()*devicePixelRatio());
 
 	QPainter painter(m_device);
 	render(&painter);
@@ -294,7 +294,7 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text)
 {
 	if (!m_device)
 		m_device = new QOpenGLPaintDevice;
-	m_device->setSize(size());
+    m_device->setSize(size()*devicePixelRatio());
 
 	if (m_device)
 	{
@@ -302,9 +302,9 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text)
 		//painter.beginNativePainting();
 		painter.setPen(QColor(255, 255, 255, 127));
 		//QFont font("Sans Serif");
-		QFont font("Monospace");
+        QFont font("Courier");
 		font.setStyleHint(QFont::TypeWriter);
-		font.setPixelSize(16);
+        font.setPixelSize(16*devicePixelRatio());
 		font.setBold(true);
 		//painter.setRenderHint(QPainter::Antialiasing);
 		painter.setFont(font);
@@ -328,7 +328,7 @@ void OpenglWindow::renderShape(const QRect& rec)
 {
 	if (!m_device)
 		m_device = new QOpenGLPaintDevice;
-	//m_device->setSize(size());
+    m_device->setSize(size()*devicePixelRatio());
 
 	//if(m_device)
 	{
@@ -347,14 +347,14 @@ void OpenglWindow::drawLines(const QVector<QPointF>& pointPairs)
 {
 	if (!m_device)
 		m_device = new QOpenGLPaintDevice;
-	m_device->setSize(size());
+    m_device->setSize(size()*devicePixelRatio());
 
 	if (m_device)
 	{
 		QPainter painter(m_device);
 
 		//painter.beginNativePainting();
-		painter.setPen(QColor(255, 255, 255, 127));
+        painter.setPen(QPen(QColor(255, 255, 255, 127), 1*devicePixelRatio()));
 		painter.setRenderHint(QPainter::Antialiasing);
 		//painter.setBrush(QBrush(QColor(0, 255, 0, 63), Qt::SolidPattern));
 		painter.drawLines(pointPairs);
@@ -390,7 +390,7 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
 
 	if (m_device)
 	{
-		m_device->setSize(size());
+        m_device->setSize(size()*devicePixelRatio());
 
 		QPainter painter(m_device);
 
@@ -409,7 +409,10 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
 		//painter.setRenderHint(QPainter::Antialiasing);
 		//painter.setFont(font);
 		//painter.setBrush(QBrush(QColor(0, 255, 0, 127), Qt::SolidPattern));*/
-		painter.drawText(posX - metrics.width(text) / 2, posY + 12, text);
+        m_font.setPixelSize(12*devicePixelRatio());
+        m_font.setBold(false);
+        painter.setFont(m_font);
+        painter.drawText(posX - metrics.width(text)*devicePixelRatio() / 2, posY + 12*devicePixelRatio(), text);
 
 		//painter.endNativePainting();
 	}
@@ -421,7 +424,7 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
 {
 	if (!m_device)
 		m_device = new QOpenGLPaintDevice;
-	m_device->setSize(size());
+    m_device->setSize(size()*devicePixelRatio());
 
 
 	if (m_device)
