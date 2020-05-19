@@ -607,11 +607,11 @@ void TSDWindow::render()
 
     renderShape(QRect(0, 0, 300*retinaScale, 80*retinaScale));
     renderText(10, 18*retinaScale, QString("Coord: [%1,%2]").arg(X).arg(Y));
-    renderText(10, 36*retinaScale, QString("Scale: [%1]").arg(SCALE));
-    renderText(10, 54*retinaScale, QString("1 NM:  "));
-    QVector<QPointF> scaleLine;
-    scaleLine.append(QPointF(84*retinaScale, 54*retinaScale));
-    scaleLine.append(QPointF(84*retinaScale + 1852*SCALE*2, 54*retinaScale));
+	renderText(10, 36 * retinaScale, QString("Scale: [%1]").arg(SCALE));
+	renderText(10, 54 * retinaScale, QString("1 NM:  "));
+	QVector<QPointF> scaleLine;
+	scaleLine.append(QPointF(84 * retinaScale, 54 * retinaScale));
+	scaleLine.append(QPointF(84 * retinaScale + 1852 * SCALE * retinaScale, 54 * retinaScale));
     drawLines(scaleLine);
 
     renderText(10, 72*retinaScale, QString("Refresh Rate: %1").arg(m_fps, 4, 10, QChar(' ')));

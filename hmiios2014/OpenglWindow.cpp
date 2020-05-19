@@ -390,7 +390,7 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
 
 	if (m_device)
 	{
-        m_device->setSize(size()*devicePixelRatio());
+		m_device->setSize(size() * devicePixelRatio());
 
 		QPainter painter(m_device);
 
@@ -409,9 +409,12 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
 		//painter.setRenderHint(QPainter::Antialiasing);
 		//painter.setFont(font);
 		//painter.setBrush(QBrush(QColor(0, 255, 0, 127), Qt::SolidPattern));*/
-        m_font.setPixelSize(12*devicePixelRatio());
-        m_font.setBold(false);
-        painter.setFont(m_font);
+		if (devicePixelRatio() > 1)
+		{
+			m_font.setPixelSize(12 * devicePixelRatio());
+			m_font.setBold(false);
+			painter.setFont(m_font);
+		}
         painter.drawText(posX - metrics.width(text)*devicePixelRatio() / 2, posY + 12*devicePixelRatio(), text);
 
 		//painter.endNativePainting();
