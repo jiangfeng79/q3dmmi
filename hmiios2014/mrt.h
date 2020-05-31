@@ -135,7 +135,11 @@ static const GLfloat mrt[] = {
 
 	103.861039,1.293172,  //cc4
 	103.859280,1.282495, //CE1
-	103.85420, 1.27629 //NS27, CE2
+	103.85420, 1.27629, //NS27, CE2
+
+	103.954683,	1.356326,
+	103.961536,	1.341740,
+	103.962335,	1.335688
 
 };
 
@@ -248,7 +252,10 @@ const char *mrt_name[] = {
 
 	"PROMENADE", //CC4
 	"BAY FRONT", //CE1
-	"MARINA BAY" //3
+	"MARINA BAY", //3
+	"TAMPINES EAST",
+	"UPPER CHANGI",
+	"EXPO"
 };
 
 /*

@@ -17,66 +17,66 @@ QT_END_NAMESPACE
 //! [1]
 class OpenglWindow : public QWindow, protected QOpenGLFunctions
 {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	enum MapOpMaskBits
-	{
-		PAN = 1,
-		EBL = 1 << 1
-	};
+    enum MapOpMaskBits
+    {
+        PAN = 1,
+        EBL = 1 << 1
+    };
 
-	explicit OpenglWindow(QWindow *parent = 0);
-	~OpenglWindow();
+    explicit OpenglWindow(QWindow* parent = 0);
+    ~OpenglWindow();
 
-	virtual void render(QPainter *painter);
-	virtual void render();
+    virtual void render(QPainter* painter);
+    virtual void render();
 
-	virtual void initialize();
+    virtual void initialize();
 
-	void setAnimating(bool animating);
-    void renderText(int posX, int posY, const QString & text);
-    void renderText(int posX, int posY, const QString & text, const QString &font);
-    void renderText(int posX, int posY, const QString & text, const QString &font, qreal angle);
-    void renderShape(const QRect &rec);
-	void drawLines(const QVector<QPointF> & pointPairs);
+    void setAnimating(bool animating);
+    void renderText(int posX, int posY, const QString& text);
+    void renderText(int posX, int posY, const QString& text, const QString& font);
+    void renderText(int posX, int posY, const QString& text, const QString& font, qreal angle);
+    void renderShape(const QRect& rec);
+    void drawLines(const QVector<QPointF>& pointPairs);
 
-	void setMapOpMask(MapOpMaskBits layer);
+    void setMapOpMask(MapOpMaskBits layer);
 
-	public slots:
-	void renderLater();
-	void renderNow();
-	void calculateFPS();
-	void resetGeometry(QRect a_rect);
+public slots:
+    void renderLater();
+    void renderNow();
+    void calculateFPS();
+    void resetGeometry(QRect a_rect);
 
 protected:
-	bool event(QEvent *event);
-	void exposeEvent(QExposeEvent *event);
-	QTimer* timer;
-	int m_fpsCounter, m_fps;
-	int m_iMousePosX, m_iMousePosY;
-	int m_iMouseInitX, m_iMouseInitY;
-	int m_iMouseDeltaX, m_iMouseDeltaY;
+    bool event(QEvent* event);
+    void exposeEvent(QExposeEvent* event);
+    QTimer* timer;
+    int m_fpsCounter, m_fps;
+    int m_iMousePosX, m_iMousePosY;
+    int m_iMouseInitX, m_iMouseInitY;
+    int m_iMouseDeltaX, m_iMouseDeltaY;
 
-	float m_fMapCenterDeltaX, m_fMapCenterDeltaY; // in meter
-	float m_fMapPrevCenterDeltaX, m_fMapPrevCenterDeltaY; // in meter
-	float m_fMotionSpeed, m_fMotionDir, m_fMousePressTime;
+    float m_fMapCenterDeltaX, m_fMapCenterDeltaY; // in meter
+    float m_fMapPrevCenterDeltaX, m_fMapPrevCenterDeltaY; // in meter
+    float m_fMotionSpeed, m_fMotionDir, m_fMousePressTime;
 
-	double m_dRotationAngle, m_dPrevRotationAngle;
-	bool m_bMouseIsPressing;
-	float m_fScaleFactor;
-	bool m_windowMaximized;
-	QOpenGLContext *m_context;
-	QOpenGLPaintDevice *m_device;
-	unsigned int  m_uiMapOpMask;
+    double m_dRotationAngle, m_dPrevRotationAngle;
+    bool m_bMouseIsPressing;
+    float m_fScaleFactor;
+    bool m_windowMaximized;
+    QOpenGLContext* m_context;
+    QOpenGLPaintDevice* m_device;
+    unsigned int  m_uiMapOpMask;
 
-	QFont m_font;
+    QFont m_font;
 
 private:
-	bool m_update_pending;
-	bool m_animating;
+    bool m_update_pending;
+    bool m_animating;
 
 signals:
-	void signal_setFps(int a_iFps);
+    void signal_setFps(int a_iFps);
 
 };
 //! [1]

@@ -268,10 +268,10 @@ void TSDWindow::drawTextWithAngle(TSDWindow::MapLayer& a_layer)
     {
         for (int i = 0; i < a_layer.m_dbfFileReader.getNumberOfRecords(); ++i)
         {
-            int x = X_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[i].coordinate[0])*retinaScale;
-            int y = Y_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[i].coordinate[1])*retinaScale;
+            int x = X_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[i].coordinate[0]) * retinaScale;
+            int y = Y_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[i].coordinate[1]) * retinaScale;
             char* lable = (a_layer.m_dbfFileReader.getEntity())[i].stringValue;
-            if (x > 0 && x < width()*retinaScale && y>0 && y < height()*retinaScale && lable != NULL)
+            if (x > 0 && x < width() * retinaScale && y>0 && y < height() * retinaScale && lable != NULL)
                 renderText(x, y, QString(lable), QString("Tahoma"), (a_layer.m_dbfFileReader.getEntity())[i].angle);
         }
     }
@@ -284,11 +284,13 @@ void TSDWindow::drawText(TSDWindow::MapLayer& a_layer)
     {
         for (int i = 0; i < a_layer.m_dbfFileReader.getNumberOfRecords(); ++i)
         {
-            int x = X_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[i].coordinate[0])*retinaScale;
-            int y = Y_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[i].coordinate[1])*retinaScale;
+            int x = X_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[i].coordinate[0]) * retinaScale;
+            int y = Y_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[i].coordinate[1]) * retinaScale;
             char* lable = (a_layer.m_dbfFileReader.getEntity())[i].stringValue;
-            if (x > 0 && x < width()*retinaScale && y>0 && y < height()*retinaScale && lable != NULL)
+            if (x > 0 && x < width() * retinaScale && y>0 && y < height() * retinaScale && lable != NULL)
+            {
                 renderText(x, y, QString(lable), QString("Tahoma"));
+            }
         }
     }
 }
@@ -402,7 +404,8 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
             if (a_layer.m_renderType[i] == SHPT_POLYGON)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-                glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(a_layer.m_ring[i] * 3 * 4));
+                
+                glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
                 glEnableVertexAttribArray(0);
                 //glDisable(GL_DEPTH_TEST);
@@ -424,7 +427,7 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
             if (a_layer.m_renderType[i] == SHPT_POLYGON)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-                glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(a_layer.m_ring[i] * 3 * 4));
+                glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
                 glEnableVertexAttribArray(0);
                 //glDisable(GL_DEPTH_TEST);
@@ -445,7 +448,7 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
             if (a_layer.m_renderType[i] == SHPT_POLYGON)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-                glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(a_layer.m_ring[i] * 3 * 4));
+                glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
                 glEnableVertexAttribArray(0);
                 //glDisable(GL_DEPTH_TEST);
@@ -460,7 +463,7 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
             if (a_layer.m_renderType[i] == SHPT_POLYGON)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-                glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(a_layer.m_ring[i] * 3 * 4));
+                glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
                 glEnableVertexAttribArray(0);
                 //glDisable(GL_DEPTH_TEST);
@@ -485,7 +488,7 @@ void TSDWindow::drawLayer(MapLayer& a_layer, int a_iColorId)
             glLineWidth(1);
             m_program->setUniformValue(m_colorId, a_iColorId);
             glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(a_layer.m_ring[i] * 3 * 4));
+            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glEnableVertexAttribArray(0);
             glDrawArrays(GL_LINE_STRIP, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
@@ -504,7 +507,7 @@ void TSDWindow::drawLayer(MapLayer& a_layer, int a_iColorId)
                 glLineWidth(2);
             m_program->setUniformValue(m_colorId, a_iColorId);
             glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(a_layer.m_ring[i] * 3 * 4));
+            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glEnableVertexAttribArray(0);
             glDrawArrays(GL_LINE_STRIP, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
@@ -517,7 +520,7 @@ void TSDWindow::drawLayer(MapLayer& a_layer, int a_iColorId)
             glLineWidth(2);
             m_program->setUniformValue(m_colorId, a_iColorId);
             glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(a_layer.m_ring[i] * 3 * 4));
+            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glEnableVertexAttribArray(0);
             glDrawArrays(GL_POINTS, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
@@ -605,25 +608,25 @@ void TSDWindow::render()
     //QString X1 = QString("%1'%2").arg((int)mapX).arg((mapX-(int)mapX));
     //QString Y1 = QString("%1'%2").arg((int)mapY).arg((mapY-(int)mapY));
 
-    renderShape(QRect(0, 0, 300*retinaScale, 80*retinaScale));
-    renderText(10, 18*retinaScale, QString("Coord: [%1,%2]").arg(X).arg(Y));
-	renderText(10, 36 * retinaScale, QString("Scale: [%1]").arg(SCALE));
-	renderText(10, 54 * retinaScale, QString("1 NM:  "));
-	QVector<QPointF> scaleLine;
-	scaleLine.append(QPointF(84 * retinaScale, 54 * retinaScale));
-	scaleLine.append(QPointF(84 * retinaScale + 1852 * SCALE * retinaScale, 54 * retinaScale));
+    renderShape(QRect(0, 0, 300 * retinaScale, 80 * retinaScale));
+    renderText(10, 18 * retinaScale, QString("Coord: [%1,%2]").arg(X).arg(Y));
+    renderText(10, 36 * retinaScale, QString("Scale: [%1]").arg(SCALE));
+    renderText(10, 54 * retinaScale, QString("1 NM:  "));
+    QVector<QPointF> scaleLine;
+    scaleLine.append(QPointF(84 * retinaScale, 54 * retinaScale));
+    scaleLine.append(QPointF(84 * retinaScale + 1852 * SCALE * retinaScale, 54 * retinaScale));
     drawLines(scaleLine);
 
-    renderText(10, 72*retinaScale, QString("Refresh Rate: %1").arg(m_fps, 4, 10, QChar(' ')));
+    renderText(10, 72 * retinaScale, QString("Refresh Rate: %1").arg(m_fps, 4, 10, QChar(' ')));
 
     if (SCALE > 0.1)
     {
 
         for (int i = 0; i < sizeof(mrt) / sizeof(GLfloat) / 2; ++i)
         {
-            int x = X_WGS84_COORD_TO_SCREEN_COORD(mrt[i * 2])*retinaScale;
-            int y = Y_WGS84_COORD_TO_SCREEN_COORD(mrt[i * 2 + 1])*retinaScale;
-            if (x > 0 && x < width()*retinaScale && y>0 && y < height()*retinaScale)
+            int x = X_WGS84_COORD_TO_SCREEN_COORD(mrt[i * 2]) * retinaScale;
+            int y = Y_WGS84_COORD_TO_SCREEN_COORD(mrt[i * 2 + 1]) * retinaScale;
+            if (x > 0 && x < width() * retinaScale && y>0 && y < height() * retinaScale)
                 renderText(x + 7, y + 5, QString(mrt_name[i]), QString("Tahoma"));
         }
         //printMrtStringToScreen<sizeof(mrt)/sizeof(GLfloat)/2-1>();
@@ -652,13 +655,13 @@ void TSDWindow::render()
     ++m_fpsCounter;
 
     // smooth speed
-    if(m_fMotionSpeed>0)
+    if (m_fMotionSpeed > 0)
     {
-        m_fMapCenterDeltaX += m_fMotionSpeed/50*cos(m_fMotionDir);
-        m_fMapCenterDeltaY += m_fMotionSpeed/50*sin(m_fMotionDir);
+        m_fMapCenterDeltaX += m_fMotionSpeed / 50 * cos(m_fMotionDir);
+        m_fMapCenterDeltaY += m_fMotionSpeed / 50 * sin(m_fMotionDir);
         m_fMapPrevCenterDeltaX = m_fMapCenterDeltaX;
         m_fMapPrevCenterDeltaY = m_fMapCenterDeltaY;
-        m_fMotionSpeed-=50/m_fScaleFactor;
+        m_fMotionSpeed -= 50 / m_fScaleFactor;
     }
 }
 //! [5]
@@ -709,7 +712,7 @@ void TSDWindow::drawEBL(float x, float y, float r)
             glDrawArrays(GL_LINES, 0, 2);
             glDisableVertexAttribArray(0);
 
-            renderText(m_iMousePosX*devicePixelRatio() + 15, m_iMousePosY*devicePixelRatio() + 20, QString(tr("Angle: %1, Dist: %2")).arg(angle, 5, 'f', 1, QChar('0')).arg(r), QString("Tahoma"));
+            renderText(m_iMousePosX * devicePixelRatio() + 15, m_iMousePosY * devicePixelRatio() + 20, QString(tr("Angle: %1, Dist: %2")).arg(angle, 5, 'f', 1, QChar('0')).arg(r), QString("Courier"));
         }
     }
 }
