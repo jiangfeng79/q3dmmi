@@ -4,67 +4,67 @@
 <context>
     <name>MapFilterWidget</name>
     <message>
-        <location filename="mapFilter.ui" line="14"/>
+        <location filename="mapFilter.ui" line="20"/>
         <source>Map Filter</source>
         <translation type="unfinished">图层显示筛选</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="20"/>
+        <location filename="mapFilter.ui" line="41"/>
         <source>Land</source>
         <translation type="unfinished">陆地</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="33"/>
+        <location filename="mapFilter.ui" line="54"/>
         <source>Water Area</source>
         <translation type="unfinished">水域</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="46"/>
+        <location filename="mapFilter.ui" line="67"/>
         <source>Land Usage</source>
         <translation type="unfinished">土地使用</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="59"/>
+        <location filename="mapFilter.ui" line="80"/>
         <source>Buildings</source>
         <translation type="unfinished">建筑</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="72"/>
+        <location filename="mapFilter.ui" line="93"/>
         <source>Places</source>
         <translation type="unfinished">地点</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="85"/>
+        <location filename="mapFilter.ui" line="106"/>
         <source>Motor Ways</source>
         <translation type="unfinished">机动车道</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="98"/>
+        <location filename="mapFilter.ui" line="119"/>
         <source>Railways</source>
         <translation type="unfinished">轨道</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="111"/>
+        <location filename="mapFilter.ui" line="132"/>
         <source>Main Roads</source>
         <translation type="unfinished">主要公路</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="124"/>
+        <location filename="mapFilter.ui" line="145"/>
         <source>Minor Roads</source>
         <translation type="unfinished">小路</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="137"/>
+        <location filename="mapFilter.ui" line="158"/>
         <source>Aero Ways</source>
         <translation type="unfinished">航空跑道</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="150"/>
+        <location filename="mapFilter.ui" line="171"/>
         <source>Amenities</source>
         <translation type="unfinished">便利点</translation>
     </message>
     <message>
-        <location filename="mapFilter.ui" line="163"/>
+        <location filename="mapFilter.ui" line="184"/>
         <source>Man Made</source>
         <translation type="unfinished">人造物体</translation>
     </message>
@@ -72,7 +72,7 @@
 <context>
     <name>TSDWindow</name>
     <message>
-        <location filename="TSDWindow.cpp" line="700"/>
+        <location filename="TSDWindow.cpp" line="715"/>
         <source>Angle: %1, Dist: %2</source>
         <translation type="unfinished">角度: %1, 距离: %2</translation>
     </message>
@@ -129,74 +129,79 @@
         <translation type="unfinished">副工具栏</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="140"/>
+        <location filename="hmiios2014.ui" line="136"/>
+        <source>Map Filter</source>
+        <translation type="unfinished">图层显示筛选</translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="170"/>
         <source>Fullscreen</source>
         <translation type="unfinished">全屏显示</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="149"/>
-        <location filename="hmiios2014.ui" line="152"/>
+        <location filename="hmiios2014.ui" line="179"/>
+        <location filename="hmiios2014.ui" line="182"/>
         <source>Normal Screen</source>
         <translation type="unfinished">窗口显示</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="164"/>
+        <location filename="hmiios2014.ui" line="194"/>
         <source>Select</source>
         <translation type="unfinished">选择</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="167"/>
+        <location filename="hmiios2014.ui" line="197"/>
         <source>Select Object</source>
         <translation type="unfinished">选择物件</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="179"/>
+        <location filename="hmiios2014.ui" line="209"/>
         <source>EBL</source>
         <translation type="unfinished">测量弧</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="182"/>
+        <location filename="hmiios2014.ui" line="212"/>
         <source>Elastic Bearer Line</source>
         <translation type="unfinished">伸缩边界线</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="191"/>
+        <location filename="hmiios2014.ui" line="221"/>
         <source>Exit</source>
         <translation type="unfinished">退出</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="200"/>
+        <location filename="hmiios2014.ui" line="230"/>
         <source>Center Map</source>
         <translation type="unfinished">地图中心</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="209"/>
+        <location filename="hmiios2014.ui" line="239"/>
         <source>Map Layer Filter</source>
         <translation type="unfinished">图层显示</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="212"/>
+        <location filename="hmiios2014.ui" line="242"/>
         <source>Declutter map layers</source>
         <translation type="unfinished">清理地图</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="221"/>
+        <location filename="hmiios2014.ui" line="251"/>
         <source>Zoom!</source>
         <translation type="unfinished">缩放！</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="230"/>
-        <location filename="hmiios2014.ui" line="233"/>
+        <location filename="hmiios2014.ui" line="260"/>
+        <location filename="hmiios2014.ui" line="263"/>
         <source>Swing!</source>
         <translation type="unfinished">摇摆！</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="238"/>
+        <location filename="hmiios2014.ui" line="268"/>
         <source>Chinese</source>
         <translation type="unfinished">中文</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="243"/>
+        <location filename="hmiios2014.ui" line="273"/>
         <source>Default</source>
         <translation type="unfinished">预设</translation>
     </message>
