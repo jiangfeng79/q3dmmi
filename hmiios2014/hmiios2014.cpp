@@ -132,7 +132,7 @@ void hmiios2014::on_actionChineseLang_triggered()
     //QLocale::setDefault(locale);
     QString chineselanguageName = "zh";
 
-    switchTranslator(m_translatorDefault, QString("hmiios2014_%1.qm").arg(chineselanguageName));
+    switchTranslator(m_translatorDefault, QString(":/hmiios2014/hmiios2014_%1.qm").arg(chineselanguageName));
     ui.statusBar->showMessage(tr("Current Language changed to %1").arg(chineselanguageName));
 }
 
@@ -141,7 +141,7 @@ void hmiios2014::on_actionDefaultLang_triggered()
     //QMessageBox::information(this, "Lang test",tr("good"));
     QString englishlanguageName = "en";
 
-    switchTranslator(m_translatorChinese, QString("hmiios2014_%1.qm").arg(englishlanguageName));
+    switchTranslator(m_translatorChinese, QString(":/hmiios2014/hmiios2014_%1.qm").arg(englishlanguageName));
     ui.statusBar->showMessage(tr("Current Language changed to %1").arg(englishlanguageName));
 }
 

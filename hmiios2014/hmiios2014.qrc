@@ -12,5 +12,9 @@
         <file alias="pick">Resources/gtk-color-picker.png</file>
         <file alias="layer">Resources/gtk-dnd-multiple.png</file>
         <file alias="splash.png">Resources/hmiios.png</file>
+        <file>hmiios2014_en.qm</file>
+        <file>hmiios2014_zh.qm</file>
+        <file>fshader.glsl</file>
+        <file>vshader.glsl</file>
     </qresource>
 </RCC>

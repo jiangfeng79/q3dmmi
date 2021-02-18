@@ -307,8 +307,8 @@ void TSDWindow::initialize()
 {
     m_program = new QOpenGLShaderProgram(this);
 
-    m_program->addShaderFromSourceFile(QOpenGLShader::Vertex, QString("vshader.glsl"));
-    m_program->addShaderFromSourceFile(QOpenGLShader::Fragment, QString("fshader.glsl"));
+    m_program->addShaderFromSourceFile(QOpenGLShader::Vertex, QString(":/hmiios2014/vshader.glsl"));
+    m_program->addShaderFromSourceFile(QOpenGLShader::Fragment, QString(":/hmiios2014/fshader.glsl"));
 
     m_program->link();
 
