@@ -1,12 +1,12 @@
 ## Welcome to q3dmmi
+![Demo](https://github.com/jiangfeng79/q3dmmi/blob/master/hmiios2014/Screenshots/4.png)
 
 This is a hobby project I started from 2007.
 The purpose is to use modern widget lib with opengl support to draw hardware accel. vector graphics(maps).
+[Wiki](https://github.com/jiangfeng79/q3dmmi/wiki).
 
-Screenshots:
-![Demo](https://github.com/jiangfeng79/q3dmmi/blob/master/hmiios2014/Screenshots/4.png)
-
-[Wiki](https://github.com/jiangfeng79/q3dmmi/wiki)
+Builds:
+[AppVeyor](https://ci.appveyor.com/project/jiangfeng79/q3dmmi/build/artifacts)
 
 ## History
 - Due to work requirement, 2D vector graphics engine was explored. Linux/Xlib/motif was the platform used.
