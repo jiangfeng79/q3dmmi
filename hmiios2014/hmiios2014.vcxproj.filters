@@ -38,6 +38,9 @@
       <Extensions>ts</Extensions>
       <ParseFiles>false</ParseFiles>
     </Filter>
+    <Filter Include="Shader Files">
+      <UniqueIdentifier>{4da0561a-8b64-4cda-aa12-68dfb5fed885}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -133,13 +136,17 @@
     <ResourceCompile Include="hmiios2014.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="fshader.glsl" />
-    <None Include="vshader.glsl" />
     <None Include="hmiios2014_zh.ts">
       <Filter>Translation Files</Filter>
     </None>
     <None Include="hmiios2014_en.ts">
       <Filter>Translation Files</Filter>
+    </None>
+    <None Include="fshader.glsl">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="vshader.glsl">
+      <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>
 </Project>

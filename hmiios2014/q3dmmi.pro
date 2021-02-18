@@ -39,16 +39,15 @@ FORMS += \
     hmiios2014.ui \
     mapFilter.ui
 
-win32:INCLUDEPATH += $$PWD/../../shapelib-1.3.0/
-else: INCLUDEPATH += $$PWD/../../shapelib-1.5.0/
+INCLUDEPATH += $$PWD/../../shapelib-1.5.0/
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../shapelib-1.3.0/ -lshapelib opengl32.lib
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../shapelib-1.3.0/ -lshapelib opengl32.lib
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../shapelib-1.5.0/ -lshapelib opengl32.lib
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../shapelib-1.5.0/ -lshapelib opengl32.lib
 else:unix: LIBS += -L/usr/local/lib -lshp
 
 DISTFILES += \
