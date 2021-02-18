@@ -21,6 +21,8 @@ install:
   - set PATH=%QTDIR%\bin;%PATH%
 build_script:
   - cd c:\projects\q3dmmi
+  - lupdate.exe ./hmiios2014/q3dmmi.pro
+  - lrelease.exe ./hmiios2014/q3dmmi.pro
   - mkdir build
   - cd build
   - qmake ..\hmiios2014\q3dmmi.pro

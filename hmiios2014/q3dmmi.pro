@@ -39,6 +39,9 @@ FORMS += \
     hmiios2014.ui \
     mapFilter.ui
 
+TRANSLATIONS = hmiios2014_en.ts \
+               hmiios2014_zh.ts
+
 INCLUDEPATH += $$PWD/../../shapelib-1.5.0/
 
 # Default rules for deployment.
