@@ -5,7 +5,7 @@ This is a hobby project I started from 2007.
 The purpose is to use modern widget lib with opengl support to draw hardware accel. vector graphics(maps).
 [Wiki](https://github.com/jiangfeng79/q3dmmi/wiki).
 
-Builds:
+Binary Builds:
 [AppVeyor](https://ci.appveyor.com/project/jiangfeng79/q3dmmi/build/artifacts)
 
 ## History
