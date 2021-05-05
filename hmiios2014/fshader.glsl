@@ -1,5 +1,6 @@
 uniform vec2 resolution;
 uniform vec2 mouse;
+uniform vec2 mouseDelta;
 uniform float time;
 uniform int color_id;
 /*uniform  vec4 colors[23] = {
@@ -31,7 +32,24 @@ uniform int color_id;
 void main() {
 		//gl_FragColor = colors[color_id];
 		if(color_id == 0)
-			gl_FragColor =vec4(.2, .6, .1,1.);
+		{
+			const float Pi = 3.14159;
+			const int   complexity      = 47;    // More points of color.
+			const float mouse_factor    = 56.0;  // Makes it more/less jumpy.
+			const float mouse_offset    = 0.0;   // Drives complexity in the amount of curls/cuves.  Zero is a single whirlpool.
+			const float fluid_speed     = 54.0;  // Drives speed, higher number will make it slower.
+			const float color_intensity = 0.8;
+			vec2 p=(2.0*(gl_FragCoord.xy - mouseDelta.xy)-resolution)/max(resolution.x,resolution.y);
+			for(int i=1;i<complexity;i++)
+			{
+				vec2 newp=p + time*0.001;
+				newp.x+=0.6/float(i)*sin(float(i)*p.y+time/fluid_speed+0.3*float(i)) + 0.5; // + mouse.y/mouse_factor+mouse_offset;
+				newp.y+=0.6/float(i)*sin(float(i)*p.x+time/fluid_speed+0.3*float(i+10)) - 0.5; // - mouse.x/mouse_factor+mouse_offset;
+				p=newp;
+			}
+			vec3 col=vec3(color_intensity*sin(3.0*p.x)+color_intensity,color_intensity*sin(3.0*p.y)+color_intensity,color_intensity*sin(p.x+p.y)+color_intensity);
+			gl_FragColor=vec4(col, 1);
+		}
 		else if(color_id == 1)
 			gl_FragColor =vec4(.0, .5, .0,1.0);
 		else if(color_id == 2)
@@ -75,5 +93,5 @@ void main() {
 		else if(color_id == 21)
 			gl_FragColor =vec4(.2, .6, .1,1.);
 		else if(color_id == 22)
-			gl_FragColor =vec4(.0, .6, .0,1.);
+			gl_FragColor =vec4(.0, .6, .0,1.);	
 }

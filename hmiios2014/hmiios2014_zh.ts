@@ -72,7 +72,7 @@
 <context>
     <name>TSDWindow</name>
     <message>
-        <location filename="TSDWindow.cpp" line="715"/>
+        <location filename="TSDWindow.cpp" line="721"/>
         <source>Angle: %1, Dist: %2</source>
         <translation type="unfinished">角度: %1, 距离: %2</translation>
     </message>

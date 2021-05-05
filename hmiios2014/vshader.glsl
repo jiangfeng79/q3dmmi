@@ -3,6 +3,7 @@ attribute highp vec4 posAttr;
 //varying lowp vec4 col;
 varying lowp vec4 pos;
 uniform lowp vec2 mouse;
+uniform lowp vec2 mouseDelta;
 uniform lowp vec2 resolution;
 uniform float time;
 uniform highp mat4 matrix;

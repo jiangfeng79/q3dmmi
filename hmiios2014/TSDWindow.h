@@ -186,6 +186,7 @@ private:
     GLuint m_colorIdAttr;
     GLuint m_matrixUniform;
     GLuint m_mouse;
+    GLuint m_mouseDelta;
     GLuint m_resolution;
     GLuint m_time;
     GLuint m_colorId;

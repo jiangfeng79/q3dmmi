@@ -316,6 +316,7 @@ void TSDWindow::initialize()
     m_colAttr = m_program->attributeLocation("colAttr");
     m_matrixUniform = m_program->uniformLocation("matrix");
     m_mouse = m_program->uniformLocation("mouse");
+    m_mouseDelta = m_program->uniformLocation("mouseDelta");
     m_resolution = m_program->uniformLocation("resolution");
     m_time = m_program->uniformLocation("time");
     m_colorId = m_program->uniformLocation("color_id");
@@ -552,6 +553,7 @@ void TSDWindow::render()
 
     GLfloat time = (GLfloat)clock() / (GLfloat)CLOCKS_PER_SEC;
     GLfloat mouse[] = { (GLfloat)m_iMousePosX, (GLfloat)m_iMousePosY };
+    GLfloat mouseDelta[] = { (GLfloat)m_fMapCenterDeltaX * m_fScaleFactor, (GLfloat)m_fMapCenterDeltaY * m_fScaleFactor };
     GLfloat resolution[] = { (GLfloat)w, (GLfloat)h };
 
     QMatrix4x4 matrix;
@@ -575,7 +577,8 @@ void TSDWindow::render()
 
     m_program->bind();
     m_program->setUniformValue(m_matrixUniform, matrix);
-    m_program->setUniformValue(m_mouse, mouse[0], mouse[1]);
+    m_program->setUniformValue(m_mouse, mouse[0], -mouse[1] + resolution[1]/2);
+    m_program->setUniformValue(m_mouseDelta, mouseDelta[0], -mouseDelta[1]);
     m_program->setUniformValue(m_resolution, resolution[0], resolution[1]);
     m_program->setUniformValue(m_time, time);
 
