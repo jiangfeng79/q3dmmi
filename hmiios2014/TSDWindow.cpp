@@ -578,8 +578,8 @@ void TSDWindow::render()
 
     m_program->bind();
     m_program->setUniformValue(m_matrixUniform, matrix);
-    m_program->setUniformValue(m_mouse, mouse[0] * devicePixelRatio(), -mouse[1] * devicePixelRatio() + resolution[1]/2);
-    m_program->setUniformValue(m_mouseDelta, mouseDelta[0] * devicePixelRatio(), -mouseDelta[1] * devicePixelRatio());
+    m_program->setUniformValue(m_mouse, mouse[0] * retinaScale, -mouse[1] * retinaScale + resolution[1]/2);
+    m_program->setUniformValue(m_mouseDelta, mouseDelta[0] * retinaScale, -mouseDelta[1] * retinaScale);
     m_program->setUniformValue(m_resolution, resolution[0], resolution[1]);
     m_program->setUniformValue(m_time, time);
     m_program->setUniformValue(m_shaderId, m_shader);

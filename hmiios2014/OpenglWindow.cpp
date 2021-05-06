@@ -238,7 +238,7 @@ bool OpenglWindow::event(QEvent* event)
               || l_keyevent->key() == Qt::Key_9
               || l_keyevent->key() == Qt::Key_0)
         {
-            selectShader((l_keyevent->key() - Qt::Key_1) + 1);
+            selectShader(l_keyevent->key() - Qt::Key_0);
         }
         return true;
     }
