@@ -320,6 +320,7 @@ void TSDWindow::initialize()
     m_resolution = m_program->uniformLocation("resolution");
     m_time = m_program->uniformLocation("time");
     m_colorId = m_program->uniformLocation("color_id");
+    m_shaderId = m_program->uniformLocation("shader_id");
 
     m_program->bind();
 
@@ -581,6 +582,7 @@ void TSDWindow::render()
     m_program->setUniformValue(m_mouseDelta, mouseDelta[0] * devicePixelRatio(), -mouseDelta[1] * devicePixelRatio());
     m_program->setUniformValue(m_resolution, resolution[0], resolution[1]);
     m_program->setUniformValue(m_time, time);
+    m_program->setUniformValue(m_shaderId, m_shader);
 
     //glCallList(m_listIndex+m_sgCoastal.m_id);
     //if(SCALE>0.1)
@@ -778,4 +780,10 @@ void TSDWindow::setDisplayMask(DisplayMaskBits layer, bool b)
         m_displayMask |= layer;
     else
         m_displayMask &= ~layer;
+}
+
+void TSDWindow::selectShader(uint shaderId)
+{
+    m_shader = shaderId;
+    qDebug() << "set shader to " << shaderId;
 }

@@ -173,6 +173,8 @@ public:
 
     inline void setAutoSwing(bool value) { m_bAutoSwing = value; }
     inline bool getAutoSwing() { return m_bAutoSwing; }
+protected:
+    virtual void selectShader(uint shaderId);
 
 private:
     GLuint loadShader(GLenum type, const char* source);
@@ -190,8 +192,10 @@ private:
     GLuint m_resolution;
     GLuint m_time;
     GLuint m_colorId;
+    GLuint m_shaderId;
 
     GLuint m_listIndex;
+    GLuint m_shader;
 
     QOpenGLShaderProgram* m_program;
 

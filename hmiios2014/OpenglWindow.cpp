@@ -227,6 +227,19 @@ bool OpenglWindow::event(QEvent* event)
         {
             close();
         }
+        else if (l_keyevent->key() == Qt::Key_1
+              || l_keyevent->key() == Qt::Key_2
+              || l_keyevent->key() == Qt::Key_3
+              || l_keyevent->key() == Qt::Key_4
+              || l_keyevent->key() == Qt::Key_5
+              || l_keyevent->key() == Qt::Key_6
+              || l_keyevent->key() == Qt::Key_7
+              || l_keyevent->key() == Qt::Key_8
+              || l_keyevent->key() == Qt::Key_9
+              || l_keyevent->key() == Qt::Key_0)
+        {
+            selectShader((l_keyevent->key() - Qt::Key_1) + 1);
+        }
         return true;
     }
     default:
@@ -468,4 +481,9 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
     }
 }
 //! [12]
+
+void OpenglWindow::selectShader(uint shaderId)
+{
+    qDebug() << "virtual parent, do nothing";
+}
 

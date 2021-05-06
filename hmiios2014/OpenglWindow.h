@@ -50,6 +50,7 @@ public slots:
 
 protected:
     bool event(QEvent* event);
+    virtual void selectShader(uint shaderId);
     void exposeEvent(QExposeEvent* event);
     QTimer* timer;
     int m_fpsCounter, m_fps;
