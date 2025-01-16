@@ -5,33 +5,41 @@ branches:
 image: Visual Studio 2017
 configuration: Release
 platform: x64
+clone_folder: c:\projects\q3dmmi
 init:
-  - set QTDIR=C:\Qt\5.12.6\msvc2017_64
-  - set PATH=%QTDIR%\bin;%PATH%
-  - set ORIGPATH=%PATH%
-  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
-before_build:
-  - cd c:\projects
-  - curl -fsS -o shapelib-1.5.0.zip http://download.osgeo.org/shapelib/shapelib-1.5.0.zip
-  - 7z x shapelib-1.5.0.zip
-  - cd shapelib-1.5.0
-  - nmake /f makefile.vc
+- cmd: >-
+    set QTDIR=C:\Qt\5.12.6\msvc2017_64
+    set PATH=%QTDIR%\bin;%PATH%
+    set ORIGPATH=%PATH%
+    call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
 install:
-  - set QTDIR=C:\Qt\5.12.6\msvc2017_64
-  - set PATH=%QTDIR%\bin;%PATH%
+- cmd: >-
+    set QTDIR=C:\Qt\5.12.6\msvc2017_64
+    set PATH=%QTDIR%\bin;%PATH%
+before_build:
+- cmd: >-
+    cd c:\projects
+    curl -fsS -o shapelib-1.5.0.zip http://download.osgeo.org/shapelib/shapelib-1.5.0.zip
+    7z x shapelib-1.5.0.zip
+    cd shapelib-1.5.0
+    nmake /f makefile.vc
+build:
+  verbosity: minimal
 build_script:
-  - cd c:\projects\q3dmmi
-  - lupdate.exe ./hmiios2014/q3dmmi.pro
-  - lrelease.exe ./hmiios2014/q3dmmi.pro
-  - mkdir build
-  - cd build
-  - qmake ..\hmiios2014\q3dmmi.pro
-  - C:\Qt\Tools\QtCreator\bin\jom.exe -f Makefile.Release
+- cmd: >-
+    cd c:\projects\q3dmmi
+    lupdate.exe ./hmiios2014/q3dmmi.pro
+    lrelease.exe ./hmiios2014/q3dmmi.pro
+    mkdir build
+    cd build
+    qmake ..\hmiios2014\q3dmmi.pro
+    C:\Qt\Tools\QtCreator\bin\jom.exe -f Makefile.Release
 after_build:
-  - windeployqt release/q3dmmi.exe
-  - xcopy ..\hmiios2014\sgMap .\release\sgMap /E /I /y
-  - del release\*.obj release\*.h release\*.cpp release\*.exp release\*.lib
-  - set buildname=build%APPVEYOR_BUILD_NUMBER%_%APPVEYOR_REPO_COMMIT:~0,7%
-  - 7z a ..\q3dmmi_%buildname%.zip .\release\*
+- cmd: >-
+    windeployqt release/q3dmmi.exe
+    xcopy ..\hmiios2014\sgMap .\release\sgMap /E /I /y
+    del release\*.obj release\*.h release\*.cpp release\*.exp release\*.lib
+    set buildname=build%APPVEYOR_BUILD_NUMBER%_%APPVEYOR_REPO_COMMIT:~0,7%
+    7z a ..\q3dmmi_%buildname%.zip .\release\*
 artifacts:
-  - path: '*.zip'
+- path: '*.zip'
