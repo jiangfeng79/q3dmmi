@@ -197,7 +197,7 @@ bool OpenglWindow::event(QEvent* event)
     case QEvent::Wheel:
     {
         QWheelEvent* l_wheelEvent = static_cast<QWheelEvent*>(event);
-        int numDegrees = l_wheelEvent->delta() / 8;
+        int numDegrees = l_wheelEvent->angleDelta().y() / 8;
         int numSteps = numDegrees / 15;
         m_fScaleFactor *= pow(1.2, numSteps);
         if (m_fScaleFactor > 1600.0)
@@ -315,8 +315,8 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text)
         //painter.beginNativePainting();
         painter.setPen(QColor(255, 255, 255, 127));
         //QFont font("Sans Serif");
-        QFont font("Courier");
-        font.setStyleHint(QFont::TypeWriter);
+        QFont font("Courier New");
+        //font.setStyleHint(QFont::TypeWriter);
         font.setPixelSize(16 * devicePixelRatio());
         font.setBold(true);
         //painter.setRenderHint(QPainter::Antialiasing);
@@ -409,7 +409,7 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
 
         //painter.beginNativePainting();
         painter.setPen(QColor(255, 255, 127, 160));
-        QFontMetrics metrics(painter.font());
+        QFontMetricsF metrics(painter.font());
         //QFont font = painter.font();
         //font.setBold(true);
 
@@ -427,8 +427,13 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
             m_font.setPixelSize(12 * devicePixelRatio());
             m_font.setBold(false);
             painter.setFont(m_font);
+            //.setHintingPreference(QFont::PreferNoHinting);
         }
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        painter.drawText(posX - metrics.horizontalAdvance(text) * devicePixelRatio() / 2, posY + 12 * devicePixelRatio(), text);
+#else
         painter.drawText(posX - metrics.width(text) * devicePixelRatio() / 2, posY + 12 * devicePixelRatio(), text);
+#endif
 
         //painter.endNativePainting();
     }
@@ -454,10 +459,11 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
         //painter.save();
         //QFont font(a_font);
         //font.setStyleHint(QFont::TypeWriter);
-        m_font.setPixelSize(18);
+        m_font.setPixelSize(18 * devicePixelRatio());
         m_font.setBold(true);
+        //m_font.setHintingPreference(QFont::PreferNoHinting);
         painter.setFont(m_font);
-        QFontMetrics metrics(painter.font());
+        QFontMetricsF metrics(painter.font());
         painter.translate(posX, posY);
         painter.rotate(a_angle);
         painter.drawText(0, 4, ">>");
@@ -468,14 +474,23 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
             painter.rotate(180.0);
 
         //painter.setPen(QColor(155, 205, 155, 150));
-        m_font.setPixelSize(13);
+        m_font.setPixelSize(13 * devicePixelRatio());
         m_font.setBold(true);
+        //m_font.setHintingPreference(QFont::PreferNoHinting);
         painter.setFont(m_font);
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        painter.drawText(8 - metrics.horizontalAdvance(text) / 2, 18, text);
+#else
         painter.drawText(8 - metrics.width(text) / 2, 18, text);
+#endif
         painter.setPen(QColor(5, 5, 5, 150));
         //painter.setPen(QColor(255, 105, 105, 150));
 
-        painter.drawText(7 - metrics.width(text) / 2, 17, text);
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        painter.drawText(7 - metrics.horizontalAdvance(text) / 2, 17, text);
+#else
+        painter.drawText(8 - metrics.width(text) / 2, 18, text);
+#endif
         //painter.restore();
         //painter.endNativePainting();
     }
