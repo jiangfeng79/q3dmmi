@@ -95,7 +95,7 @@
     <message>
         <location filename="hmiios2014.ui" line="14"/>
         <source>hmiios2014</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Hmiios2014</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="46"/>
@@ -120,7 +120,7 @@
     <message>
         <location filename="hmiios2014.ui" line="76"/>
         <source>A tool bar... does provide tool buttons</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">一个工具栏... 提供工具按钮</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="108"/>

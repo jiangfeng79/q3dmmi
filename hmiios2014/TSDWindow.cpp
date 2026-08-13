@@ -722,19 +722,14 @@ void TSDWindow::drawEBL(float x, float y, float r)
         l_vertexBuffer2[2] = X_SCREEN_COORD_TO_MAP_COORD(m_iMousePosX);
         l_vertexBuffer2[3] = Y_SCREEN_COORD_TO_MAP_COORD(m_iMousePosY);
 
-        glBindBuffer(GL_ARRAY_BUFFER, m_eblVBO);
+        //glBindBuffer(GL_ARRAY_BUFFER, m_eblVBO);
         glBindBuffer(GL_ARRAY_BUFFER, m_eblVBO);
         glBufferData(GL_ARRAY_BUFFER, l_vertexBuffer.size() * sizeof(GLfloat), l_vertexBuffer.data(), GL_DYNAMIC_DRAW);
         glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
         glEnableVertexAttribArray(m_posAttr);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, granularity + 1);
-        glDisableVertexAttribArray(m_posAttr);
-
-        glBufferData(GL_ARRAY_BUFFER, sizeof(l_vertexBuffer2), l_vertexBuffer2, GL_DYNAMIC_DRAW);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, granularity);
         m_program->setUniformValue(m_colorId, 3);
-        glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-        glEnableVertexAttribArray(m_posAttr);
-        glDrawArrays(GL_LINE_STRIP, 0, 2);
+        glDrawArrays(GL_LINE_STRIP, 0, granularity + 1);
         glDisableVertexAttribArray(m_posAttr);
 
         float angle = 0;
@@ -743,6 +738,7 @@ void TSDWindow::drawEBL(float x, float y, float r)
         if (m_bMouseIsPressing)
         {
             glBufferData(GL_ARRAY_BUFFER, sizeof(l_vertexBuffer2), l_vertexBuffer2, GL_DYNAMIC_DRAW);
+            m_program->setUniformValue(m_colorId, 3);
             glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
             glEnableVertexAttribArray(m_posAttr);
             glDrawArrays(GL_LINES, 0, 2);
