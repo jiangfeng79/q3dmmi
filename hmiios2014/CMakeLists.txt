@@ -6,9 +6,22 @@ hmiios_add_app_executable(NAME HMIIOS WIN32
     QT5LIBS Core Gui Widgets Network OpenGLWidgets
 )
 
-target_include_directories(HMIIOS PRIVATE ${PROJECT_SOURCE_DIR}/../shapelib-1.5.0 )
-target_link_directories(HMIIOS PRIVATE ${PROJECT_SOURCE_DIR}/../shapelib-1.5.0)
-target_link_libraries(HMIIOS PRIVATE shapelib)
+# Copy sgMap files to the build output directory
+add_custom_command(TARGET HMIIOS POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:HMIIOS>/sgMap
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/sgMap
+        $<TARGET_FILE_DIR:HMIIOS>/sgMap
+)
+
+# Add shapelib support if found
+if(SHAPELIB_FOUND)
+    target_include_directories(HMIIOS PRIVATE ${SHAPELIB_INCLUDE_DIR})
+    target_link_libraries(HMIIOS PRIVATE ${SHAPELIB_LIBRARY})
+else()
+    # If shapelib is not found, we'll need to disable shapefile functionality
+    message(WARNING "Shapelib not found. Shapefile support will be disabled.")
+endif()
 
 if(WIN32)
     target_link_libraries(HMIIOS PRIVATE opengl32)

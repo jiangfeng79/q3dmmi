@@ -48,6 +48,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
+
+# Try to find shapelib
+find_path(SHAPELIB_INCLUDE_DIR NAMES shapefil.h PATHS /usr/include/shapelib /usr/local/include/shapelib)
+find_library(SHAPELIB_LIBRARY NAMES shp)
+if (SHAPELIB_INCLUDE_DIR AND SHAPELIB_LIBRARY)
+    set(SHAPELIB_FOUND TRUE)
+else()
+    set(SHAPELIB_FOUND FALSE)
+    message(WARNING "Shapelib not found. Shapefile support will be disabled.")
+endif()
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 

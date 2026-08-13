@@ -72,7 +72,7 @@
 <context>
     <name>TSDWindow</name>
     <message>
-        <location filename="TSDWindow.cpp" line="720"/>
+        <location filename="TSDWindow.cpp" line="760"/>
         <source>Angle: %1, Dist: %2</source>
         <translation type="unfinished">角度: %1, 距离: %2</translation>
     </message>
@@ -80,8 +80,8 @@
 <context>
     <name>hmiios2014</name>
     <message>
-        <location filename="hmiios2014.cpp" line="136"/>
-        <location filename="hmiios2014.cpp" line="145"/>
+        <location filename="hmiios2014.cpp" line="166"/>
+        <location filename="hmiios2014.cpp" line="174"/>
         <source>Current Language changed to %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -105,8 +105,7 @@
     <message>
         <location filename="hmiios2014.ui" line="54"/>
         <source>Gfx Effect</source>
-        <translation type="unfinished">显示效果
-</translation>
+        <translation type="unfinished">显示效果</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="61"/>

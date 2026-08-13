@@ -34,7 +34,6 @@ OpenglWindow::OpenglWindow(QWindow* parent)
     , m_dPrevRotationAngle(0)
     , m_fMotionSpeed(0)
     , m_fMotionDir(0)
-    , m_fMousePressTime(0)
     , m_uiMapOpMask(PAN)
     , m_fScaleFactor(1)
     , m_bMouseIsPressing(false)
@@ -65,15 +64,13 @@ void OpenglWindow::initialize()
 
 void OpenglWindow::render()
 {
-    if (!m_device)
-        m_device = new QOpenGLPaintDevice;
-
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    m_device->setSize(size() * devicePixelRatio());
+    QOpenGLPaintDevice device;
+    device.setDevicePixelRatio(devicePixelRatio());
+    device.setSize(size() * devicePixelRatio());
 
-    QPainter painter(m_device);
+    QPainter painter(&device);
     render(&painter);
 }
 //! [2]
@@ -99,8 +96,8 @@ bool OpenglWindow::event(QEvent* event)
     case QEvent::MouseMove:
     {
         QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
-        m_iMousePosX = l_mouseEvent->x();
-        m_iMousePosY = l_mouseEvent->y();
+        m_iMousePosX = qRound(l_mouseEvent->position().x());
+        m_iMousePosY = qRound(l_mouseEvent->position().y());
         if (m_bMouseIsPressing)
         {
             m_iMouseDeltaX = m_iMousePosX - m_iMouseInitX;
@@ -145,20 +142,20 @@ bool OpenglWindow::event(QEvent* event)
         if (l_mouseEvent->buttons() & Qt::LeftButton /*|| l_mouseEvent->buttons() == Qt::RightButton*/)
         {
             //qDebug() << "left click";
-            m_iMouseInitX = l_mouseEvent->x();
-            m_iMouseInitY = l_mouseEvent->y();
+            m_iMouseInitX = qRound(l_mouseEvent->position().x());
+            m_iMouseInitY = qRound(l_mouseEvent->position().y());
             m_iMouseDeltaX = 0;
             m_iMouseDeltaY = 0;
             m_bMouseIsPressing = true;
 
-            m_fMotionSpeed = 0;
-            m_fMousePressTime = (GLfloat)clock() / (GLfloat)CLOCKS_PER_SEC;
+            m_fMotionSpeed = 0.0f;
+            m_mousePressTimer.restart();
         }
         else if (l_mouseEvent->buttons() & Qt::RightButton)
         {
             //qDebug() << "right click";
-            m_iMouseInitX = l_mouseEvent->x();
-            m_iMouseInitY = l_mouseEvent->y();
+            m_iMouseInitX = qRound(l_mouseEvent->position().x());
+            m_iMouseInitY = qRound(l_mouseEvent->position().y());
             m_iMouseDeltaX = 0;
             m_iMouseDeltaY = 0;
             m_bMouseIsPressing = true;
@@ -170,7 +167,6 @@ bool OpenglWindow::event(QEvent* event)
     {
         QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
         m_bMouseIsPressing = false;
-        float l_fMouseReleaseTime = (GLfloat)clock() / (GLfloat)CLOCKS_PER_SEC;
         //m_iCenterDeltaX += m_iMouseDeltaX;
         //m_iCenterDeltaY += m_iMouseDeltaY;
         if (m_uiMapOpMask == PAN)
@@ -178,10 +174,15 @@ bool OpenglWindow::event(QEvent* event)
             m_fMapPrevCenterDeltaX = m_fMapCenterDeltaX;
             m_fMapPrevCenterDeltaY = m_fMapCenterDeltaY;
 
-            if ((l_fMouseReleaseTime - m_fMousePressTime) < 0.2)
+            const qreal dx = qreal(m_iMouseDeltaX);
+            const qreal dy = qreal(m_iMouseDeltaY);
+            const qreal dt = m_mousePressTimer.isValid() ? m_mousePressTimer.elapsed() / 1000.0 : qreal(0.0);
+            const qreal scaleFactor = qMax(qreal(m_fScaleFactor), qreal(1e-4));
+
+            if (dt > 0.0 && dt < 0.2 && (dx != 0.0 || dy != 0.0))
             {
-                m_fMotionSpeed = sqrt(m_iMouseDeltaX * m_iMouseDeltaX + m_iMouseDeltaY * m_iMouseDeltaY) / (l_fMouseReleaseTime - m_fMousePressTime) / m_fScaleFactor;
-                m_fMotionDir = atan2((float)m_iMouseDeltaY, (float)m_iMouseDeltaX);
+                m_fMotionSpeed = float(std::hypot(dx, dy) / dt / scaleFactor);
+                m_fMotionDir = float(std::atan2(dy, dx));
             }
         }
         m_iMouseDeltaX = 0;
@@ -267,22 +268,46 @@ void OpenglWindow::renderNow()
     if (!m_context) {
         m_context = new QOpenGLContext(this);
         QSurfaceFormat format = requestedFormat();
-        format.setSamples(4);    // Set the number of samples used for multisampling
+        // Use the window's requested format directly; it is already configured
+        // before the window is created and avoids redundant overrides.
         m_context->setFormat(format);
-        m_context->create();
+        qDebug() << "Requested surface format:" << format;
+        if (!m_context->create()) {
+            qWarning() << "QOpenGLContext::create() failed for window" << title();
+            delete m_context;
+            m_context = nullptr;
+            return;
+        }
+        qDebug() << "Created context format:" << m_context->format() << "window format:" << requestedFormat();
         needsInitialize = true;
     }
 
-    m_context->makeCurrent(this);
-
-    if (needsInitialize) {
-        initializeOpenGLFunctions();
-        initialize();
+    if (!m_context->makeCurrent(this)) {
+        qWarning() << "QOpenGLContext::makeCurrent() failed, error:"
+                   << m_context->format().profile();
+        return;
     }
 
+    //qDebug() << "Context made current";
+    initializeOpenGLFunctions();
+
+    if (needsInitialize) {
+        //qDebug() << "Calling initialize()";
+        initialize();
+        //GLenum err = glGetError();
+        //if (err != GL_NO_ERROR)
+        //    qWarning() << "GL error after initialize:" << err;
+    }
+
+    glViewport(0, 0, width() * devicePixelRatio(), height() * devicePixelRatio());
+    //qDebug() << "Calling render()";
     render();
+    GLenum err = glGetError();
+    //if (err != GL_NO_ERROR)
+    //    qWarning() << "GL error after render:" << err;
 
     m_context->swapBuffers(this);
+    //qDebug() << "swapBuffers returned";
 
     // not to starve the other window events like window move
     QCoreApplication::processEvents();

@@ -2,7 +2,8 @@
 #define OPENGLWINDOW_H
 
 #include <QWindow>
-#include <QOpenGLFunctions>
+#include <QOpenGLFunctions_3_3_Core>
+#include <QElapsedTimer>
 #include <QTimer>
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -15,7 +16,7 @@ class QOpenGLPaintDevice;
 QT_END_NAMESPACE
 
 //! [1]
-class OpenglWindow : public QWindow, protected QOpenGLFunctions
+class OpenglWindow : public QWindow, protected QOpenGLFunctions_3_3_Core
 {
     Q_OBJECT
 public:
@@ -60,7 +61,8 @@ protected:
 
     float m_fMapCenterDeltaX, m_fMapCenterDeltaY; // in meter
     float m_fMapPrevCenterDeltaX, m_fMapPrevCenterDeltaY; // in meter
-    float m_fMotionSpeed, m_fMotionDir, m_fMousePressTime;
+    float m_fMotionSpeed, m_fMotionDir;
+    QElapsedTimer m_mousePressTimer;
 
     double m_dRotationAngle, m_dPrevRotationAngle;
     bool m_bMouseIsPressing;

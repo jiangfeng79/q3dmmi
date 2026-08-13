@@ -1,5 +1,7 @@
 ﻿#include "TSDWindow.h"
 
+#include <QCoreApplication>
+#include <QDir>
 #include <time.h>//or #include<ctime> for time function
 #include <stdlib.h>//or #include<cstdlib> for srand function.
 #include <random>
@@ -95,6 +97,10 @@ TSDWindow::TSDWindow()
     , m_sgMinorRoads("./sgMap/singapore.osm-minorroads", MINOR_ROADS, MINOR_ROADS_TEXT)
     , m_sgAirWays("./sgMap/singapore.osm-aeroways", AIR_WAYS, AIR_WAYS_TEXT)
     , m_sgManMade("./sgMap/singapore.osm-polygon", "man_made", MAN_MADE, MAN_MADE_TEXT)
+    , m_mrt(nullptr)
+    , m_mrtVBO(0)
+    , m_eblVBO(0)
+    , m_shader(0)
     , m_displayMask(0xff5c033f)
     , m_bAutoZoom(false)
     , m_bAutoSwing(false)
@@ -108,7 +114,6 @@ TSDWindow::TSDWindow()
     setDisplayMask(MAIN_ROADS_TEXT, false);
     setDisplayMask(MINOR_ROADS_TEXT, false);
     setDisplayMask(MRT_TEXT, false);
-
 
     m_listOfLayers
         << &m_sgCoastal
@@ -130,7 +135,6 @@ TSDWindow::TSDWindow()
 
 TSDWindow::~TSDWindow()
 {
-    glDeleteLists(m_listIndex, 32);
     free(m_mrt);
 }
 
@@ -295,6 +299,16 @@ void TSDWindow::drawText(TSDWindow::MapLayer& a_layer)
     }
 }
 
+static bool checkGL(const char* stage)
+{
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        qWarning() << "GL error at" << stage << ":" << err;
+        return false;
+    }
+    return true;
+}
+
 GLuint TSDWindow::loadShader(GLenum type, const char* source)
 {
     GLuint shader = glCreateShader(type);
@@ -307,10 +321,15 @@ void TSDWindow::initialize()
 {
     m_program = new QOpenGLShaderProgram(this);
 
-    m_program->addShaderFromSourceFile(QOpenGLShader::Vertex, QString(":/hmiios2014/vshader.glsl"));
-    m_program->addShaderFromSourceFile(QOpenGLShader::Fragment, QString(":/hmiios2014/fshader.glsl"));
+    if (!m_program->addShaderFromSourceFile(QOpenGLShader::Vertex, QString(":/hmiios2014/vshader.glsl")))
+        qWarning() << "Vertex shader compile error:" << m_program->log();
+    if (!m_program->addShaderFromSourceFile(QOpenGLShader::Fragment, QString(":/hmiios2014/fshader.glsl")))
+        qWarning() << "Fragment shader compile error:" << m_program->log();
 
-    m_program->link();
+    if (!m_program->link()) {
+        qWarning() << "Shader program link error:" << m_program->log();
+        return;
+    }
 
     m_posAttr = m_program->attributeLocation("posAttr");
     m_colAttr = m_program->attributeLocation("colAttr");
@@ -323,6 +342,11 @@ void TSDWindow::initialize()
     m_shaderId = m_program->uniformLocation("shader_id");
 
     m_program->bind();
+    this->initializeOpenGLFunctions();
+    this->glGenVertexArrays(1, &m_vao);
+    this->glBindVertexArray(m_vao);
+    glGenBuffers(1, &m_mrtVBO);
+    glGenBuffers(1, &m_eblVBO);
 
     for (int i = 0; i < m_listOfLayers.size(); ++i)
     {
@@ -353,32 +377,13 @@ void TSDWindow::initialize()
         m_mrt[i * 2 + 1] = Y_WGS84_COORD_TO_MAP_COORD(mrt[i * 2 + 1]);
     }
 
-    //gl list codes
-    m_listIndex = glGenLists(32);
-
-    foreach(TSDWindow::MapLayer * l_layer, m_listOfLayers)
-    {
-        unsigned int layer_id = myLog2(l_layer->m_id);
-
-        glNewList(m_listIndex + layer_id, GL_COMPILE);
-        if (l_layer->m_bToFill)
-        {
-            drawLayerAndFill(*l_layer, layer_id);
-            //drawLayer(*l_layer, layer_id);
-        }
-        else
-        {
-            //if(l_layer->m_id==LAND_USAGE)
-            //	drawLayer(m_sgCoastal,21);
-            drawLayer(*l_layer, layer_id);
-        }
-        glEndList();
+    if (m_mrt && m_mrtVBO) {
+        glBindBuffer(GL_ARRAY_BUFFER, m_mrtVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(mrt), m_mrt, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
-
-    glNewList(m_listIndex + myLog2(MRT_POINT), GL_COMPILE);
-    drawMRTStation();
-    glEndList();
 }
+
 //! [4]
 
 void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
@@ -406,14 +411,13 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
             if (a_layer.m_renderType[i] == SHPT_POLYGON)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-                
                 glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
-                glEnableVertexAttribArray(0);
-                //glDisable(GL_DEPTH_TEST);
+                //checkGL("drawLayerAndFill pointer");
+                glEnableVertexAttribArray(m_posAttr);
                 glDrawArrays(GL_TRIANGLE_FAN, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
-                //glEnable(GL_DEPTH_TEST);
-                glDisableVertexAttribArray(0);
+                //checkGL("drawLayerAndFill draw");
+                glDisableVertexAttribArray(m_posAttr);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
             }
         }
         // PASS 2: draw color buffer
@@ -430,12 +434,12 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
                 glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
-                glEnableVertexAttribArray(0);
+                glEnableVertexAttribArray(m_posAttr);
                 //glDisable(GL_DEPTH_TEST);
                 glDrawArrays(GL_TRIANGLE_FAN, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
                 //glEnable(GL_DEPTH_TEST);
-                glDisableVertexAttribArray(0);
+                glDisableVertexAttribArray(m_posAttr);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
             }
         }
     }
@@ -451,12 +455,12 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
                 glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
-                glEnableVertexAttribArray(0);
+                glEnableVertexAttribArray(m_posAttr);
                 //glDisable(GL_DEPTH_TEST);
                 glDrawArrays(GL_TRIANGLE_FAN, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
                 //glEnable(GL_DEPTH_TEST);
-                glDisableVertexAttribArray(0);
+                glDisableVertexAttribArray(m_posAttr);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
             }
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);    // enable writing to color buffer
             glStencilFunc(GL_EQUAL, 0x1, 0x1);                  // test if it is odd(1)
@@ -466,12 +470,12 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
             {
                 glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
                 glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
-                glEnableVertexAttribArray(0);
+                glEnableVertexAttribArray(m_posAttr);
                 //glDisable(GL_DEPTH_TEST);
                 glDrawArrays(GL_TRIANGLE_FAN, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
                 //glEnable(GL_DEPTH_TEST);
-                glDisableVertexAttribArray(0);
+                glDisableVertexAttribArray(m_posAttr);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
             }
         }
     }
@@ -480,8 +484,17 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer, int a_iColorId)
 
 void TSDWindow::drawLayer(MapLayer& a_layer, int a_iColorId)
 {
-    for (int i = 0; i < a_layer.m_ring.size() - 1; ++i)
+    
+    int totalVerts = a_layer.m_property.totalNumberOfVertex;
+    for (int i = 0; i < (int)a_layer.m_ring.size() - 1; ++i)
     {
+        int startVert = a_layer.m_ring[i];
+        int vertCount = a_layer.m_ring[i + 1] - a_layer.m_ring[i];
+
+        // // Skip invalid geometry entries (offset or count out of bounds)
+        // if (startVert < 0 || vertCount <= 0 || startVert + vertCount > totalVerts)
+        //     continue;
+
         // polygons
         if (a_layer.m_renderType[i] == SHPT_POLYGON
             /*|| a_layer.m_renderType[i] == SHPT_POLYGONZ
@@ -490,11 +503,12 @@ void TSDWindow::drawLayer(MapLayer& a_layer, int a_iColorId)
             glLineWidth(1);
             m_program->setUniformValue(m_colorId, a_iColorId);
             glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
+            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(startVert * 3 * 4));
+            //checkGL("drawLayer polygon pointer");
+            glEnableVertexAttribArray(m_posAttr);
+            glDrawArrays(GL_LINE_STRIP, 0, vertCount);
+            glDisableVertexAttribArray(m_posAttr);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glEnableVertexAttribArray(0);
-            glDrawArrays(GL_LINE_STRIP, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
-            glDisableVertexAttribArray(0);
         }
         // lines
         else if (a_layer.m_renderType[i] == SHPT_ARC)
@@ -509,11 +523,12 @@ void TSDWindow::drawLayer(MapLayer& a_layer, int a_iColorId)
                 glLineWidth(2);
             m_program->setUniformValue(m_colorId, a_iColorId);
             glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
+            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(startVert * 3 * 4));
+            //checkGL("drawLayer line pointer");
+            glEnableVertexAttribArray(m_posAttr);
+            glDrawArrays(GL_LINE_STRIP, 0, vertCount);
+            glDisableVertexAttribArray(m_posAttr);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glEnableVertexAttribArray(0);
-            glDrawArrays(GL_LINE_STRIP, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
-            glDisableVertexAttribArray(0);
         }
         // points
         else if (a_layer.m_renderType[i] == SHPT_POINT)
@@ -522,11 +537,12 @@ void TSDWindow::drawLayer(MapLayer& a_layer, int a_iColorId)
             glLineWidth(2);
             m_program->setUniformValue(m_colorId, a_iColorId);
             glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_ring[i] * 3 * 4));
+            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(startVert * 3 * 4));
+            //checkGL("drawLayer point pointer");
+            glEnableVertexAttribArray(m_posAttr);
+            glDrawArrays(GL_POINTS, 0, vertCount);
+            glDisableVertexAttribArray(m_posAttr);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glEnableVertexAttribArray(0);
-            glDrawArrays(GL_POINTS, 0, a_layer.m_ring[i + 1] - a_layer.m_ring[i]);
-            glDisableVertexAttribArray(0);
         }
     }
 }
@@ -538,9 +554,7 @@ void TSDWindow::render()
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
     int w = width(), h = height();
 
-    //glClearColor(181.0/255.0, 208.0/255.0, 208.0/255.0, 1.0);
-    //glClearColor(.0, .0, .35, 1.0);
-    //glClearColor(.7, .7, .7, 1.);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     //glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
     glEnable(GL_BLEND);
@@ -577,27 +591,38 @@ void TSDWindow::render()
         matrix.rotate(sin(time) * 10, 0, 0, 1);
 
     m_program->bind();
+    checkGL("after program bind");
     m_program->setUniformValue(m_matrixUniform, matrix);
     m_program->setUniformValue(m_mouse, mouse[0] * retinaScale, -mouse[1] * retinaScale + resolution[1]/2);
     m_program->setUniformValue(m_mouseDelta, mouseDelta[0] * retinaScale, -mouseDelta[1] * retinaScale);
     m_program->setUniformValue(m_resolution, resolution[0], resolution[1]);
     m_program->setUniformValue(m_time, time);
     m_program->setUniformValue(m_shaderId, m_shader);
+    checkGL("after uniform set");
 
-    //glCallList(m_listIndex+m_sgCoastal.m_id);
-    //if(SCALE>0.1)
-    //glCallList(m_listIndex+2);
+    // Draw layers directly, without legacy display lists.
+    this->glBindVertexArray(m_vao);
+    checkGL("after bind VAO");
     foreach(TSDWindow::MapLayer * l_layer, m_listOfLayers)
     {
-
-        unsigned int layer_id = myLog2(l_layer->m_id);
         if (m_displayMask & l_layer->m_id)
-            glCallList(m_listIndex + layer_id);
+        {
+            if (l_layer->m_bToFill)
+                drawLayerAndFill(*l_layer, myLog2(l_layer->m_id));
+            else
+                drawLayer(*l_layer, myLog2(l_layer->m_id));
+            
+            //char sbuffer[64];
+            //sprintf(sbuffer, "after layer draw %d", myLog2(l_layer->m_id));
+            //checkGL(sbuffer);
+        }
     }
-    glCallList(m_listIndex + myLog2(MRT_POINT));
-
+    //checkGL("before drawMRTStation");
+    drawMRTStation();
+    //checkGL("after drawMRTStation");
 
     drawEBL(X_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitX), Y_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitY), sqrt(m_iMouseDeltaX * m_iMouseDeltaX + m_iMouseDeltaY * m_iMouseDeltaY) / SCALE);
+    //checkGL("after drawEBL");
 
     m_program->release();
 
@@ -680,8 +705,8 @@ void TSDWindow::drawEBL(float x, float y, float r)
     if (m_uiMapOpMask == EBL)
     {
         //EBL
-        GLfloat l_vertexBuffer[(granularity + 1) * 2];
-        GLfloat l_vertexBuffer2[2 * 2];
+        std::vector<GLfloat> l_vertexBuffer((granularity + 1) * 2);
+        GLfloat l_vertexBuffer2[4];
         int i = 0;
         for (GLdouble angle = 0; angle <= 2 * 3.1416; angle += 0.1, ++i)
         {
@@ -697,28 +722,36 @@ void TSDWindow::drawEBL(float x, float y, float r)
         l_vertexBuffer2[2] = X_SCREEN_COORD_TO_MAP_COORD(m_iMousePosX);
         l_vertexBuffer2[3] = Y_SCREEN_COORD_TO_MAP_COORD(m_iMousePosY);
 
-        glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, l_vertexBuffer);
-        glEnableVertexAttribArray(0);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 63);
-        glDisableVertexAttribArray(0);
-        m_program->setUniformValue(m_colorId, 3);
-        glEnableVertexAttribArray(0);
-        glDrawArrays(GL_LINE_STRIP, 0, 64);
+        glBindBuffer(GL_ARRAY_BUFFER, m_eblVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_eblVBO);
+        glBufferData(GL_ARRAY_BUFFER, l_vertexBuffer.size() * sizeof(GLfloat), l_vertexBuffer.data(), GL_DYNAMIC_DRAW);
+        glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        glEnableVertexAttribArray(m_posAttr);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, granularity + 1);
+        glDisableVertexAttribArray(m_posAttr);
 
-        glDisableVertexAttribArray(0);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(l_vertexBuffer2), l_vertexBuffer2, GL_DYNAMIC_DRAW);
+        m_program->setUniformValue(m_colorId, 3);
+        glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        glEnableVertexAttribArray(m_posAttr);
+        glDrawArrays(GL_LINE_STRIP, 0, 2);
+        glDisableVertexAttribArray(m_posAttr);
 
         float angle = 0;
         if (m_iMousePosX != m_iMouseInitX)
             angle = (m_iMousePosX - m_iMouseInitX) >= 0 ? atan((float)(m_iMousePosY - m_iMouseInitY) / (float)(m_iMousePosX - m_iMouseInitX)) / 3.1416 * 180 + 90 : atan((float)(m_iMousePosY - m_iMouseInitY) / (float)(m_iMousePosX - m_iMouseInitX)) / 3.1416 * 180 + 270;
         if (m_bMouseIsPressing)
         {
-            glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, l_vertexBuffer2);
-            glEnableVertexAttribArray(0);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(l_vertexBuffer2), l_vertexBuffer2, GL_DYNAMIC_DRAW);
+            glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+            glEnableVertexAttribArray(m_posAttr);
             glDrawArrays(GL_LINES, 0, 2);
-            glDisableVertexAttribArray(0);
+            glDisableVertexAttribArray(m_posAttr);
 
             renderText(m_iMousePosX * devicePixelRatio() + 15, m_iMousePosY * devicePixelRatio() + 20, QString(tr("Angle: %1, Dist: %2")).arg(angle, 5, 'f', 1, QChar('0')).arg(r), QString("Courier"));
         }
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
 //! [6]
@@ -726,43 +759,45 @@ void TSDWindow::drawEBL(float x, float y, float r)
 void TSDWindow::drawMRTStation()
 {
     glPointSize(12);
+    glBindBuffer(GL_ARRAY_BUFFER, m_mrtVBO);
 
     m_program->setUniformValue(m_colorId, 5); // EW
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, m_mrt);
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 29);
-    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(m_posAttr);
 
     m_program->setUniformValue(m_colorId, 3);//NS
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)&(m_mrt[29 * 2]));
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(29 * 2 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 25);
-    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(m_posAttr);
 
     m_program->setUniformValue(m_colorId, 5); //expo, changi
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)&(m_mrt[54 * 2]));
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(54 * 2 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 3);
-    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(m_posAttr);
 
     m_program->setUniformValue(m_colorId, 9); //NE
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)&(m_mrt[57 * 2]));
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(57 * 2 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 16);
-    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(m_posAttr);
 
     m_program->setUniformValue(m_colorId, 7); // circle
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)&(m_mrt[73 * 2]));
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(73 * 2 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 28);
-    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(m_posAttr);
 
     m_program->setUniformValue(m_colorId, 7); //marina bay
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)&(m_mrt[101 * 2]));
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(101 * 2 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 7);
-    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(m_posAttr);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void TSDWindow::centerMap()

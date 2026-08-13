@@ -80,6 +80,7 @@ public:
     {
     public:
         MapLayer(const char* fileName) :m_vertex(NULL), m_color(NULL) {
+            m_VBO_ID[0] = m_VBO_ID[1] = 0;
             m_property.totalNumberOfVertex = 0;
             m_property.mapBuildScale = 111319.4907777778;
             m_property.scale = 0.1;
@@ -93,6 +94,7 @@ public:
             , m_text_id(text_id)
             , m_bToFill(false)
         {
+            m_VBO_ID[0] = m_VBO_ID[1] = 0;
             m_property.totalNumberOfVertex = 0;
             m_property.mapBuildScale = 111319.4907777778;
             m_property.scale = 0.1;
@@ -107,6 +109,7 @@ public:
             , m_text_id(text_id)
             , m_bToFill(false)
         {
+            m_VBO_ID[0] = m_VBO_ID[1] = 0;
             m_property.totalNumberOfVertex = 0;
             m_property.mapBuildScale = 111319.4907777778;
             m_property.scale = 0.1;
@@ -194,8 +197,10 @@ private:
     GLuint m_colorId;
     GLuint m_shaderId;
 
-    GLuint m_listIndex;
+    GLuint m_vao;
     GLuint m_shader;
+    GLuint m_mrtVBO;
+    GLuint m_eblVBO;
 
     QOpenGLShaderProgram* m_program;
 

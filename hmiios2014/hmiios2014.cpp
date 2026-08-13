@@ -7,9 +7,6 @@ hmiios2014::hmiios2014(QWidget* parent)
 {
     ui.setupUi(this);
 
-    m_translatorChinese.load("hmiios2014_zh.qm"); // contains the translations for this application
-    m_translatorDefault.load("hmiios2014_en.qm"); // contains the translations for qt
-
     //ui.widget->installEventFilter(this);
     //installEventFilter(this);
 
@@ -22,20 +19,22 @@ hmiios2014::hmiios2014(QWidget* parent)
 
     //m_mapFilterWidget = ui.widgetMapFilter;
 
-    QSurfaceFormat format;
-    format.setSamples(16);
-    format.setStencilBufferSize(8);
-
+    // Use the app-wide default surface format defined in main().
+    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
     m_tsd = new TSDWindow();
     m_tsd->setFormat(format);
     m_tsd->setAnimating(true);
 
-
-    QWidget* centralWidget = QWidget::createWindowContainer(m_tsd);
+    auto *centralWidget = QWidget::createWindowContainer(m_tsd, this);
+    centralWidget->setFocusPolicy(Qt::StrongFocus);
+    centralWidget->setFocus();
+    centralWidget->installEventFilter(this);
+    m_tsd->requestActivate();
+    m_tsdContainer = centralWidget;
     setTsdWindow(m_tsd);
     setCentralWidget(centralWidget);
 
-    QObject::connect(m_tsd, SIGNAL(signal_setFps(int)), this, SLOT(slot_setFps(int)));
+    connect(m_tsd, &TSDWindow::signal_setFps, this, &hmiios2014::slot_setFps);
 }
 
 hmiios2014::~hmiios2014()
@@ -45,6 +44,39 @@ hmiios2014::~hmiios2014()
 void hmiios2014::slot_setFps(int a_iFps)
 {
     ui.statusBar->showMessage(QString("Fps: %1").arg(a_iFps));
+}
+
+bool hmiios2014::forwardTsdKeyEvent(QEvent* event) const
+{
+    if (!m_tsd)
+        return false;
+
+    QCoreApplication::sendEvent(m_tsd, event);
+    return event->isAccepted();
+}
+
+bool hmiios2014::eventFilter(QObject *obj, QEvent *ev)
+{
+    if (obj == m_tsdContainer && (ev->type() == QEvent::KeyPress || ev->type() == QEvent::KeyRelease))
+        return forwardTsdKeyEvent(ev);
+
+    return QMainWindow::eventFilter(obj, ev);
+}
+
+void hmiios2014::keyPressEvent(QKeyEvent* event)
+{
+    if (forwardTsdKeyEvent(event))
+        return;
+
+    QMainWindow::keyPressEvent(event);
+}
+
+void hmiios2014::keyReleaseEvent(QKeyEvent* event)
+{
+    if (forwardTsdKeyEvent(event))
+        return;
+
+    QMainWindow::keyReleaseEvent(event);
 }
 
 void hmiios2014::on_actionSelect_triggered()
@@ -79,8 +111,13 @@ void hmiios2014::on_actionCenterMap_triggered()
 void hmiios2014::setTsdWindow(TSDWindow* a_tsd)
 {
     m_tsd = a_tsd;
-    connect(ui.widgetMapFilter, SIGNAL(signal_checkBox_state(TSDWindow::DisplayMaskBits, int)), this, SLOT(slot_setMapFilter(TSDWindow::DisplayMaskBits, int)));
+    if (!m_tsd)
+        return;
 
+    connect(ui.widgetMapFilter,
+            &MapFilterWidget::signal_checkBox_state,
+            this,
+            &hmiios2014::slot_setMapFilter);
 }
 
 void hmiios2014::slot_setMapFilter(TSDWindow::DisplayMaskBits layer, int state)
@@ -107,42 +144,29 @@ void hmiios2014::slot_setMapFilter(TSDWindow::DisplayMaskBits layer, int state)
 void hmiios2014::on_actionAutoZoom_triggered()
 {
     if (m_tsd)
-    {
-        if (m_tsd->getAutoZoom())
-            m_tsd->setAutoZoom(false);
-        else
-            m_tsd->setAutoZoom(true);
-    }
+        m_tsd->setAutoZoom(!m_tsd->getAutoZoom());
 }
 
 void hmiios2014::on_actionAutoSwing_triggered()
 {
     if (m_tsd)
-    {
-        if (m_tsd->getAutoSwing())
-            m_tsd->setAutoSwing(false);
-        else
-            m_tsd->setAutoSwing(true);
-    }
+        m_tsd->setAutoSwing(!m_tsd->getAutoSwing());
 }
 
 void hmiios2014::on_actionChineseLang_triggered()
 {
-    //QString locale = QLocale::system().name();
-    //QLocale::setDefault(locale);
-    QString chineselanguageName = "zh";
-
-    switchTranslator(m_translatorDefault, QString(":/hmiios2014/hmiios2014_%1.qm").arg(chineselanguageName));
-    ui.statusBar->showMessage(tr("Current Language changed to %1").arg(chineselanguageName));
+    const QString languageName = QStringLiteral("zh");
+    switchTranslator(m_translatorChinese,
+                     QStringLiteral(":/hmiios2014/hmiios2014_%1.qm").arg(languageName));
+    ui.statusBar->showMessage(tr("Current Language changed to %1").arg(languageName));
 }
 
 void hmiios2014::on_actionDefaultLang_triggered()
 {
-    //QMessageBox::information(this, "Lang test",tr("good"));
-    QString englishlanguageName = "en";
-
-    switchTranslator(m_translatorChinese, QString(":/hmiios2014/hmiios2014_%1.qm").arg(englishlanguageName));
-    ui.statusBar->showMessage(tr("Current Language changed to %1").arg(englishlanguageName));
+    const QString languageName = QStringLiteral("en");
+    switchTranslator(m_translatorDefault,
+                     QStringLiteral(":/hmiios2014/hmiios2014_%1.qm").arg(languageName));
+    ui.statusBar->showMessage(tr("Current Language changed to %1").arg(languageName));
 }
 
 void hmiios2014::switchTranslator(QTranslator& translator, const QString& filename)
@@ -157,27 +181,11 @@ void hmiios2014::switchTranslator(QTranslator& translator, const QString& filena
 
 void hmiios2014::changeEvent(QEvent* event)
 {
-    if (0 != event) {
-        switch (event->type()) {
-            // this event is send if a translator is loaded
-        case QEvent::LanguageChange:
-            ui.retranslateUi(this);
-            ui.widgetMapFilter->retranslate();
-            break;
-
-            /*
-            // this event is send, if the system, language changes
-            case QEvent::LocaleChange:
-            {
-            QLocale locale = QLocale("en");
-            QLocale::setDefault(locale);
-            QString languageName = QLocale::languageToString(locale.language());
-            switchTranslator(m_translatorDefault, QString("hmiios2014_%1.ts").arg(languageName));
-            ui.statusBar->showMessage(tr("Current Language changed to %1").arg(languageName));
-            }
-            break;
-            */
-        }
+    if (event && event->type() == QEvent::LanguageChange)
+    {
+        ui.retranslateUi(this);
+        ui.widgetMapFilter->retranslate();
     }
+
     QMainWindow::changeEvent(event);
 }

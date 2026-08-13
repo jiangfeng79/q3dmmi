@@ -1,7 +1,8 @@
-attribute highp vec4 posAttr;
-varying lowp vec4 pos;
-uniform highp mat4 matrix;
+#version 330 core
+layout(location = 0) in vec4 posAttr;
+out vec4 pos;
+uniform mat4 matrix;
 void main() {
-   pos = posAttr;
-   gl_Position = matrix * posAttr;
+    pos = posAttr;
+    gl_Position = matrix * posAttr;
 }

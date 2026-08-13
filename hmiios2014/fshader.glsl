@@ -1,3 +1,6 @@
+#version 330 core
+in vec4 pos;
+out vec4 fragColor;
 uniform vec2 resolution;
 uniform vec2 mouse;
 uniform vec2 mouseDelta;
@@ -90,7 +93,7 @@ float rnd(int seed) {
 
 
 void main() {
-		//gl_FragColor = colors[color_id];
+		//fragColor = colors[color_id];
 		if(color_id == 0)
 		{
 			if(shader_id == 1)
@@ -110,7 +113,7 @@ void main() {
 					p=newp;
 				}
 				vec3 col=vec3(color_intensity*sin(3.0*p.x)+color_intensity,color_intensity*sin(3.0*p.y)+color_intensity,color_intensity*sin(p.x+p.y)+color_intensity);
-				gl_FragColor=vec4(col, 1);
+				fragColor=vec4(col, 1);
 				}
 			else if(shader_id == 2)
 			{
@@ -134,7 +137,7 @@ void main() {
 	
 	
 				vec3 destColor = rColor*vec3(r, g, b);
-				gl_FragColor =vec4(destColor, 1.0);
+				fragColor =vec4(destColor, 1.0);
 			}
 			else if(shader_id == 3)
 			{
@@ -149,7 +152,7 @@ void main() {
 						c+= o.xyz*o.yzw*(d-d*d);
 					}
 					o.rgb = c;
-					gl_FragColor =vec4(o.xyz, 1.0);
+					fragColor =vec4(o.xyz, 1.0);
 			}
 			else if(shader_id == 4)
 			{
@@ -169,7 +172,7 @@ void main() {
 				}
 
 				vec4 color=0.02*emission*vec4(sin(iTime),1.0,sin(iTime),1.0);
-				gl_FragColor=vec4(color.xyz, 1.0);
+				fragColor=vec4(color.xyz, 1.0);
 			}
 			else if(shader_id == 5)
 			{
@@ -184,7 +187,7 @@ void main() {
 					vec3 color = vec3(rnd(i+5), rnd(i+6), rnd(i+7));
 					o += circle(center, position, radius) * 0.5 * color;
 				}
-				gl_FragColor = vec4(o.xyz, 1.0);
+				fragColor = vec4(o.xyz, 1.0);
 			}
 			else if(shader_id == 6)
 			{
@@ -203,55 +206,57 @@ void main() {
 					p=newp;
 				}
 				vec3 col=vec3(color_intensity*sin(3.0*p.x)+color_intensity,color_intensity*sin(3.0*p.y)+color_intensity,color_intensity*sin(p.x+p.y)+color_intensity);
-				gl_FragColor=vec4(col, 1.0);
+				fragColor=vec4(col, 1.0);
 			}
 			else
 			{
-				gl_FragColor =vec4(.0, .6, .0,1.);
+				fragColor = vec4(.0, .6, .0,1.);
 			}
 		}
 		else if(color_id == 1)
-			gl_FragColor =vec4(.0, .5, .0,1.0);
+			fragColor = vec4(.0, .5, .0,1.0);
 		else if(color_id == 2)
-			gl_FragColor =vec4(.9, .1, .2,.7);
+			fragColor = vec4(.9, .1, .2,.7);
 		else if(color_id == 3)
-			gl_FragColor =vec4(.9, .1, .2,.6);
+			fragColor =vec4(.9, .1, .2,.6);
 		else if(color_id == 4)
-			gl_FragColor =vec4(.9, .1, .2,.6);
+			fragColor =vec4(.9, .1, .2,.6);
 		else if(color_id == 5)
-			gl_FragColor =vec4(.1, .9, .2,.6);
+			fragColor =vec4(.1, .9, .2,.6);
 		else if(color_id == 6)
-			gl_FragColor =vec4(0.25, 0.25, 0.25,.5);
+			fragColor =vec4(0.25, 0.25, 0.25,.5);
 		else if(color_id == 7)
-			gl_FragColor =vec4(.8, .4, .2,.6);
+			fragColor =vec4(.8, .4, .2,.6);
 		else if(color_id == 8)
-			gl_FragColor =vec4(.0, .0, .0,1.);
+			fragColor =vec4(.0, .0, .0,1.);
 		else if(color_id == 9)
-			gl_FragColor =vec4(.8, .1, .4,.7);
+			fragColor =vec4(.8, .1, .4,.7);
 		else if(color_id == 10)
-			gl_FragColor =vec4(.1, .1, .1,.1);
+			fragColor =vec4(.1, .1, .1,.1);
 		else if(color_id == 11)
-			gl_FragColor =vec4(.0, .0, .0,.0);
+			fragColor =vec4(.0, .0, .0,.0);
 		else if(color_id == 12)
-			gl_FragColor =vec4(0.7, 0.0, 0.4,.4);
+			fragColor =vec4(0.7, 0.0, 0.4,.4);
 		else if(color_id == 13)
-			gl_FragColor =vec4(.0, .0, .0,.0);
+			fragColor =vec4(.0, .0, .0,.0);
 		else if(color_id == 14)
-			gl_FragColor =vec4(.9, .9, .1,.1);
+			fragColor =vec4(.9, .9, .1,.1);
 		else if(color_id == 15)
-			gl_FragColor =vec4(.0, .0, .0,.0);
+			fragColor =vec4(.0, .0, .0,.0);
 		else if(color_id == 16)
-			gl_FragColor =vec4(.7, 0.7, .7,.3);
+			fragColor =vec4(.7, 0.7, .7,.3);
 		else if(color_id == 17)
-			gl_FragColor =vec4(.2, .6, .1,1.);
+			fragColor =vec4(.2, .6, .1,1.);
 		else if(color_id == 18)
-			gl_FragColor =vec4(.1, .1, .2,.1);
+			fragColor =vec4(.1, .1, .2,.1);
 		else if(color_id == 19)
-			gl_FragColor =vec4(.2, .6, .1,1.);
+			fragColor =vec4(.2, .6, .1,1.);
 		else if(color_id == 20)
-			gl_FragColor =vec4(.0, 1.0, .0,.6);
+			fragColor =vec4(.0, 1.0, .0,.6);
 		else if(color_id == 21)
-			gl_FragColor =vec4(.2, .6, .1,1.);
+			fragColor = vec4(.2, .6, .1,1.);
 		else if(color_id == 22)
-			gl_FragColor =vec4(.0, .6, .0,1.);	
+			fragColor = vec4(.0, .6, .0,1.);    
+		else
+            fragColor = vec4(1.0);
 }

@@ -2,6 +2,7 @@
 #define HMIIOS2014_H
 
 #include <QMainWindow>
+#include <QKeyEvent>
 #include "ui_hmiios2014.h"
 #include <QDebug>
 #include <QTranslator>
@@ -24,6 +25,7 @@ private:
     Ui::hmiios2014Class ui;
     QActionGroup* m_mapOpActionGroup;
     TSDWindow* m_tsd;
+    QWidget* m_tsdContainer;
     //MapFilterWidget * m_mapFilterWidget;
 
     QTranslator m_translatorChinese; // contains the translations for this application
@@ -32,9 +34,12 @@ private:
 signals:
     void signal_widget_resize(QRect rect);
 protected:
-    // bool eventFilter(QObject *obj, QEvent *ev);
+    bool eventFilter(QObject *obj, QEvent *ev) override;
+    void keyPressEvent(QKeyEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
+    bool forwardTsdKeyEvent(QEvent* event) const;
     void switchTranslator(QTranslator& translator, const QString& filename);
-    void changeEvent(QEvent* event);
+    void changeEvent(QEvent* event) override;
 
 private slots:
     void slot_setFps(int a_iFps);

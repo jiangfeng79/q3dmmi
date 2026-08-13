@@ -9,3 +9,5 @@
 /hmiios2014/x64/Release
 /x64/Release
 /.vs
+/build*
+/.vscode
