@@ -49,6 +49,7 @@ private slots:
     void on_actionCenterMap_triggered();
     void on_actionAutoZoom_triggered();
     void on_actionAutoSwing_triggered();
+    void on_actionShaderToys_triggered();
     void on_actionChineseLang_triggered();
     void on_actionDefaultLang_triggered();
     void slot_setMapFilter(TSDWindow::DisplayMaskBits layer_id, int state);

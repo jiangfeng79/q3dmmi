@@ -72,7 +72,7 @@
 <context>
     <name>TSDWindow</name>
     <message>
-        <location filename="TSDWindow.cpp" line="760"/>
+        <location filename="TSDWindow.cpp" line="761"/>
         <source>Angle: %1, Dist: %2</source>
         <translation type="unfinished">Angle: %1, Dist: %2</translation>
     </message>
@@ -80,8 +80,8 @@
 <context>
     <name>hmiios2014</name>
     <message>
-        <location filename="hmiios2014.cpp" line="166"/>
-        <location filename="hmiios2014.cpp" line="174"/>
+        <location filename="hmiios2014.cpp" line="167"/>
+        <location filename="hmiios2014.cpp" line="175"/>
         <source>Current Language changed to %1</source>
         <translation type="unfinished">Current Language changed to %1</translation>
     </message>
@@ -104,17 +104,17 @@
         <translation type="unfinished">Gfx Effect</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="61"/>
+        <location filename="hmiios2014.ui" line="62"/>
         <source>Language</source>
         <translation type="unfinished">Language</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="73"/>
+        <location filename="hmiios2014.ui" line="74"/>
         <source>Main Toolbar</source>
         <translation type="unfinished">Main Toolbar</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="76"/>
+        <location filename="hmiios2014.ui" line="77"/>
         <source>A tool bar... does provide tool buttons</source>
         <translation type="unfinished">A tool bar... does provide tool buttons</translation>
     </message>
@@ -191,12 +191,22 @@
         <translation type="unfinished">Swing!</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="268"/>
+        <location filename="hmiios2014.ui" line="272"/>
+        <source>Shader Toys!</source>
+        <translation type="unfinished">Shader Toys!</translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="275"/>
+        <source>Toggle Shader Toys</source>
+        <translation type="unfinished">Toggle Shader Toys</translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="280"/>
         <source>Chinese</source>
         <translation type="unfinished">Chinese</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="273"/>
+        <location filename="hmiios2014.ui" line="285"/>
         <source>Default</source>
         <translation type="unfinished">Default</translation>
     </message>

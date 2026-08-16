@@ -6,6 +6,7 @@
         <file>Resources/gtk-about.png</file>
         <file alias="swing">Resources/gtk-refresh.png</file>
         <file alias="zoom">Resources/gtk-zoom-fit.png</file>
+        <file alias="games">Resources/games.svg</file>
         <file alias="quit">Resources/gtk-quit.png</file>
         <file alias="normalscreen">Resources/gtk-leave-fullscreen.png</file>
         <file alias="center">Resources/gtk-find.png</file>
@@ -16,5 +17,6 @@
         <file>hmiios2014_zh.qm</file>
         <file>fshader.glsl</file>
         <file>vshader.glsl</file>
+        <file>bgfshader.glsl</file>
     </qresource>
 </RCC>

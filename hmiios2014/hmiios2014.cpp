@@ -153,6 +153,12 @@ void hmiios2014::on_actionAutoSwing_triggered()
         m_tsd->setAutoSwing(!m_tsd->getAutoSwing());
 }
 
+void hmiios2014::on_actionShaderToys_triggered()
+{
+    if (m_tsd)
+        m_tsd->setShaderToys(!m_tsd->getShaderToys());
+}
+
 void hmiios2014::on_actionChineseLang_triggered()
 {
     const QString languageName = QStringLiteral("zh");

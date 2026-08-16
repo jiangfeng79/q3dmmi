@@ -165,6 +165,11 @@ public:
     //void drawLayer(MapLayer & a_layer, bool a_bFillPolygon = false, int a_iColorId = 0);
     void drawLayerAndFill(MapLayer& a_layer, int a_iColorId = 0);
     void drawLayer(MapLayer& a_layer, int a_iColorId = 0);
+    // Stencil-fill helpers (shared by drawLayerAndFill)
+    void drawPolygonRing(MapLayer& a_layer, int i);
+    void drawRingsToStencil(MapLayer& a_layer);
+    void drawRingsToColor(MapLayer& a_layer);
+    void drawRingFilled(MapLayer& a_layer, int i);
     void drawText(MapLayer& a_layer);
     void drawTextWithAngle(MapLayer& a_layer);
     void drawEBL(float x, float y, float r);
@@ -176,6 +181,9 @@ public:
 
     inline void setAutoSwing(bool value) { m_bAutoSwing = value; }
     inline bool getAutoSwing() { return m_bAutoSwing; }
+
+    inline void setShaderToys(bool value) { m_bShaderToys = value; }
+    inline bool getShaderToys() { return m_bShaderToys; }
 protected:
     virtual void selectShader(uint shaderId);
 
@@ -204,6 +212,14 @@ private:
 
     QOpenGLShaderProgram* m_program;
 
+    // Background (ShaderToy) shader, drawn as a fullscreen pass before the map.
+    QOpenGLShaderProgram* m_bgProgram;
+    GLuint m_bgMouse;
+    GLuint m_bgMouseDelta;
+    GLuint m_bgResolution;
+    GLuint m_bgTime;
+    GLuint m_bgShaderId;
+
     MapLayer m_sgCoastal;
     MapLayer m_sgAmenities;
     MapLayer m_sgPlaces;
@@ -224,6 +240,7 @@ private:
 
     bool m_bAutoZoom;
     bool m_bAutoSwing;
+    bool m_bShaderToys;
 };
 
 #endif // TSDWINDOW_H

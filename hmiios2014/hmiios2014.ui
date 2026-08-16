@@ -55,6 +55,7 @@
     </property>
     <addaction name="actionAutoZoom"/>
     <addaction name="actionAutoSwing"/>
+    <addaction name="actionShaderToys"/>
    </widget>
    <widget class="QMenu" name="menuLanguage">
     <property name="title">
@@ -101,8 +102,7 @@
    <addaction name="actionCenterMap"/>
    <addaction name="actionMapLayerFilter"/>
    <addaction name="actionAutoSwing"/>
-   <addaction name="actionAutoZoom"/>
-  </widget>
+   <addaction name="actionAutoZoom"/>    <addaction name="actionShaderToys"/>  </widget>
   <widget class="QToolBar" name="subToolBar">
    <property name="windowTitle">
     <string>Sub toolbar</string>
@@ -261,6 +261,18 @@
    </property>
    <property name="toolTip">
     <string>Swing!</string>
+   </property>
+  </action>
+  <action name="actionShaderToys">
+   <property name="icon">
+    <iconset resource="hmiios2014.qrc">
+     <normaloff>:/hmiios2014/games</normaloff>:/hmiios2014/games</iconset>
+   </property>
+   <property name="text">
+    <string>Shader Toys!</string>
+   </property>
+   <property name="toolTip">
+    <string>Toggle Shader Toys</string>
    </property>
   </action>
   <action name="actionChineseLang">
