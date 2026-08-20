@@ -113,6 +113,11 @@
         <translation type="unfinished">语言</translation>
     </message>
     <message>
+        <location filename="hmiios2014.ui" line="70"/>
+        <source>Debug</source>
+        <translation type="unfinished">调试</translation>
+    </message>
+    <message>
         <location filename="hmiios2014.ui" line="74"/>
         <source>Main Toolbar</source>
         <translation type="unfinished">主工具栏</translation>
@@ -213,6 +218,16 @@
         <location filename="hmiios2014.ui" line="285"/>
         <source>Default</source>
         <translation type="unfinished">预设</translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="300"/>
+        <source>Vsync</source>
+        <translation type="unfinished">垂直同步</translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="303"/>
+        <source>Toggle vertical sync (off = benchmark mode, unlimited FPS)</source>
+        <translation type="unfinished">切换垂直同步（关闭 = 基准测试模式，无帧率限制）</translation>
     </message>
 </context>
 </TS>

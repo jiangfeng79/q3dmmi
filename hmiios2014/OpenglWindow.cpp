@@ -4,6 +4,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLPaintDevice>
 #include <QPainter>
+#include <QFontMetricsF>
 
 #include <time.h>
 #include <math.h>
@@ -17,6 +18,9 @@ OpenglWindow::OpenglWindow(QWindow* parent)
     , m_animating(false)
     , m_context(0)
     , m_device(0)
+    , m_batchDevice(nullptr)
+    , m_batchPainter(nullptr)
+    , m_inTextFrame(false)
     , m_fps(0)
     , m_fpsCounter(0)
     , m_iMousePosX(0)
@@ -38,6 +42,9 @@ OpenglWindow::OpenglWindow(QWindow* parent)
     , m_fScaleFactor(1)
     , m_bMouseIsPressing(false)
     , m_windowMaximized(false)
+    // Benchmark mode: start with vsync OFF (unlimited FPS). The user can flip
+    // this at runtime via the Debug > Vsync toggle menu item.
+    , m_bVsyncEnabled(false)
 
 {
     setSurfaceType(QWindow::OpenGLSurface);
@@ -50,7 +57,12 @@ OpenglWindow::OpenglWindow(QWindow* parent)
 OpenglWindow::~OpenglWindow()
 {
     delete timer;
+    delete m_context;
     delete m_device;
+    if (m_batchPainter)
+        m_batchPainter->end();
+    delete m_batchPainter;
+    delete m_batchDevice;
 }
 //! [2]
 void OpenglWindow::render(QPainter* painter)
@@ -270,10 +282,22 @@ void OpenglWindow::renderNow()
         QSurfaceFormat format = requestedFormat();
         // Use the window's requested format directly; it is already configured
         // before the window is created and avoids redundant overrides.
+
+        // The swap interval is a GLX *context-creation* attribute, so it must
+        // be set here, before the context is created; it cannot be changed on
+        // an existing context. SwapInterval(0) removes the per-frame wait for
+        // the monitor's vertical refresh (~60 Hz), letting the render loop in
+        // renderNow() run as fast as the GPU/CPU allow (benchmark mode).
+        // m_bVsyncEnabled is toggled at runtime via Debug > Vsync toggle,
+        // which destroys this context so it gets recreated with the new value.
+        format.setSwapInterval(m_bVsyncEnabled ? 1 : 0);
+
         m_context->setFormat(format);
         qDebug() << "Requested surface format:" << format;
         if (!m_context->create()) {
             qWarning() << "QOpenGLContext::create() failed for window" << title();
+            // m_context is a child of this QWindow, so it will be deleted with
+            // the parent; only release the GLX resources here.
             delete m_context;
             m_context = nullptr;
             return;
@@ -327,29 +351,61 @@ void OpenglWindow::setAnimating(bool animating)
 }
 //! [5]
 
+void OpenglWindow::toggleVsync()
+{
+    m_bVsyncEnabled = !m_bVsyncEnabled;
+    qDebug() << "Vsync" << (m_bVsyncEnabled ? "ON (~60 Hz)" : "OFF (benchmark, unlimited FPS)");
+
+    // The swap interval is fixed at GLX context-creation time, so the only way
+    // to apply it at runtime is to drop the current context. renderNow() will
+    // lazily recreate it with the new swap interval on the next frame; all
+    // shader programs / VBOs live in that context and are rebuilt by the
+    // subclass's initialize().
+    if (m_context)
+    {
+        // Let the subclass release its GL resources (programs, VAOs, VBOs) and
+        // CPU-side layer data while the context is still current, so the Qt
+        // GL object destructors can clean up properly.
+        resetGpuResources();
+
+        // The batched text device's FBO belongs to the context being dropped;
+        // drop it so it gets recreated on the next frame.
+        if (m_batchPainter)
+            m_batchPainter->end();
+        delete m_batchPainter;
+        m_batchPainter = nullptr;
+        delete m_batchDevice;
+        m_batchDevice = nullptr;
+
+        m_context->doneCurrent();
+        delete m_context;
+        m_context = nullptr;
+    }
+
+    renderLater();
+}
+
 //! [6]
 void OpenglWindow::renderText(int posX, int posY, const QString& text)
 {
-    if (!m_device)
-        m_device = new QOpenGLPaintDevice;
-    m_device->setSize(size() * devicePixelRatio());
+    if (text.isEmpty())
+        return;
 
-    if (m_device)
-    {
-        QPainter painter(m_device);
-        //painter.beginNativePainting();
-        painter.setPen(QColor(255, 255, 255, 127));
-        //QFont font("Sans Serif");
-        QFont font("Courier New");
-        //font.setStyleHint(QFont::TypeWriter);
-        font.setPixelSize(16 * devicePixelRatio());
-        font.setBold(true);
-        //painter.setRenderHint(QPainter::Antialiasing);
-        painter.setFont(font);
-        //painter.setBrush(QBrush(QColor(0, 255, 0, 127), Qt::SolidPattern));
-        painter.drawText(posX, posY, text);
-        //painter.endNativePainting();
-    }
+    bool shared = false;
+    QPainter* painter = activeTextPainter(shared);
+    if (!painter)
+        return;
+
+    painter->save();
+    painter->setPen(QColor(255, 255, 255, 127));
+    QFont font(QStringLiteral("Courier New"));
+    font.setPixelSize(16 * devicePixelRatio());
+    font.setBold(true);
+    painter->setFont(font);
+    painter->drawText(posX, posY, text);
+    painter->restore();
+    if (!shared)
+        painter->end();
 }
 //! [6]
 
@@ -364,39 +420,33 @@ void OpenglWindow::calculateFPS()
 //! [8]
 void OpenglWindow::renderShape(const QRect& rec)
 {
-    if (!m_device)
-        m_device = new QOpenGLPaintDevice;
-    m_device->setSize(size() * devicePixelRatio());
-
-    //if(m_device)
+    bool shared = false;
+    QPainter* painter = activeTextPainter(shared);
+    if (painter)
     {
-        QPainter painter(m_device);
-
-        //painter.beginNativePainting();
-        painter.setPen(QColor(0, 0, 0));
-        painter.setRenderHint(QPainter::Antialiasing);
-        painter.setBrush(QBrush(QColor(0, 255, 0, 63), Qt::SolidPattern));
-        painter.drawRect(rec);
-        //painter.endNativePainting();
+        painter->setPen(QColor(0, 0, 0));
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setBrush(QBrush(QColor(0, 255, 0, 63), Qt::SolidPattern));
+        painter->drawRect(rec);
+        if (!shared)
+            painter->end();
     }
 }
 
 void OpenglWindow::drawLines(const QVector<QPointF>& pointPairs)
 {
-    if (!m_device)
-        m_device = new QOpenGLPaintDevice;
-    m_device->setSize(size() * devicePixelRatio());
+    if (pointPairs.isEmpty())
+        return;
 
-    if (m_device)
+    bool shared = false;
+    QPainter* painter = activeTextPainter(shared);
+    if (painter)
     {
-        QPainter painter(m_device);
-
-        //painter.beginNativePainting();
-        painter.setPen(QPen(QColor(255, 255, 255, 127), 1 * devicePixelRatio()));
-        painter.setRenderHint(QPainter::Antialiasing);
-        //painter.setBrush(QBrush(QColor(0, 255, 0, 63), Qt::SolidPattern));
-        painter.drawLines(pointPairs);
-        //painter.endNativePainting();
+        painter->setPen(QPen(QColor(255, 255, 255, 127), 1 * devicePixelRatio()));
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->drawLines(pointPairs);
+        if (!shared)
+            painter->end();
     }
 }
 //! [8]
@@ -423,106 +473,110 @@ void OpenglWindow::setMapOpMask(MapOpMaskBits a_layer/*, bool a_b*/)
 //! [11]
 void OpenglWindow::renderText(int posX, int posY, const QString& text, const QString& font)
 {
-    if (!m_device)
-        m_device = new QOpenGLPaintDevice;
+    if (text.isEmpty())
+        return;
 
-    if (m_device)
-    {
-        m_device->setSize(size() * devicePixelRatio());
+    bool shared = false;
+    QPainter* painter = activeTextPainter(shared);
+    if (!painter)
+        return;
 
-        QPainter painter(m_device);
-
-        //painter.beginNativePainting();
-        painter.setPen(QColor(255, 255, 127, 160));
-        QFontMetricsF metrics(painter.font());
-        //QFont font = painter.font();
-        //font.setBold(true);
-
-
-        //QFont font("Sans Serif");
-        //QFont font(font);
-        //font.setStyleHint(QFont::TypeWriter);
-        //font.setPixelSize(11);
-        //font.setBold(true);
-        //painter.setRenderHint(QPainter::Antialiasing);
-        //painter.setFont(font);
-        //painter.setBrush(QBrush(QColor(0, 255, 0, 127), Qt::SolidPattern));*/
-        if (devicePixelRatio() > 1)
-        {
-            m_font.setPixelSize(12 * devicePixelRatio());
-            m_font.setBold(false);
-            painter.setFont(m_font);
-            //.setHintingPreference(QFont::PreferNoHinting);
-        }
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
-        painter.drawText(posX - metrics.horizontalAdvance(text) * devicePixelRatio() / 2, posY + 12 * devicePixelRatio(), text);
-#else
-        painter.drawText(posX - metrics.width(text) * devicePixelRatio() / 2, posY + 12 * devicePixelRatio(), text);
-#endif
-
-        //painter.endNativePainting();
-    }
+    painter->save();
+    painter->setPen(QColor(255, 255, 127, 160));
+    // Reuse a cached QFont + QFontMetricsF instead of rebuilding them per
+    // label (family-string parse + metrics computation is the dominant cost
+    // across tens of thousands of labels per frame).
+    const int px = 12 * devicePixelRatio();
+    FontEntry* fe = getCachedFont(font, px, false);
+    painter->setFont(fe->font);
+    const qreal adv = fe->metrics.horizontalAdvance(text);
+    painter->drawText(posX - adv / 2, posY + 12 * devicePixelRatio(), text);
+    painter->restore();
+    if (!shared)
+        painter->end();
 }
 //! [11]
 
 //! [12]
 void OpenglWindow::renderText(int posX, int posY, const QString& text, const QString& a_font, qreal a_angle)
 {
-    if (!m_device)
-        m_device = new QOpenGLPaintDevice;
-    m_device->setSize(size() * devicePixelRatio());
+    if (text.isEmpty())
+        return;
 
+    bool shared = false;
+    QPainter* painter = activeTextPainter(shared);
+    if (!painter)
+        return;
 
-    if (m_device)
-    {
-        QPainter painter(m_device);
+    // Draw directly on the shared paint device (the original approach) rather
+    // than baking into a QImage + drawImage, which distorts text on
+    // QOpenGLPaintDevice.
+    painter->save();
+    painter->setPen(QColor(155, 205, 155, 150));
 
-        //painter.beginNativePainting();
-        painter.setPen(QColor(155, 205, 155, 150));
-        //painter.setPen(QColor(5, 5, 5, 150));
+    // Reuse cached QFont + QFontMetricsF (this path is called per road/MRT
+    // label, i.e. tens of thousands of times per frame at high zoom).
+    const int dpr = devicePixelRatio();
+    FontEntry* feBig = getCachedFont(a_font, 18 * dpr, true);
+    FontEntry* feText = getCachedFont(a_font, 13 * dpr, true);
+    painter->setFont(feBig->font);
+    const QFontMetricsF& metrics = feBig->metrics;
 
-        //painter.save();
-        //QFont font(a_font);
-        //font.setStyleHint(QFont::TypeWriter);
-        m_font.setPixelSize(18 * devicePixelRatio());
-        m_font.setBold(true);
-        //m_font.setHintingPreference(QFont::PreferNoHinting);
-        painter.setFont(m_font);
-        QFontMetricsF metrics(painter.font());
-        painter.translate(posX, posY);
-        painter.rotate(a_angle);
-        painter.drawText(0, 4, ">>");
-        //painter.setPen(QColor(5, 5, 5, 150));
-        //painter.drawText(-1,3, ">>");
+    painter->translate(posX, posY);
+    painter->rotate(a_angle);
+    painter->drawText(0, 14, ">>");
 
-        if (abs(a_angle) > 90)
-            painter.rotate(180.0);
+    if (qAbs(a_angle) > 90)
+        painter->rotate(180.0);
 
-        //painter.setPen(QColor(155, 205, 155, 150));
-        m_font.setPixelSize(13 * devicePixelRatio());
-        m_font.setBold(true);
-        //m_font.setHintingPreference(QFont::PreferNoHinting);
-        painter.setFont(m_font);
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
-        painter.drawText(8 - metrics.horizontalAdvance(text) / 2, 18, text);
-#else
-        painter.drawText(8 - metrics.width(text) / 2, 18, text);
-#endif
-        painter.setPen(QColor(5, 5, 5, 150));
-        //painter.setPen(QColor(255, 105, 105, 150));
-
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
-        painter.drawText(7 - metrics.horizontalAdvance(text) / 2, 17, text);
-#else
-        painter.drawText(8 - metrics.width(text) / 2, 18, text);
-#endif
-        //painter.restore();
-        //painter.endNativePainting();
-    }
+    painter->setFont(feText->font);
+    painter->drawText(8 - metrics.horizontalAdvance(text) / 2, 18, text);
+    painter->setPen(QColor(5, 5, 5, 150));
+    painter->drawText(7 - metrics.horizontalAdvance(text) / 2, 17, text);
+    painter->restore();
+    if (!shared)
+        painter->end();
 }
 //! [12]
 
+OpenglWindow::FontEntry* OpenglWindow::getCachedFont(const QString& family, int pixelSize, bool bold)
+{
+    const QString key = family + QLatin1Char('|') + QString::number(pixelSize) + QLatin1Char('|')
+                         + (bold ? QLatin1Char('1') : QLatin1Char('0'));
+    QHash<QString, FontEntry>::Iterator it = m_fontCache.find(key);
+    if (it != m_fontCache.end())
+        return &it.value();
+
+    QFont font(family);
+    font.setPixelSize(pixelSize);
+    font.setBold(bold);
+    FontEntry entry(font, QFontMetricsF(font));
+    return &m_fontCache.insert(key, entry).value();
+}
+
+QPainter* OpenglWindow::activeTextPainter(bool& shared)
+{
+    shared = m_inTextFrame && m_batchPainter && m_batchPainter->isActive();
+    if (shared)
+        return m_batchPainter;
+
+    // Standalone mode: create a painter on demand for callers that are not
+    // inside a beginTextFrame()/endTextFrame() block (e.g. drawEBL's label).
+    if (!m_batchDevice)
+        m_batchDevice = new QOpenGLPaintDevice;
+    m_batchDevice->setSize(size() * devicePixelRatio());
+    if (!m_batchPainter)
+        m_batchPainter = new QPainter;
+    m_batchPainter->begin(m_batchDevice);
+    return m_batchPainter;
+}
+
 void OpenglWindow::selectShader(uint shaderId)
+{
+    qDebug() << "virtual parent, do nothing";
+}
+
+void OpenglWindow::resetGpuResources()
 {
     qDebug() << "virtual parent, do nothing";
 }

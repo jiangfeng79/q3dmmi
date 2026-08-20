@@ -3,53 +3,36 @@ in vec4 pos;
 out vec4 fragColor;
 uniform int color_id;
 
+// Color lookup table, indexed by color_id (0..22). Replaces the old if/else
+// ladder; GLSL 3.30 core allows dynamic indexing of constant arrays.
+const vec4 kColorTable[23] = vec4[23](
+	vec4(.0, .6, .0, 1.0),    // 0
+	vec4(.0, .5, .0, 1.0),    // 1
+	vec4(.9, .1, .2, .7),     // 2
+	vec4(.9, .1, .2, .6),     // 3
+	vec4(.9, .1, .2, .6),     // 4
+	vec4(.1, .9, .2, .6),     // 5
+	vec4(0.35, 0.35, 0.35, .5), // 6
+	vec4(.8, .4, .2, .6),     // 7
+	vec4(.0, .0, .0, 1.0),    // 8
+	vec4(.8, .1, .4, .7),     // 9
+	vec4(.1, .1, .1, .5),     // 10
+	vec4(.0, .0, .0, .0),     // 11
+	vec4(0.7, 0.0, 0.4, .4),  // 12
+	vec4(.0, .0, .0, .0),     // 13
+	vec4(.9, .9, .1, .1),     // 14
+	vec4(.0, .0, .0, .0),     // 15
+	vec4(.7, 0.7, .7, .3),    // 16
+	vec4(.2, .6, .1, 1.0),    // 17
+	vec4(.1, .1, .2, .1),     // 18
+	vec4(.2, .6, .1, 1.0),    // 19
+	vec4(.0, 1.0, .0, .6),    // 20
+	vec4(.2, .6, .1, 1.0),    // 21
+	vec4(.0, .6, .0, 1.0)     // 22
+);
+
 void main() {
-		if(color_id == 0)
-			fragColor = vec4(.0, .6, .0,1.0);
-		else if(color_id == 1)
-			fragColor = vec4(.0, .5, .0,1.0);
-		else if(color_id == 2)
-			fragColor = vec4(.9, .1, .2,.7);
-		else if(color_id == 3)
-			fragColor =vec4(.9, .1, .2,.6);
-		else if(color_id == 4)
-			fragColor =vec4(.9, .1, .2,.6);
-		else if(color_id == 5)
-			fragColor =vec4(.1, .9, .2,.6);
-		else if(color_id == 6)
-			fragColor =vec4(0.35, 0.35, 0.35,.5);
-		else if(color_id == 7)
-			fragColor =vec4(.8, .4, .2,.6);
-		else if(color_id == 8)
-			fragColor =vec4(.0, .0, .0,1.);
-		else if(color_id == 9)
-			fragColor =vec4(.8, .1, .4,.7);
-		else if(color_id == 10)
-			fragColor =vec4(.1, .1, .1,.5);
-		else if(color_id == 11)
-			fragColor =vec4(.0, .0, .0,.0);
-		else if(color_id == 12)
-			fragColor =vec4(0.7, 0.0, 0.4,.4);
-		else if(color_id == 13)
-			fragColor =vec4(.0, .0, .0,.0);
-		else if(color_id == 14)
-			fragColor =vec4(.9, .9, .1,.1);
-		else if(color_id == 15)
-			fragColor =vec4(.0, .0, .0,.0);
-		else if(color_id == 16)
-			fragColor =vec4(.7, 0.7, .7,.3);
-		else if(color_id == 17)
-			fragColor =vec4(.2, .6, .1,1.);
-		else if(color_id == 18)
-			fragColor =vec4(.1, .1, .2,.1);
-		else if(color_id == 19)
-			fragColor =vec4(.2, .6, .1,1.);
-		else if(color_id == 20)
-			fragColor =vec4(.0, 1.0, .0,.6);
-		else if(color_id == 21)
-			fragColor = vec4(.2, .6, .1,1.);
-		else if(color_id == 22)
-			fragColor = vec4(.0, .6, .0,1.);    
-		else
-            fragColor = vec4(1.0);
+	// Clamp to the valid range (out-of-range ids now map to entry 0/22
+	// instead of the old white default; all real ids are in 0..22).
+	fragColor = kColorTable[clamp(color_id, 0, 22)];
 }

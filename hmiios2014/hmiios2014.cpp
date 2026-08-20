@@ -159,6 +159,17 @@ void hmiios2014::on_actionShaderToys_triggered()
         m_tsd->setShaderToys(!m_tsd->getShaderToys());
 }
 
+void hmiios2014::on_actionVsync_triggered()
+{
+    if (!m_tsd)
+        return;
+
+    // toggleVsync() flips the internal state, so sync the menu check state
+    // from the window afterwards.
+    m_tsd->toggleVsync();
+    ui.actionVsync->setChecked(m_tsd->vsyncEnabled());
+}
+
 void hmiios2014::on_actionChineseLang_triggered()
 {
     const QString languageName = QStringLiteral("zh");

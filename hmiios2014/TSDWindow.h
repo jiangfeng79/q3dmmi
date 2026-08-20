@@ -160,6 +160,7 @@ public:
     ~TSDWindow();
     void initialize();
     void render();
+
     inline int getFps() { return m_fps; }
 
     //void drawLayer(MapLayer & a_layer, bool a_bFillPolygon = false, int a_iColorId = 0);
@@ -184,7 +185,11 @@ public:
 
     inline void setShaderToys(bool value) { m_bShaderToys = value; }
     inline bool getShaderToys() { return m_bShaderToys; }
+
 protected:
+    // Release all GL resources + CPU-side layer data so initialize() can run
+    // again after the context is recreated (e.g. vsync toggle).
+    void resetGpuResources() override;
     virtual void selectShader(uint shaderId);
 
 private:

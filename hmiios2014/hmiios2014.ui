@@ -65,9 +65,16 @@
     <addaction name="actionChineseLang"/>
     <addaction name="actionDefaultLang"/>
    </widget>
+   <widget class="QMenu" name="menuDebug">
+    <property name="title">
+     <string>Debug</string>
+    </property>
+    <addaction name="actionVsync"/>
+   </widget>
    <addaction name="menuWindow"/>
    <addaction name="menuGfx_Effect"/>
    <addaction name="menuLanguage"/>
+   <addaction name="menuDebug"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <property name="windowTitle">
@@ -283,6 +290,17 @@
   <action name="actionDefaultLang">
    <property name="text">
     <string>Default</string>
+   </property>
+  </action>
+  <action name="actionVsync">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Vsync</string>
+   </property>
+   <property name="toolTip">
+    <string>Toggle vertical sync (off = benchmark mode, unlimited FPS)</string>
    </property>
   </action>
  </widget>

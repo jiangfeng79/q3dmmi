@@ -389,6 +389,7 @@ void TSDWindow::initialize()
             glBindBuffer(GL_ARRAY_BUFFER, 0);
 
             free(l_layer->m_vertex);
+            l_layer->m_vertex = nullptr; // avoid double-free in resetGpuResources()
             l_layer->m_shapeFileReader.freeMemory();
             // l_layer->m_dbfFileReader.freeMemory();
         }
@@ -674,13 +675,19 @@ void TSDWindow::render()
     // QString Y = QString("%1'%2").arg((int)mapY).arg((mapY-(int)mapY)*60.0,6,'f', 3, QChar('0'));
     QString X = QString("%1").arg((mapX), 6, 'f', 6, QChar('0'));
     QString Y = QString("%1").arg((mapY), 6, 'f', 6, QChar('0'));
+    QString qScale = QString("%1").arg((SCALE), 6, 'f', 6, QChar('0'));
 
     // QString X1 = QString("%1'%2").arg((int)mapX).arg((mapX-(int)mapX));
     // QString Y1 = QString("%1'%2").arg((int)mapY).arg((mapY-(int)mapY));
 
+    // Begin a single batched 2D text pass: the underlying QOpenGLPaintDevice/
+    // QPainter is created once and shared by every HUD/label draw below
+    //beginTextFrame();
+    m_inTextFrame = true;
+
     renderShape(QRect(0, 0, 300 * retinaScale, 80 * retinaScale));
     renderText(10, 18 * retinaScale, QString("Coord: [%1,%2]").arg(X).arg(Y));
-    renderText(10, 36 * retinaScale, QString("Scale: [%1]").arg(SCALE));
+    renderText(10, 36 * retinaScale, QString("Scale: [%1]").arg(qScale));
     renderText(10, 54 * retinaScale, QString("1 NM:  "));
     QVector<QPointF> scaleLine;
     scaleLine.append(QPointF(84 * retinaScale, 54 * retinaScale));
@@ -721,6 +728,9 @@ void TSDWindow::render()
         drawText(m_sgPlaces);
         drawText(m_sgManMade);
     }
+
+    //endTextFrame();
+    m_inTextFrame = false;
 
     ++m_fpsCounter;
 
@@ -857,4 +867,64 @@ void TSDWindow::selectShader(uint shaderId)
 {
     m_shader = shaderId;
     qDebug() << "set shader to " << shaderId;
+}
+
+void TSDWindow::resetGpuResources()
+{
+    qDebug() << "resetGpuResources ";
+
+    // Called from OpenglWindow::toggleVsync() while the GL context is still
+    // current, right before it is destroyed. Everything below must happen
+    // before doneCurrent(): the Qt GL object destructors and the raw GL
+    // delete calls need a live context to release their resources.
+
+    // Shader programs (parented to this window; delete explicitly so the GL
+    // programs are released now instead of at window destruction).
+    delete m_program;
+    m_program = nullptr;
+    delete m_bgProgram;
+    m_bgProgram = nullptr;
+
+    // Raw GL objects.
+    if (m_vao)
+    {
+        this->glDeleteVertexArrays(1, &m_vao);
+        m_vao = 0;
+    }
+    if (m_mrtVBO)
+    {
+        glDeleteBuffers(1, &m_mrtVBO);
+        m_mrtVBO = 0;
+    }
+    if (m_eblVBO)
+    {
+        glDeleteBuffers(1, &m_eblVBO);
+        m_eblVBO = 0;
+    }
+
+    // MRT station data (reallocated by initialize()).
+    free(m_mrt);
+    m_mrt = nullptr;
+
+    // Per-layer CPU data + VBOs, so initialize() can rebuild everything
+    // cleanly (buildLayer() re-reads the shape/dbf files from disk).
+    for (int i = 0; i < m_listOfLayers.size(); ++i)
+    {
+        TSDWindow::MapLayer *l_layer = m_listOfLayers[i];
+        if (l_layer->m_vertex)
+        {
+            free(l_layer->m_vertex);
+            l_layer->m_vertex = nullptr;
+        }
+        if (l_layer->m_VBO_ID[0] || l_layer->m_VBO_ID[1])
+        {
+            glDeleteBuffers(2, l_layer->m_VBO_ID);
+            l_layer->m_VBO_ID[0] = l_layer->m_VBO_ID[1] = 0;
+        }
+        l_layer->m_shapeFileReader.freeMemory();
+        l_layer->m_dbfFileReader.freeMemory();
+        l_layer->m_ring.clear();
+        l_layer->m_renderType.clear();
+        l_layer->m_property.totalNumberOfVertex = 0;
+    }
 }
