@@ -78,6 +78,12 @@ void MapFilterWidget::on_checkBoxManMade_stateChanged(int state)
     emit signal_checkBox_state(TSDWindow::MAN_MADE, state);
 }
 
+void MapFilterWidget::on_checkBoxFlights_stateChanged(int state)
+{
+    qDebug() << "on_checkBoxFlights_stateChanged" << state;
+    emit signal_checkBox_state(TSDWindow::FLIGHTS, state);
+}
+
 void MapFilterWidget::retranslate()
 {
     retranslateUi(this);

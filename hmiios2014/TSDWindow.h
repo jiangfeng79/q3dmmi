@@ -16,9 +16,12 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QActionGroup>
+#include <QThread>
+#include <QHash>
 
-#include "shpReader.h"
-#include "dbfReader.h"
+#include "layerGeometry.h"
+#include "layerParser.h"
+#include "flightTracker.h"
 
 class TSDWindow : public OpenglWindow
 {
@@ -54,6 +57,8 @@ public:
         MAN_MADE_TEXT = 1 << 23,
 
         MRT_POINT = 1 << 24, //points
+        FLIGHTS = 1 << 25, //live airflight markers (points)
+        FLIGHTS_TEXT = 1 << 26, //live airflight callsign labels
         DIPLAY_ALL = 0xFFFFFFFF
     };
 
@@ -67,88 +72,62 @@ public:
     //template<int N> void printMrtStringToScreen();
     //template<> void printMrtStringToScreen<0>();
 
-    typedef struct _mapProperty
-    {
-        float scale;
-        float centerX, centerY;
-        float width, height;
-        float mapBuildScale;
-        int totalNumberOfVertex;
-    } MapProperty;
+    // MapProperty is defined in layerGeometry.h.
 
+    // A map layer is coupled to a single input layer through an injected
+    // LayerParser. The parser turns the raw input (shapefile + dbf, or any
+    // other source) into renderable geometry (polygons, lines, points and
+    // labels) held in m_geometry. The renderer consumes m_geometry directly
+    // and never touches the raw file format.
     class MapLayer
     {
     public:
-        MapLayer(const char* fileName) :m_vertex(NULL), m_color(NULL) {
-            m_VBO_ID[0] = m_VBO_ID[1] = 0;
-            m_property.totalNumberOfVertex = 0;
-            m_property.mapBuildScale = 111319.4907777778;
-            m_property.scale = 0.1;
-            m_fileName = QString(fileName);
-        }
-
         MapLayer(const char* fileName, DisplayMaskBits id, DisplayMaskBits text_id) :
-            m_vertex(NULL)
-            , m_color(NULL)
-            , m_id(id)
+            m_id(id)
             , m_text_id(text_id)
             , m_bToFill(false)
+            , m_parser(nullptr)
         {
             m_VBO_ID[0] = m_VBO_ID[1] = 0;
-            m_property.totalNumberOfVertex = 0;
-            m_property.mapBuildScale = 111319.4907777778;
             m_property.scale = 0.1;
             m_fileName = QString(fileName);
             m_layerName.clear();
         }
 
         MapLayer(const char* fileName, const char* layerName, DisplayMaskBits id, DisplayMaskBits text_id) :
-            m_vertex(NULL)
-            , m_color(NULL)
-            , m_id(id)
+            m_id(id)
             , m_text_id(text_id)
             , m_bToFill(false)
+            , m_parser(nullptr)
         {
             m_VBO_ID[0] = m_VBO_ID[1] = 0;
-            m_property.totalNumberOfVertex = 0;
-            m_property.mapBuildScale = 111319.4907777778;
             m_property.scale = 0.1;
             m_fileName = QString(fileName);
             m_layerName = QString(layerName);
         }
 
+        ~MapLayer()
+        {
+            delete m_parser;
+        }
+
+        // Inject the parser coupled to this layer's input data.
+        void setParser(LayerParser* a_parser) { m_parser = a_parser; }
+        LayerParser* parser() const { return m_parser; }
+
         MapProperty m_property;
         QString m_fileName;
         QString m_layerName;
-        std::vector <int> m_ring;
-        std::vector <int> m_renderType;
-        ShpReader m_shapeFileReader;
-        DBFReader m_dbfFileReader;
-        //DbfReader m_dbfFileReader
+        LayerParser* m_parser;
+        // Renderable geometry produced by the parser (vertices, rings, types, labels).
+        LayerGeometry m_geometry;
         GLuint m_VBO_ID[2];
-        GLfloat* m_vertex;
-        GLfloat* m_color;
 
         DisplayMaskBits m_id;
         DisplayMaskBits m_text_id;
 
         bool m_bToFill;
 
-        void readData()
-        {
-            QString l_qsShpFileName = m_fileName + QString(".shp");
-            QString l_qsDbfFileName = m_fileName + QString(".dbf");
-            if (m_layerName.isEmpty())
-            {
-                m_dbfFileReader.read(l_qsDbfFileName.toStdString().c_str());
-                m_shapeFileReader.read(l_qsShpFileName.toStdString().c_str());
-            }
-            else
-            {
-                m_dbfFileReader.readLayer(l_qsDbfFileName.toStdString().c_str(), m_layerName.toStdString().c_str());
-                m_shapeFileReader.readLayer(l_qsShpFileName.toStdString().c_str(), m_dbfFileReader);
-            }
-        }
         void buildLayer();
         void buildLayer(MapProperty& a_property, int a_iLayerId);
     };
@@ -175,6 +154,17 @@ public:
     void drawTextWithAngle(MapLayer& a_layer);
     void drawEBL(float x, float y, float r);
     void drawMRTStation();
+    // Draw the live airflight trails (fading position history) + position
+    // vectors near Changi. Called in the batched 2D text pass, before the
+    // plane markers, so the trails sit behind the planes.
+    void drawFlightTrails();
+    // Draw the live airflight markers as plane silhouettes (screen space)
+    // near Changi. Called in the batched 2D text pass so the planes keep a
+    // fixed size regardless of zoom; each is oriented by the aircraft heading.
+    void drawFlightMarkers();
+    // Draw the live airflight callsign labels (2D text pass) near Changi.
+    // Called in the batched 2D text pass.
+    void drawFlightLabels();
     void centerMap();
     void setDisplayMask(DisplayMaskBits layer, bool b);
     inline void setAutoZoom(bool value) { m_bAutoZoom = value; }
@@ -185,6 +175,11 @@ public:
 
     inline void setShaderToys(bool value) { m_bShaderToys = value; }
     inline bool getShaderToys() { return m_bShaderToys; }
+
+public slots:
+    // Receives the live airflight tracking table from the TrackerWorker
+    // (emitted from the worker thread, queued to the GUI thread).
+    void onTrackingTableUpdated(const QHash<QString, TrackedAircraft>& table);
 
 protected:
     // Release all GL resources + CPU-side layer data so initialize() can run
@@ -246,6 +241,14 @@ private:
     bool m_bAutoZoom;
     bool m_bAutoSwing;
     bool m_bShaderToys;
+
+    // Live airflight tracking near Changi. The worker runs on a dedicated
+    // thread and polls the adsb.lol API; the tracking table is copied onto the
+    // GUI thread (via onTrackingTableUpdated) and drawn by
+    // drawFlightMarkers()/drawFlightLabels().
+    QThread* m_flightThread;
+    TrackerWorker* m_flightWorker;
+    QHash<QString, TrackedAircraft> m_flightTable;
 };
 
 #endif // TSDWINDOW_H

@@ -90,13 +90,11 @@ protected:
     QFont m_font;
     bool m_inTextFrame;
 
-private:
-    bool m_update_pending;
-    bool m_animating;
-
     // Batched 2D text pass. The device is reused across a whole frame so we
     // only pay the QOpenGLPaintDevice/QPainter setup cost once instead of once
-    // per label.
+    // per label. Exposed as protected so subclasses (e.g. TSDWindow) can draw
+    // into the same batched 2D text pass for dynamic overlays such as live
+    // flights.
     QOpenGLPaintDevice* m_batchDevice;
     QPainter* m_batchPainter;
 
@@ -117,6 +115,10 @@ private:
     };
     QHash<QString, FontEntry> m_fontCache;
     FontEntry* getCachedFont(const QString& family, int pixelSize, bool bold);
+
+private:
+    bool m_update_pending;
+    bool m_animating;
 
 signals:
     void signal_setFps(int a_iFps);

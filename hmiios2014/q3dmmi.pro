@@ -22,6 +22,7 @@ SOURCES += \
     TSDWindow.cpp \
     dbfReader.cpp \
     hmiios2014.cpp \
+    layerParser.cpp \
     main.cpp \
     mapFilterWidget.cpp \
     shpReader.cpp
@@ -30,7 +31,10 @@ HEADERS += \
     OpenglWindow.h \
     TSDWindow.h \
     dbfReader.h \
+    geoTransform.h \
     hmiios2014.h \
+    layerGeometry.h \
+    layerParser.h \
     mapFilterWidget.h \
     mrt.h \
     shpReader.h

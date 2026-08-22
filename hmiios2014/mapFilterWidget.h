@@ -33,6 +33,7 @@ private slots:
     void on_checkBoxAmenities_stateChanged(int state);
     void on_checkBoxPlaces_stateChanged(int state);
     void on_checkBoxManMade_stateChanged(int state);
+    void on_checkBoxFlights_stateChanged(int state);
 };
 
 #endif // MAPFILTERWIDGET_H

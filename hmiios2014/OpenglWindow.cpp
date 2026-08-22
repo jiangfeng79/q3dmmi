@@ -42,9 +42,9 @@ OpenglWindow::OpenglWindow(QWindow* parent)
     , m_fScaleFactor(1)
     , m_bMouseIsPressing(false)
     , m_windowMaximized(false)
-    // Benchmark mode: start with vsync OFF (unlimited FPS). The user can flip
-    // this at runtime via the Debug > Vsync toggle menu item.
-    , m_bVsyncEnabled(false)
+    // Start with vsync ON (~60 Hz cap). The user can flip this at runtime via
+    // the Debug > Vsync toggle menu item to enter benchmark mode (unlimited FPS).
+    , m_bVsyncEnabled(true)
 
 {
     setSurfaceType(QWindow::OpenGLSurface);
