@@ -1,5 +1,6 @@
 ## Welcome to q3dmmi
 ![Demo](https://github.com/jiangfeng79/q3dmmi/blob/master/hmiios2014/Screenshots/4.png)
+![Demo](https://github.com/jiangfeng79/q3dmmi/blob/master/hmiios2014/Screenshots/Screenshot_20260822_122455.png)
 
 This is a hobby project I started from 2007.
 The purpose is to use modern widget lib with opengl support to draw hardware accel. vector graphics(maps).
