@@ -81,6 +81,7 @@ template<> void TSDWindow::printStringToScreen<0>(MapLayer & a_layer)
 TSDWindow::TSDWindow()
     : m_program(0)
     , m_bgProgram(0)
+    , m_lineProgram(0)
     , m_bgMouse(0)
     , m_bgMouseDelta(0)
     , m_bgResolution(0)
@@ -102,7 +103,7 @@ TSDWindow::TSDWindow()
     , m_mrtVBO(0)
     , m_eblVBO(0)
     , m_shader(0)
-    , m_displayMask(0xff5c033f)
+    , m_displayMask(0xff5c032b)
     , m_bAutoZoom(false)
     , m_bAutoSwing(false)
     , m_bShaderToys(false)
@@ -173,6 +174,14 @@ TSDWindow::TSDWindow()
 TSDWindow::~TSDWindow()
 {
     // Stop the live flight tracker and let its worker thread finish cleanly.
+    // The worker's QTimer lives on the worker thread, so it must be stopped
+    // from that thread; calling stop() directly from here (the main thread)
+    // triggers "QObject::killTimer: Timers cannot be stopped from another
+    // thread". Post stop() into the worker's event loop, then quit and wait.
+    if (m_flightWorker)
+    {
+        QMetaObject::invokeMethod(m_flightWorker, &TrackerWorker::stop, Qt::QueuedConnection);
+    }
     if (m_flightThread)
     {
         m_flightThread->quit();
@@ -180,7 +189,6 @@ TSDWindow::~TSDWindow()
     }
     if (m_flightWorker)
     {
-        m_flightWorker->stop();
         delete m_flightWorker;
         m_flightWorker = nullptr;
     }
@@ -293,8 +301,7 @@ void TSDWindow::initialize()
     m_resolution = m_program->uniformLocation("resolution");
     m_time = m_program->uniformLocation("time");
     m_colorId = m_program->uniformLocation("color_id");
-    m_shaderId = m_program->uniformLocation("shader_id");
-
+    
     // Background (ShaderToy) shader: separate program, fullscreen triangle.
     m_bgProgram = new QOpenGLShaderProgram(this);
     if (!m_bgProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, QString(":/hmiios2014/vshader.glsl")))
@@ -309,6 +316,25 @@ void TSDWindow::initialize()
     m_bgResolution = m_bgProgram->uniformLocation("resolution");
     m_bgTime = m_bgProgram->uniformLocation("time");
     m_bgShaderId = m_bgProgram->uniformLocation("shader_id");
+
+    // Line shader: same three stages as m_program (vshader + gshader +
+    // fshader). The geometry shader expands each line segment into a filled
+    // quad so the line (SHPT_ARC) rings can be thickened beyond the driver's
+    // 1px glLineWidth limit. Only the uniforms the line pass actually uses are
+    // cached (matrix, color_id, resolution).
+    m_lineProgram = new QOpenGLShaderProgram(this);
+    if (!m_lineProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, QString(":/hmiios2014/vshader.glsl")))
+        qWarning() << "Line vertex shader compile error:" << m_lineProgram->log();
+    if (!m_lineProgram->addShaderFromSourceFile(QOpenGLShader::Geometry, QString(":/hmiios2014/gshader.glsl")))
+        qWarning() << "Line geometry shader compile error:" << m_lineProgram->log();
+    if (!m_lineProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, QString(":/hmiios2014/fshader.glsl")))
+        qWarning() << "Line fragment shader compile error:" << m_lineProgram->log();
+    if (!m_lineProgram->link())
+        qWarning() << "Line shader program link error:" << m_lineProgram->log();
+
+    m_lineMatrixUniform = m_lineProgram->uniformLocation("matrix");
+    m_lineColorId = m_lineProgram->uniformLocation("color_id");
+    m_lineResolution = m_lineProgram->uniformLocation("resolution");
 
     m_program->bind();
     this->initializeOpenGLFunctions();
@@ -358,10 +384,13 @@ void TSDWindow::initialize()
 // the vertex attribute pointer is set up by the caller's surrounding state.
 void TSDWindow::drawPolygonRing(MapLayer &a_layer, int i)
 {
+    const int vertCount = a_layer.m_geometry.rings[i + 1] - a_layer.m_geometry.rings[i];
+    if (vertCount < 3)
+        return; // a triangle fan needs at least 3 vertices
     glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
     glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void *)(intptr_t)(a_layer.m_geometry.rings[i] * 3 * 4));
     glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, a_layer.m_geometry.rings[i + 1] - a_layer.m_geometry.rings[i]);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, vertCount);
     glDisableVertexAttribArray(m_posAttr);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -412,16 +441,16 @@ void TSDWindow::drawRingFilled(MapLayer &a_layer, int i)
     drawPolygonRing(a_layer, i);
 }
 
-void TSDWindow::drawLayerAndFill(MapLayer &a_layer, int a_iColorId)
+void TSDWindow::drawLayerAndFill(MapLayer &a_layer)
 {
     // polygon
     glClear(GL_STENCIL_BUFFER_BIT);
     glClearStencil(0x0);
-    m_program->setUniformValue(m_colorId, a_iColorId);
+
     // enable stencil test
     glEnable(GL_STENCIL_TEST);
 
-    if (a_iColorId == myLog2(WATER_AREA))
+    if (a_layer.m_id == WATER_AREA)
     {
         // Batched two-pass: all rings write to the stencil buffer first, then
         // all are colored. This lets the even-odd GL_INVERT cancellation
@@ -437,21 +466,21 @@ void TSDWindow::drawLayerAndFill(MapLayer &a_layer, int a_iColorId)
         for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
             drawRingFilled(a_layer, i);
     }
+
     glDisable(GL_STENCIL_TEST);
 }
 
-void TSDWindow::drawLayer(MapLayer &a_layer, int a_iColorId)
+void TSDWindow::drawLayer(MapLayer &a_layer)
 {
-
     int totalVerts = a_layer.m_property.totalNumberOfVertex;
     for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
     {
         int startVert = a_layer.m_geometry.rings[i];
         int vertCount = a_layer.m_geometry.rings[i + 1] - a_layer.m_geometry.rings[i];
 
-        // // Skip invalid geometry entries (offset or count out of bounds)
-        // if (startVert < 0 || vertCount <= 0 || startVert + vertCount > totalVerts)
-        //     continue;
+        // Skip invalid geometry entries (offset or count out of bounds)
+        if (startVert < 0 || vertCount <= 0 || startVert + vertCount > totalVerts)
+            continue;
 
         // polygons
         if (a_layer.m_geometry.renderType[i] == SHPT_POLYGON
@@ -459,50 +488,55 @@ void TSDWindow::drawLayer(MapLayer &a_layer, int a_iColorId)
             || a_layer.m_geometry.renderType[i] == SHPT_POLYGONM*/
         )
         {
-            glLineWidth(1);
-            m_program->setUniformValue(m_colorId, a_iColorId);
             glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
             glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void *)(intptr_t)(startVert * 3 * 4));
-            // checkGL("drawLayer polygon pointer");
             glEnableVertexAttribArray(m_posAttr);
             glDrawArrays(GL_LINE_STRIP, 0, vertCount);
             glDisableVertexAttribArray(m_posAttr);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
-        // lines
-        else if (a_layer.m_geometry.renderType[i] == SHPT_ARC)
-        {
-            if (a_iColorId == myLog2(MOTOR_WAYS))
-                glLineWidth(5);
-            else if (a_iColorId == myLog2(MAIN_ROADS))
-                glLineWidth(3);
-            else if (a_iColorId == myLog2(MRT))
-                glLineWidth(3);
-            else
-                glLineWidth(2);
-            m_program->setUniformValue(m_colorId, a_iColorId);
-            glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void *)(intptr_t)(startVert * 3 * 4));
-            // checkGL("drawLayer line pointer");
-            glEnableVertexAttribArray(m_posAttr);
-            glDrawArrays(GL_LINE_STRIP, 0, vertCount);
-            glDisableVertexAttribArray(m_posAttr);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
+        // lines (SHPT_ARC) are drawn by the dedicated line shader in the line
+        // pass (drawLayerLines), not here.
         // points
         else if (a_layer.m_geometry.renderType[i] == SHPT_POINT)
         {
-            glPointSize(5);
-            glLineWidth(2);
-            m_program->setUniformValue(m_colorId, a_iColorId);
+            glPointSize(6);
+
             glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
             glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void *)(intptr_t)(startVert * 3 * 4));
-            // checkGL("drawLayer point pointer");
             glEnableVertexAttribArray(m_posAttr);
             glDrawArrays(GL_POINTS, 0, vertCount);
             glDisableVertexAttribArray(m_posAttr);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
+    }
+}
+
+// Draw only the line (SHPT_ARC) rings of a layer using the dedicated line
+// shader (m_lineProgram). The caller must have bound m_lineProgram and set its
+// color_id uniform. The geometry shader expands each segment into a filled
+// quad, so lines are thickened beyond the driver's 1px glLineWidth limit.
+void TSDWindow::drawLayerLines(MapLayer &a_layer)
+{
+    int totalVerts = a_layer.m_property.totalNumberOfVertex;
+    for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
+    {
+        if (a_layer.m_geometry.renderType[i] != SHPT_ARC)
+            continue;
+
+        int startVert = a_layer.m_geometry.rings[i];
+        int vertCount = a_layer.m_geometry.rings[i + 1] - a_layer.m_geometry.rings[i];
+
+        // Skip invalid geometry entries (offset or count out of bounds)
+        if (startVert < 0 || vertCount <= 0 || startVert + vertCount > totalVerts)
+            continue;
+
+        glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
+        glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void *)(intptr_t)(startVert * 3 * 4));
+        glEnableVertexAttribArray(m_posAttr);
+        glDrawArrays(GL_LINE_STRIP, 0, vertCount);
+        glDisableVertexAttribArray(m_posAttr);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
 
@@ -549,6 +583,13 @@ void TSDWindow::render()
     if (m_bAutoSwing)
         matrix.rotate(sin(time) * 10, 0, 0, 1);
 
+    QVector<int> shaderRenderLayers = {0, 11}; // COASTAL and MAN_MADE layers are drawn by shaders
+    // Precompute which layers are drawn by the shader pass so the main loop
+    // below can skip them with an O(1) lookup instead of scanning the list.
+    QVector<bool> shaderRendered(m_listOfLayers.size(), false);
+    for (int idx : shaderRenderLayers)
+        shaderRendered[idx] = true;
+
     // PASS 0: m_listOfLayers[0], COASTAL shader, drawn before rest of the layers.
     if (m_bShaderToys && m_bgProgram && m_bgProgram->isLinked())
     {
@@ -560,15 +601,17 @@ void TSDWindow::render()
         m_bgProgram->setUniformValue(m_bgTime, time);
         m_bgProgram->setUniformValue(m_bgShaderId, m_shader);
         this->glBindVertexArray(m_vao);
-        checkGL("after bind VAO");
-        auto *l_layer = m_listOfLayers[0];
 
-        if (m_displayMask & l_layer->m_id)
+        foreach(int layerIndex, shaderRenderLayers)
         {
-            drawLayerAndFill(*l_layer, myLog2(l_layer->m_id));
+            auto *l_layer = m_listOfLayers[layerIndex];
+            if (m_displayMask & l_layer->m_id)
+            {
+               drawLayerAndFill(*l_layer);
+            }
         }
 
-        m_program->release();
+        m_bgProgram->release();
     }
 
     m_program->bind();
@@ -578,28 +621,54 @@ void TSDWindow::render()
     m_program->setUniformValue(m_mouseDelta, mouseDelta[0] * retinaScale, -mouseDelta[1] * retinaScale);
     m_program->setUniformValue(m_resolution, resolution[0], resolution[1]);
     m_program->setUniformValue(m_time, time);
-    m_program->setUniformValue(m_shaderId, m_shader);
     checkGL("after uniform set");
 
     // Draw layers directly, without legacy display lists.
     this->glBindVertexArray(m_vao);
-    checkGL("after bind VAO");
-    int i = 0;
-    foreach (TSDWindow::MapLayer *l_layer, m_listOfLayers)
-    {
-        if ((m_bShaderToys ? i != 0 : true) && (m_displayMask & l_layer->m_id))
-        {
-            if (l_layer->m_bToFill)
-                drawLayerAndFill(*l_layer, myLog2(l_layer->m_id));
-            else
-                drawLayer(*l_layer, myLog2(l_layer->m_id));
 
-            // char sbuffer[64];
-            // sprintf(sbuffer, "after layer draw %d", myLog2(l_layer->m_id));
-            // checkGL(sbuffer);
+    for (int i = 0; i < m_listOfLayers.size(); ++i)
+    {
+        TSDWindow::MapLayer *l_layer = m_listOfLayers[i];
+
+        // When ShaderToys is on, the layers in shaderRenderLayers are already
+        // drawn with the ShaderToy background shader in the pass above, so skip
+        // them here to avoid overdrawn solid color hiding the pattern.
+        if ((m_bShaderToys ? !shaderRendered[i] : true) && (m_displayMask & l_layer->m_id))
+        {
+            m_program->setUniformValue(m_colorId, myLog2(l_layer->m_id));
+            if (l_layer->m_bToFill)
+                drawLayerAndFill(*l_layer);
+            else
+                drawLayer(*l_layer);
         }
-        i++;
     }
+
+    // LINE PASS: draw all line (SHPT_ARC) rings with the dedicated line shader
+    // (m_lineProgram). The geometry shader expands each segment into a filled
+    // quad so lines are thickened beyond the driver's 1px glLineWidth limit.
+    // Drawn after the main polygon/point pass so roads and MRT lines sit on top
+    // of the polygon fills.
+    if (m_lineProgram && m_lineProgram->isLinked())
+    {
+        m_lineProgram->bind();
+        m_lineProgram->setUniformValue(m_lineMatrixUniform, matrix);
+        m_lineProgram->setUniformValue(m_lineResolution, resolution[0], resolution[1]);
+        this->glBindVertexArray(m_vao);
+
+        for (int i = 0; i < m_listOfLayers.size(); ++i)
+        {
+            TSDWindow::MapLayer *l_layer = m_listOfLayers[i];
+            if ((m_bShaderToys ? !shaderRendered[i] : true) && (m_displayMask & l_layer->m_id))
+            {
+                m_lineProgram->setUniformValue(m_lineColorId, myLog2(l_layer->m_id));
+                drawLayerLines(*l_layer);
+            }
+        }
+
+        m_lineProgram->release();
+    }
+
+    m_program->bind();
     // checkGL("before drawMRTStation");
     drawMRTStation();
     // checkGL("after drawMRTStation");
@@ -698,7 +767,6 @@ void TSDWindow::render()
 //! [6]
 void TSDWindow::drawEBL(float x, float y, float r)
 {
-    glLineWidth(1);
 #define granularity 63
     m_program->setUniformValue(m_colorId, 16);
     if (m_uiMapOpMask == EBL)
@@ -743,7 +811,7 @@ void TSDWindow::drawEBL(float x, float y, float r)
             glDrawArrays(GL_LINES, 0, 2);
             glDisableVertexAttribArray(m_posAttr);
 
-            renderText(m_iMousePosX * devicePixelRatio() + 15, m_iMousePosY * devicePixelRatio() + 20, QString(tr("Angle: %1, Dist: %2")).arg(angle, 5, 'f', 1, QChar('0')).arg(r), QString("Courier"));
+            renderText(m_iMousePosX * devicePixelRatio() + 15, m_iMousePosY * devicePixelRatio() + 20, QString(tr("Angle: %1, Dist: %2")).arg(angle, 5, 'f', 1, QChar('0')).arg(r, 6, 'f', 1, QChar('0')), QString("Courier"));
         }
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -800,7 +868,6 @@ void TSDWindow::drawMRTStation()
 // member so render() can read it without any cross-thread access.
 void TSDWindow::onTrackingTableUpdated(const QHash<QString, TrackedAircraft>& table)
 {
-    qWarning().noquote() << "onTrackingTableUpdated() got data";
     m_flightTable = table;
 }
 
@@ -1039,6 +1106,8 @@ void TSDWindow::resetGpuResources()
     m_program = nullptr;
     delete m_bgProgram;
     m_bgProgram = nullptr;
+    delete m_lineProgram;
+    m_lineProgram = nullptr;
 
     // Raw GL objects.
     if (m_vao)

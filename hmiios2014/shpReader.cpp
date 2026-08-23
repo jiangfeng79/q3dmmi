@@ -52,16 +52,16 @@ int ShpReader::read(const char* filename)
         printf("Unable to open:%s\n", filename);
         exit(1);
     }
-    else
-        printf("Opened shp file: %s\n", filename);
+    //else
+    //    printf("Opened shp file: %s\n", filename);
 
     /* -------------------------------------------------------------------- */
     /*      Print out the file bounds.                                      */
     /* -------------------------------------------------------------------- */
     SHPGetInfo(hSHP, &nEntities, &nShapeType, adfMinBound, adfMaxBound);
 
-    printf("Shapefile Type: %s   # of Shapes: %d\n\n", SHPTypeName(nShapeType), nEntities);
-    printf("File Bounds: (%f,%f,%f,%f) to  (%f,%f,%f,%f)\n\n", adfMinBound[0], adfMinBound[1], adfMinBound[2], adfMinBound[3], adfMaxBound[0], adfMaxBound[1], adfMaxBound[2], adfMaxBound[3]);
+    //printf("Shapefile Type: %s   # of Shapes: %d\n\n", SHPTypeName(nShapeType), nEntities);
+    //printf("File Bounds: (%f,%f,%f,%f) to  (%f,%f,%f,%f)\n\n", adfMinBound[0], adfMinBound[1], adfMinBound[2], adfMinBound[3], adfMaxBound[0], adfMaxBound[1], adfMaxBound[2], adfMaxBound[3]);
 
     //jiangfeng: create the memory
     entity = (ShpEntity*)malloc(sizeof(ShpEntity) * nEntities);
@@ -165,19 +165,19 @@ int ShpReader::readLayer(const char* filename, DBFReader& layer)
 
     if (hSHP == NULL)
     {
-        printf("Unable to open:%s\n", filename);
+        //printf("Unable to open:%s\n", filename);
         exit(1);
     }
-    else
-        printf("Opened shp file: %s\n", filename);
+    //else
+        //printf("Opened shp file: %s\n", filename);
 
     /* -------------------------------------------------------------------- */
     /*      Print out the file bounds.                                      */
     /* -------------------------------------------------------------------- */
     SHPGetInfo(hSHP, &nEntities, &nShapeType, adfMinBound, adfMaxBound);
 
-    printf("Shapefile Type: %s   # of Shapes: %d\n\n", SHPTypeName(nShapeType), nEntities);
-    printf("File Bounds: (%f,%f,%f,%f) to  (%f,%f,%f,%f)\n\n", adfMinBound[0], adfMinBound[1], adfMinBound[2], adfMinBound[3], adfMaxBound[0], adfMaxBound[1], adfMaxBound[2], adfMaxBound[3]);
+    //printf("Shapefile Type: %s   # of Shapes: %d\n\n", SHPTypeName(nShapeType), nEntities);
+    //printf("File Bounds: (%f,%f,%f,%f) to  (%f,%f,%f,%f)\n\n", adfMinBound[0], adfMinBound[1], adfMinBound[2], adfMinBound[3], adfMaxBound[0], adfMaxBound[1], adfMaxBound[2], adfMaxBound[3]);
 
     nEntities = layer.getNumberOfRecords();
 

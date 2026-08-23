@@ -293,7 +293,7 @@ void OpenglWindow::renderNow()
         format.setSwapInterval(m_bVsyncEnabled ? 1 : 0);
 
         m_context->setFormat(format);
-        qDebug() << "Requested surface format:" << format;
+        //qDebug() << "Requested surface format:" << format;
         if (!m_context->create()) {
             qWarning() << "QOpenGLContext::create() failed for window" << title();
             // m_context is a child of this QWindow, so it will be deleted with
@@ -302,7 +302,7 @@ void OpenglWindow::renderNow()
             m_context = nullptr;
             return;
         }
-        qDebug() << "Created context format:" << m_context->format() << "window format:" << requestedFormat();
+        //qDebug() << "Created context format:" << m_context->format() << "window format:" << requestedFormat();
         needsInitialize = true;
     }
 

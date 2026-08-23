@@ -85,9 +85,19 @@ public:
         m_timer->start();
     }
 
+    // Stop polling and release the network manager + timer. Must be invoked
+    // on the worker thread (e.g. via a queued QMetaObject::invokeMethod) so
+    // the timer is stopped from the thread it lives on; otherwise Qt warns
+    // "QObject::killTimer: Timers cannot be stopped from another thread".
     void stop() {
         if (m_timer) {
             m_timer->stop();
+            delete m_timer;
+            m_timer = nullptr;
+        }
+        if (m_nam) {
+            delete m_nam;
+            m_nam = nullptr;
         }
     }
 

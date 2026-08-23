@@ -143,8 +143,11 @@ public:
     inline int getFps() { return m_fps; }
 
     //void drawLayer(MapLayer & a_layer, bool a_bFillPolygon = false, int a_iColorId = 0);
-    void drawLayerAndFill(MapLayer& a_layer, int a_iColorId = 0);
-    void drawLayer(MapLayer& a_layer, int a_iColorId = 0);
+    void drawLayerAndFill(MapLayer& a_layer);
+    void drawLayer(MapLayer& a_layer);
+    // Draw only the line (SHPT_ARC) rings of a layer using the dedicated line
+    // shader (m_lineProgram). The caller binds m_lineProgram and sets color_id.
+    void drawLayerLines(MapLayer& a_layer);
     // Stencil-fill helpers (shared by drawLayerAndFill)
     void drawPolygonRing(MapLayer& a_layer, int i);
     void drawRingsToStencil(MapLayer& a_layer);
@@ -189,11 +192,7 @@ protected:
 
 private:
     GLuint loadShader(GLenum type, const char* source);
-    /*
-    GLvoid buildFont(GLvoid);
-    GLvoid glPrint(const char *fmt, ...);
-    GLuint	m_fontBase;
-    */
+
     GLuint m_posAttr;
     GLuint m_colAttr;
     GLuint m_colorIdAttr;
@@ -203,7 +202,6 @@ private:
     GLuint m_resolution;
     GLuint m_time;
     GLuint m_colorId;
-    GLuint m_shaderId;
 
     GLuint m_vao;
     GLuint m_shader;
@@ -220,6 +218,14 @@ private:
     GLuint m_bgTime;
     GLuint m_bgShaderId;
 
+    // Line shader: separate program (vshader + gshader + fshader) used to draw
+    // the line (SHPT_ARC) rings. The geometry shader expands each segment into
+    // a filled quad so lines can be thickened beyond the driver's 1px limit.
+    QOpenGLShaderProgram* m_lineProgram;
+    GLuint m_lineMatrixUniform;
+    GLuint m_lineColorId;
+    GLuint m_lineResolution;
+   
     MapLayer m_sgCoastal;
     MapLayer m_sgAmenities;
     MapLayer m_sgPlaces;

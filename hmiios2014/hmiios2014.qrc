@@ -17,6 +17,7 @@
         <file>hmiios2014_zh.qm</file>
         <file>fshader.glsl</file>
         <file>vshader.glsl</file>
+        <file>gshader.glsl</file>
         <file>bgfshader.glsl</file>
     </qresource>
 </RCC>
