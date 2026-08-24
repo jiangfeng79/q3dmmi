@@ -311,6 +311,7 @@ void TSDWindow::initialize()
     if (!m_bgProgram->link())
         qWarning() << "Background shader program link error:" << m_bgProgram->log();
 
+    m_bgMatrixUniform = m_bgProgram->uniformLocation("matrix");
     m_bgMouse = m_bgProgram->uniformLocation("mouse");
     m_bgMouseDelta = m_bgProgram->uniformLocation("mouseDelta");
     m_bgResolution = m_bgProgram->uniformLocation("resolution");
@@ -591,7 +592,7 @@ void TSDWindow::render()
     if (m_bShaderToys && m_bgProgram && m_bgProgram->isLinked())
     {
         m_bgProgram->bind();
-        m_bgProgram->setUniformValue(m_matrixUniform, matrix);
+        m_bgProgram->setUniformValue(m_bgMatrixUniform, matrix);
         m_bgProgram->setUniformValue(m_bgMouse, mouse[0] * retinaScale, -mouse[1] * retinaScale + resolution[1] / 2);
         m_bgProgram->setUniformValue(m_bgMouseDelta, mouseDelta[0] * retinaScale, -mouseDelta[1] * retinaScale);
         m_bgProgram->setUniformValue(m_bgResolution, resolution[0], resolution[1]);

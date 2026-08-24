@@ -212,6 +212,7 @@ private:
 
     // Background (ShaderToy) shader, drawn as a fullscreen pass before the map.
     QOpenGLShaderProgram* m_bgProgram;
+    GLuint m_bgMatrixUniform;
     GLuint m_bgMouse;
     GLuint m_bgMouseDelta;
     GLuint m_bgResolution;
