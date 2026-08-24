@@ -473,6 +473,11 @@ void TSDWindow::drawLayerAndFill(MapLayer &a_layer)
 void TSDWindow::drawLayer(MapLayer &a_layer)
 {
     int totalVerts = a_layer.m_property.totalNumberOfVertex;
+    glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(m_posAttr);
+
+    glPointSize(6);
     for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
     {
         int startVert = a_layer.m_geometry.rings[i];
@@ -488,28 +493,19 @@ void TSDWindow::drawLayer(MapLayer &a_layer)
             || a_layer.m_geometry.renderType[i] == SHPT_POLYGONM*/
         )
         {
-            glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void *)(intptr_t)(startVert * 3 * 4));
-            glEnableVertexAttribArray(m_posAttr);
-            glDrawArrays(GL_LINE_STRIP, 0, vertCount);
-            glDisableVertexAttribArray(m_posAttr);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glDrawArrays(GL_LINE_STRIP, startVert, vertCount);
         }
         // lines (SHPT_ARC) are drawn by the dedicated line shader in the line
         // pass (drawLayerLines), not here.
         // points
         else if (a_layer.m_geometry.renderType[i] == SHPT_POINT)
         {
-            glPointSize(6);
-
-            glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void *)(intptr_t)(startVert * 3 * 4));
-            glEnableVertexAttribArray(m_posAttr);
-            glDrawArrays(GL_POINTS, 0, vertCount);
-            glDisableVertexAttribArray(m_posAttr);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glDrawArrays(GL_POINTS, startVert, vertCount);
         }
     }
+
+    glDisableVertexAttribArray(m_posAttr);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 // Draw only the line (SHPT_ARC) rings of a layer using the dedicated line
@@ -519,6 +515,9 @@ void TSDWindow::drawLayer(MapLayer &a_layer)
 void TSDWindow::drawLayerLines(MapLayer &a_layer)
 {
     int totalVerts = a_layer.m_property.totalNumberOfVertex;
+    glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(m_posAttr);
     for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
     {
         if (a_layer.m_geometry.renderType[i] != SHPT_ARC)
@@ -531,13 +530,11 @@ void TSDWindow::drawLayerLines(MapLayer &a_layer)
         if (startVert < 0 || vertCount <= 0 || startVert + vertCount > totalVerts)
             continue;
 
-        glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-        glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void *)(intptr_t)(startVert * 3 * 4));
-        glEnableVertexAttribArray(m_posAttr);
-        glDrawArrays(GL_LINE_STRIP, 0, vertCount);
-        glDisableVertexAttribArray(m_posAttr);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glDrawArrays(GL_LINE_STRIP, startVert, vertCount);
     }
+
+    glDisableVertexAttribArray(m_posAttr);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 //! [5]
