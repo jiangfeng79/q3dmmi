@@ -849,13 +849,25 @@ void TSDWindow::drawMRTStation()
     m_program->setUniformValue(m_colorId, 7); // circle
     glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(73 * 2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 28);
+    glDrawArrays(GL_POINTS, 0, 31);
     glDisableVertexAttribArray(m_posAttr);
 
     m_program->setUniformValue(m_colorId, 7); // marina bay
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(101 * 2 * sizeof(GLfloat)));
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(104 * 2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 7);
+    glDrawArrays(GL_POINTS, 0, 3);
+    glDisableVertexAttribArray(m_posAttr);
+
+    m_program->setUniformValue(m_colorId, 19); // downtown
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(107 * 2 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(m_posAttr);
+    glDrawArrays(GL_POINTS, 0, 35);
+    glDisableVertexAttribArray(m_posAttr);
+
+    m_program->setUniformValue(m_colorId, 21); // thomason east coast
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(142 * 2 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(m_posAttr);
+    glDrawArrays(GL_POINTS, 0, 31);
     glDisableVertexAttribArray(m_posAttr);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);

@@ -37,9 +37,9 @@ const vec4 kColorTable[23] = vec4[23](
 	vec4(.7, 0.7, .7, .3),        // 16 MOTOR_WAYS (1<<16) / EBL range ring fill
 	vec4(.2, .6, .1, 1.0),        // 17 (MOTOR_WAYS_TEXT bit; unused)
 	vec4(.1, .1, .2, .1),         // 18 AIR_WAYS (1<<18)
-	vec4(.2, .6, .1, 1.0),        // 19 (AIR_WAYS_TEXT bit; unused)
+	vec4(.1, .1, .9, .7),         // 19 (AIR_WAYS_TEXT bit; used by downtown line color)
 	vec4(.0, 1.0, .0, .6),        // 20 MRT (1<<20)
-	vec4(.2, .6, .1, 1.0),        // 21 (MRT_TEXT bit; unused)
+	vec4(0.24, 0.14, 0.08, 0.7),  // 21 (MRT_TEXT bit; used by thomason east coast line)
 	vec4(.0, .6, .0, 1.0)         // 22 MAN_MADE (1<<22)
 );
 
@@ -53,7 +53,7 @@ void main() {
 	// fragment outside a circle centered in the sprite to round the square
 	// into a circle. gl_PointCoord is (0,0) at the sprite's upper-left and
 	// (1,1) at its lower-right, so the center is (0.5, 0.5).
-	if (color_id == 2 || color_id == 3 || color_id == 4 || color_id == 5 || color_id == 7 || color_id == 9) {
+	if (color_id == 2 || color_id == 3 || color_id == 4 || color_id == 5 || color_id == 7 || color_id == 9 || color_id == 19 || color_id == 21) {
 		vec2 d = gl_PointCoord - vec2(0.5);
 		if (dot(d, d) > kCircleRadius * kCircleRadius)
 			discard;
