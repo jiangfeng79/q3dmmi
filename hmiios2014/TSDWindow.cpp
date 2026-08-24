@@ -296,10 +296,6 @@ void TSDWindow::initialize()
     m_posAttr = m_program->attributeLocation("posAttr");
     m_colAttr = m_program->attributeLocation("colAttr");
     m_matrixUniform = m_program->uniformLocation("matrix");
-    m_mouse = m_program->uniformLocation("mouse");
-    m_mouseDelta = m_program->uniformLocation("mouseDelta");
-    m_resolution = m_program->uniformLocation("resolution");
-    m_time = m_program->uniformLocation("time");
     m_colorId = m_program->uniformLocation("color_id");
     
     // Background (ShaderToy) shader: separate program, fullscreen triangle.
@@ -336,6 +332,7 @@ void TSDWindow::initialize()
     m_lineMatrixUniform = m_lineProgram->uniformLocation("matrix");
     m_lineColorId = m_lineProgram->uniformLocation("color_id");
     m_lineResolution = m_lineProgram->uniformLocation("resolution");
+    m_lineTime = m_lineProgram->uniformLocation("time");
 
     m_program->bind();
     this->initializeOpenGLFunctions();
@@ -615,10 +612,6 @@ void TSDWindow::render()
     m_program->bind();
     checkGL("after program bind");
     m_program->setUniformValue(m_matrixUniform, matrix);
-    m_program->setUniformValue(m_mouse, mouse[0] * retinaScale, -mouse[1] * retinaScale + resolution[1] / 2);
-    m_program->setUniformValue(m_mouseDelta, mouseDelta[0] * retinaScale, -mouseDelta[1] * retinaScale);
-    m_program->setUniformValue(m_resolution, resolution[0], resolution[1]);
-    m_program->setUniformValue(m_time, time);
     checkGL("after uniform set");
 
     // Draw layers directly, without legacy display lists.
@@ -651,6 +644,7 @@ void TSDWindow::render()
         m_lineProgram->bind();
         m_lineProgram->setUniformValue(m_lineMatrixUniform, matrix);
         m_lineProgram->setUniformValue(m_lineResolution, resolution[0], resolution[1]);
+        m_lineProgram->setUniformValue(m_lineTime, time);
         this->glBindVertexArray(m_vao);
 
         for (int i = 0; i < m_listOfLayers.size(); ++i)

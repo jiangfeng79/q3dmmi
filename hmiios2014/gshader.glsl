@@ -14,6 +14,7 @@ layout(triangle_strip, max_vertices = 4) out;
 // (a built-in). The vertex shader's `pos` output is simply not consumed here.
 uniform int color_id;
 uniform vec2 resolution; // viewport size in pixels
+uniform float time;
 
 void main() {
 	// Thicken only the MRT layer (color_id 20); keep every other line at 1px
@@ -27,6 +28,23 @@ void main() {
     vec2 dir = b - a;
     float len = length(dir);
     vec2 n = (len > 1e-6) ? normalize(vec2(-dir.y, dir.x)) : vec2(0.0);
+
+/*
+    float amp = 0.002;
+
+    float wave =
+        sin(time * 4.0 +
+            length((a+b)*0.5) * 15.0);
+
+    a += n * wave * amp;
+    b -= n * wave * amp;
+*/
+    vec2 center = vec2(0.0);
+    float dist = distance((a + b) * 0.5, center);
+    float ripple = sin(dist * 30.0 - time * 6.0);
+    float amp = ripple * 0.001;
+    a += n * amp;
+    b += n * amp;
 
     // Perpendicular offset in NDC that corresponds to `width` pixels. The
     // viewport maps NDC [-1,1] to [0, resolution], so 1 NDC unit = resolution/2

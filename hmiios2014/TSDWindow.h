@@ -193,22 +193,17 @@ protected:
 private:
     GLuint loadShader(GLenum type, const char* source);
 
-    GLuint m_posAttr;
-    GLuint m_colAttr;
-    GLuint m_colorIdAttr;
-    GLuint m_matrixUniform;
-    GLuint m_mouse;
-    GLuint m_mouseDelta;
-    GLuint m_resolution;
-    GLuint m_time;
-    GLuint m_colorId;
-
     GLuint m_vao;
     GLuint m_shader;
     GLuint m_mrtVBO;
     GLuint m_eblVBO;
 
     QOpenGLShaderProgram* m_program;
+    GLuint m_posAttr;
+    GLuint m_colAttr;
+    GLuint m_colorIdAttr;
+    GLuint m_matrixUniform;
+    GLuint m_colorId;
 
     // Background (ShaderToy) shader, drawn as a fullscreen pass before the map.
     QOpenGLShaderProgram* m_bgProgram;
@@ -226,6 +221,7 @@ private:
     GLuint m_lineMatrixUniform;
     GLuint m_lineColorId;
     GLuint m_lineResolution;
+    GLuint m_lineTime;
    
     MapLayer m_sgCoastal;
     MapLayer m_sgAmenities;

@@ -23,7 +23,7 @@ const vec4 kColorTable[23] = vec4[23](
 	vec4(.9, .1, .2, .7),         // 2  PLACES (1<<2)
 	vec4(.9, .1, .2, .7),         // 3  NS MRT line / EBL range ring line
 	vec4(.9, .1, .2, .6),         // 4  AMENITIES (1<<4)
-	vec4(.1, .9, .2, .8),         // 5  EW MRT line / Expo & Changi stations
+	vec4(.0, .4, .0, .7),         // 5  EW MRT line / Expo & Changi stations
 	vec4(0.35, 0.35, 0.35, .5),   // 6  LAND_USAGE (1<<6)
 	vec4(.8, .4, .2, .7),         // 7  Circle & Marina Bay MRT stations
 	vec4(.0, .0, .0, 1.0),        // 8  WATER_AREA (1<<8)
