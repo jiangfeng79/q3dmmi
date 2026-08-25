@@ -358,6 +358,22 @@ void TSDWindow::initialize()
                          l_layer->m_geometry.vertices.data(),
                          GL_STATIC_DRAW);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+            if(l_layer->m_geometry.renderType[0] == SHPT_ARC)
+            {
+                // Create and upload to Element Array Buffer (EBO)
+                if (!l_layer->m_VBO_ID[1])
+                {
+                    glGenBuffers(1, &l_layer->m_VBO_ID[1]);
+                }
+
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, l_layer->m_VBO_ID[1]);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
+                            l_layer->m_geometry.lineIndices.size() * sizeof(GLuint), 
+                            l_layer->m_geometry.lineIndices.data(), 
+                            GL_STATIC_DRAW);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            }
         }
     }
 
@@ -512,25 +528,22 @@ void TSDWindow::drawLayer(MapLayer &a_layer)
 // quad, so lines are thickened beyond the driver's 1px glLineWidth limit.
 void TSDWindow::drawLayerLines(MapLayer &a_layer)
 {
-    int totalVerts = a_layer.m_property.totalNumberOfVertex;
+    if (!a_layer.m_VBO_ID[0] || !a_layer.m_VBO_ID[1])
+        return;
+
     glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
     glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(m_posAttr);
-    for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
-    {
-        if (a_layer.m_geometry.renderType[i] != SHPT_ARC)
-            continue;
 
-        int startVert = a_layer.m_geometry.rings[i];
-        int vertCount = a_layer.m_geometry.rings[i + 1] - a_layer.m_geometry.rings[i];
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_VBO_ID[1]);
 
-        // Skip invalid geometry entries (offset or count out of bounds)
-        if (startVert < 0 || vertCount <= 0 || startVert + vertCount > totalVerts)
-            continue;
+    glEnable(GL_PRIMITIVE_RESTART);
+    glPrimitiveRestartIndex(0xFFFFFFFF);
+    // ONE SINGLE DRAW CALL FOR HUNDREDS OF THOUSANDS OF LINES:
+    glDrawElements(GL_LINE_STRIP, a_layer.m_geometry.lineIndices.size(), GL_UNSIGNED_INT, 0);
 
-        glDrawArrays(GL_LINE_STRIP, startVert, vertCount);
-    }
-
+    glDisable(GL_PRIMITIVE_RESTART);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(m_posAttr);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }

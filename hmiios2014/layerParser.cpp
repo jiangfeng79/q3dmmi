@@ -66,6 +66,7 @@ LayerGeometry ShapefileLayerParser::parse(const Options& a_options)
             geo.property.totalNumberOfVertex += l_shapeEntity[n].totalVertex;
 
         geo.vertices.resize(geo.property.totalNumberOfVertex);
+        geo.lineIndices.reserve(geo.property.totalNumberOfVertex + geo.rings.size());
 
         for (int n = 0; n < m_shapeFileReader.getNumberOfEntity(); ++n)
         {
@@ -124,6 +125,7 @@ LayerGeometry ShapefileLayerParser::parse(const Options& a_options)
                 }
                 v.z = (float)a_options.layerDepth;
                 geo.vertices[idx] = v;
+                geo.lineIndices.push_back(static_cast<unsigned int>(idx));
 
                 if (l_shapeEntity[n].isRing[i] == 1)
                 {
@@ -133,6 +135,7 @@ LayerGeometry ShapefileLayerParser::parse(const Options& a_options)
             }
             geo.rings.push_back(l_iTotalVertex);
             geo.renderType.push_back(l_shapeEntity[n].type);
+            geo.lineIndices.push_back(0xFFFFFFFF); // Primitive Restart Index
         }
     }
 

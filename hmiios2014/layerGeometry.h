@@ -72,6 +72,8 @@ struct LayerGeometry
     std::vector<int> rings;
     std::vector<int> renderType; // SHPT_* type per ring
 
+    std::vector<unsigned int> lineIndices;
+
     // Text labels for the layer.
     std::vector<Label> labels;
 
