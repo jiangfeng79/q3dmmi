@@ -1,18 +1,16 @@
 #include "mapFilterWidget.h"
+
 #include <QDebug>
+
 #include "TSDWindow.h"
 
-MapFilterWidget::MapFilterWidget(QWidget* parent)
-    : QWidget(parent)
+MapFilterWidget::MapFilterWidget(QWidget* parent) : QWidget(parent)
 {
     setupUi(this);
-    //setWindowFlags(Qt::WindowCloseButtonHint|Qt::Window);
+    // setWindowFlags(Qt::WindowCloseButtonHint|Qt::Window);
 }
 
-MapFilterWidget::~MapFilterWidget()
-{
-
-}
+MapFilterWidget::~MapFilterWidget() {}
 
 void MapFilterWidget::on_checkBoxWaterArea_stateChanged(int state)
 {
@@ -81,7 +79,10 @@ void MapFilterWidget::on_checkBoxManMade_stateChanged(int state)
 void MapFilterWidget::on_checkBoxFlights_stateChanged(int state)
 {
     qDebug() << "on_checkBoxFlights_stateChanged" << state;
+    // The single "Flights" checkbox toggles both the plane markers (FLIGHTS)
+    // and the position trails (FLIGHT_TRAILS).
     emit signal_checkBox_state(TSDWindow::FLIGHTS, state);
+    emit signal_checkBox_state(TSDWindow::FLIGHT_TRAILS, state);
 }
 
 void MapFilterWidget::retranslate()

@@ -1,27 +1,29 @@
 #ifndef TSDWINDOW_H
 #define TSDWINDOW_H
 
-#include "OpenglWindow.h"
-#include <QGuiApplication>
-#include <QMatrix4x4>
-#include <QOpenGLShaderProgram>
-#include <QScreen>
-#include <QMouseEvent>
-#include <QPainter>
-#include <QOpenGLPaintDevice>
-#include <time.h>
-#include <qmath.h>
-#include <QApplication>
-#include <QLabel>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
 #include <QActionGroup>
-#include <QThread>
+#include <QApplication>
+#include <QGuiApplication>
 #include <QHash>
+#include <QLabel>
+#include <QMatrix4x4>
+#include <QMouseEvent>
+#include <QOpenGLBuffer>
+#include <QOpenGLPaintDevice>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
+#include <QPainter>
+#include <QScreen>
+#include <QThread>
+#include <qmath.h>
 
+#include <time.h>
+
+#include "OpenglWindow.h"
+#include "flightLayerParser.h"
+#include "flightTracker.h"
 #include "layerGeometry.h"
 #include "layerParser.h"
-#include "flightTracker.h"
 
 class TSDWindow : public OpenglWindow
 {
@@ -31,46 +33,50 @@ public:
     enum DisplayMaskBits
     {
         DISPLAY_VOID = 0,
-        COASTAL = 1, //polygon
-        COASTAL_TEXT = 1 << 1, //polygon
-        PLACES = 1 << 2, //points
+        COASTAL = 1,            // polygon
+        COASTAL_TEXT = 1 << 1,  // polygon
+        PLACES = 1 << 2,        // points
         PLACES_TEXT = 1 << 3,
-        AMENITIES = 1 << 4, //points
+        AMENITIES = 1 << 4,  // points
         AMENITIES_TEXT = 1 << 5,
-        LAND_USAGE = 1 << 6, //polygon
+        LAND_USAGE = 1 << 6,  // polygon
         LAND_USAGE_TEXT = 1 << 7,
-        WATER_AREA = 1 << 8, //polygon
+        WATER_AREA = 1 << 8,  // polygon
         WATER_AREA_TEXT = 1 << 9,
-        BUILDING = 1 << 10, //polygon
+        BUILDING = 1 << 10,  // polygon
         BUILDING_TEXT = 1 << 11,
-        MAIN_ROADS = 1 << 12, //lines
+        MAIN_ROADS = 1 << 12,  // lines
         MAIN_ROADS_TEXT = 1 << 13,
-        MINOR_ROADS = 1 << 14, //lines
+        MINOR_ROADS = 1 << 14,  // lines
         MINOR_ROADS_TEXT = 1 << 15,
-        MOTOR_WAYS = 1 << 16, //lines
+        MOTOR_WAYS = 1 << 16,  // lines
         MOTOR_WAYS_TEXT = 1 << 17,
-        AIR_WAYS = 1 << 18, //lines
+        AIR_WAYS = 1 << 18,  // lines
         AIR_WAYS_TEXT = 1 << 19,
-        MRT = 1 << 20, //lines
+        MRT = 1 << 20,  // lines
         MRT_TEXT = 1 << 21,
         MAN_MADE = 1 << 22,
         MAN_MADE_TEXT = 1 << 23,
 
-        MRT_POINT = 1 << 24, //points
-        FLIGHTS = 1 << 25, //live airflight markers (points)
-        FLIGHTS_TEXT = 1 << 26, //live airflight callsign labels
+        MRT_POINT = 1 << 24,      // points
+        FLIGHTS = 1 << 25,        // live airflight markers (SHPT_POLYGON)
+        FLIGHTS_TEXT = 1 << 26,   // live airflight callsign labels
+        FLIGHT_TRAILS = 1 << 27,  // live airflight trails (SHPT_ARC)
         DIPLAY_ALL = 0xFFFFFFFF
     };
 
     unsigned int myLog2(unsigned int value)
     {
         unsigned int targetlevel = 0;
-        while (value >>= 1) ++targetlevel;
+        while (value >>= 1)
+        {
+            ++targetlevel;
+        }
         return targetlevel;
     }
 
-    //template<int N> void printMrtStringToScreen();
-    //template<> void printMrtStringToScreen<0>();
+    // template<int N> void printMrtStringToScreen();
+    // template<> void printMrtStringToScreen<0>();
 
     // MapProperty is defined in layerGeometry.h.
 
@@ -82,11 +88,17 @@ public:
     class MapLayer
     {
     public:
-        MapLayer(const char* fileName, DisplayMaskBits id, DisplayMaskBits text_id) :
-            m_id(id)
-            , m_text_id(text_id)
-            , m_bToFill(false)
-            , m_parser(nullptr)
+        // Default constructor for layers whose input is not a shapefile (e.g.
+        // the live flight layers, whose geometry is rebuilt from a tracking
+        // table). The display bits are set by the caller after construction.
+        MapLayer() : m_id(DISPLAY_VOID), m_text_id(DISPLAY_VOID), m_bToFill(false), m_parser(nullptr)
+        {
+            m_VBO_ID[0] = m_VBO_ID[1] = 0;
+            m_property.scale = 0.1;
+        }
+
+        MapLayer(const char* fileName, DisplayMaskBits id, DisplayMaskBits text_id)
+            : m_id(id), m_text_id(text_id), m_bToFill(false), m_parser(nullptr)
         {
             m_VBO_ID[0] = m_VBO_ID[1] = 0;
             m_property.scale = 0.1;
@@ -94,11 +106,8 @@ public:
             m_layerName.clear();
         }
 
-        MapLayer(const char* fileName, const char* layerName, DisplayMaskBits id, DisplayMaskBits text_id) :
-            m_id(id)
-            , m_text_id(text_id)
-            , m_bToFill(false)
-            , m_parser(nullptr)
+        MapLayer(const char* fileName, const char* layerName, DisplayMaskBits id, DisplayMaskBits text_id)
+            : m_id(id), m_text_id(text_id), m_bToFill(false), m_parser(nullptr)
         {
             m_VBO_ID[0] = m_VBO_ID[1] = 0;
             m_property.scale = 0.1;
@@ -106,10 +115,7 @@ public:
             m_layerName = QString(layerName);
         }
 
-        ~MapLayer()
-        {
-            delete m_parser;
-        }
+        ~MapLayer() { delete m_parser; }
 
         // Inject the parser coupled to this layer's input data.
         void setParser(LayerParser* a_parser) { m_parser = a_parser; }
@@ -132,8 +138,8 @@ public:
         void buildLayer(MapProperty& a_property, int a_iLayerId);
     };
 
-    //template<int N> void printStringToScreen(MapLayer & a_layer);
-    //template<> void printStringToScreen<0>(MapLayer & a_layer);
+    // template<int N> void printStringToScreen(MapLayer & a_layer);
+    // template<> void printStringToScreen<0>(MapLayer & a_layer);
 
     TSDWindow();
     ~TSDWindow();
@@ -142,7 +148,7 @@ public:
 
     inline int getFps() { return m_fps; }
 
-    //void drawLayer(MapLayer & a_layer, bool a_bFillPolygon = false, int a_iColorId = 0);
+    // void drawLayer(MapLayer & a_layer, bool a_bFillPolygon = false, int a_iColorId = 0);
     void drawLayerAndFill(MapLayer& a_layer);
     void drawLayer(MapLayer& a_layer);
     // Draw only the line (SHPT_ARC) rings of a layer using the dedicated line
@@ -155,19 +161,16 @@ public:
     void drawRingFilled(MapLayer& a_layer, int i);
     void drawText(MapLayer& a_layer);
     void drawTextWithAngle(MapLayer& a_layer);
+    // Draw the live airflight labels: callsign + altitude on two lines,
+    // positioned to the right of each airplane marker.
+    void drawFlightText(MapLayer& a_layer);
     void drawEBL(float x, float y, float r);
     void drawMRTStation();
-    // Draw the live airflight trails (fading position history) + position
-    // vectors near Changi. Called in the batched 2D text pass, before the
-    // plane markers, so the trails sit behind the planes.
-    void drawFlightTrails();
-    // Draw the live airflight markers as plane silhouettes (screen space)
-    // near Changi. Called in the batched 2D text pass so the planes keep a
-    // fixed size regardless of zoom; each is oriented by the aircraft heading.
-    void drawFlightMarkers();
-    // Draw the live airflight callsign labels (2D text pass) near Changi.
-    // Called in the batched 2D text pass.
-    void drawFlightLabels();
+    // Rebuild the live flight layers (trails + markers) from the latest
+    // tracking table and upload them to the GPU. Called from render() (where
+    // the GL context is current) whenever the tracking table has changed, so
+    // the fresh geometry is drawn through the normal map-layer passes.
+    void rebuildFlightLayers();
     void centerMap();
     void setDisplayMask(DisplayMaskBits layer, bool b);
     inline void setAutoZoom(bool value) { m_bAutoZoom = value; }
@@ -222,7 +225,7 @@ private:
     GLuint m_lineColorId;
     GLuint m_lineResolution;
     GLuint m_lineTime;
-   
+
     MapLayer m_sgCoastal;
     MapLayer m_sgAmenities;
     MapLayer m_sgPlaces;
@@ -235,7 +238,13 @@ private:
     MapLayer m_sgMinorRoads;
     MapLayer m_sgAirWays;
     MapLayer m_sgManMade;
-    QVector <TSDWindow::MapLayer*> m_listOfLayers;
+    // Live airflight layers. Rendered through the normal map-layer passes
+    // (trails as SHPT_ARC lines, markers as SHPT_POLYGON silhouettes) instead
+    // of the old QPainter overlay. They are NOT in m_listOfLayers because
+    // their geometry is rebuilt every poll (see rebuildFlightLayers()).
+    MapLayer m_sgFlightTrails;
+    MapLayer m_sgFlightMarkers;
+    QVector<TSDWindow::MapLayer*> m_listOfLayers;
 
     GLfloat* m_mrt;
 
@@ -247,12 +256,17 @@ private:
 
     // Live airflight tracking near Changi. The worker runs on a dedicated
     // thread and polls the adsb.lol API; the tracking table is copied onto the
-    // GUI thread (via onTrackingTableUpdated) and drawn by
-    // drawFlightMarkers()/drawFlightLabels().
+    // GUI thread (via onTrackingTableUpdated) and drawn as the flight
+    // MapLayers (trails + markers) through the normal map-layer passes.
     QThread* m_flightThread;
     TrackerWorker* m_flightWorker;
     QHash<QString, TrackedAircraft> m_flightTable;
+    // Set when the tracking table changes (onTrackingTableUpdated); the flight
+    // layers are rebuilt in render() (where the GL context is current).
+    bool m_flightDirty;
+    // Last zoom factor used to build the flight marker geometry (the marker
+    // size depends on it, so a zoom change marks the layers dirty).
+    float m_flightScale;
 };
 
-#endif // TSDWINDOW_H
-
+#endif  // TSDWINDOW_H

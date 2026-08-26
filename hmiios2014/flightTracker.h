@@ -10,21 +10,22 @@
 // aircraft as points + callsign labels on the map.
 // ---------------------------------------------------------------------------
 
-#include <QObject>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
+#include <QDateTime>
+#include <QDebug>
+#include <QHash>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QJsonArray>
-#include <QUrl>
-#include <QDebug>
-#include <QTimer>
-#include <QHash>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QObject>
 #include <QSet>
-#include <QDateTime>
+#include <QTimer>
+#include <QUrl>
 
 // A single aircraft snapshot from the adsb.lol API.
-struct Aircraft {
+struct Aircraft
+{
     QString hex;
     QString callsign;
     QString type;
@@ -35,17 +36,19 @@ struct Aircraft {
 };
 
 // A single position sample recorded for an aircraft.
-struct PositionSample {
+struct PositionSample
+{
     double lat = 0.0;
     double lon = 0.0;
     QDateTime timestamp;
 };
 
 // Per-aircraft tracking state kept in the worker's position table.
-struct TrackedAircraft {
+struct TrackedAircraft
+{
     Aircraft latest;
     QList<PositionSample> history;
-    int missedCount = 0; // consecutive polls where the aircraft was absent
+    int missedCount = 0;  // consecutive polls where the aircraft was absent
 };
 
 // Runs on a dedicated worker thread. Polls the adsb.lol API on a fixed
@@ -53,11 +56,13 @@ struct TrackedAircraft {
 // emits the current table to the caller. An aircraft is removed from the
 // table only after it has been absent from the query result for
 // `m_missThreshold` consecutive polls.
-class TrackerWorker : public QObject {
+class TrackerWorker : public QObject
+{
     Q_OBJECT
 
 public:
-    explicit TrackerWorker(QObject *parent = nullptr) : QObject(parent) {
+    explicit TrackerWorker(QObject* parent = nullptr) : QObject(parent)
+    {
         // Setup primary and fallback mirrors using the readsb v2 API format
         m_endpoints << "https://opendata.adsb.fi/api/v3/lat/%1/lon/%2/dist/%3"
                     << "https://api.adsb.lol/v2/lat/%1/lon/%2/dist/%3";
@@ -66,7 +71,8 @@ public:
     // Start polling. Must be called from the worker thread (e.g. via
     // moveToThread). The network manager and timer are created here so they
     // inherit the worker thread's affinity.
-    void start(double lat = 1.3644, double lon = 103.9915, int radiusNm = 30) {
+    void start(double lat = 1.3644, double lon = 103.9915, int radiusNm = 30)
+    {
         m_lat = lat;
         m_lon = lon;
         m_radiusNm = radiusNm;
@@ -74,8 +80,7 @@ public:
         // Create without a parent so they inherit the worker thread's affinity
         // (the worker object itself was constructed on the main thread).
         m_nam = new QNetworkAccessManager;
-        connect(m_nam, &QNetworkAccessManager::finished,
-                this, &TrackerWorker::onNetworkReply);
+        connect(m_nam, &QNetworkAccessManager::finished, this, &TrackerWorker::onNetworkReply);
 
         m_timer = new QTimer;
         m_timer->setInterval(5000);
@@ -89,13 +94,16 @@ public:
     // on the worker thread (e.g. via a queued QMetaObject::invokeMethod) so
     // the timer is stopped from the thread it lives on; otherwise Qt warns
     // "QObject::killTimer: Timers cannot be stopped from another thread".
-    void stop() {
-        if (m_timer) {
+    void stop()
+    {
+        if (m_timer)
+        {
             m_timer->stop();
             delete m_timer;
             m_timer = nullptr;
         }
-        if (m_nam) {
+        if (m_nam)
+        {
             delete m_nam;
             m_nam = nullptr;
         }
@@ -103,12 +111,16 @@ public:
 
 signals:
     // Emitted (from the worker thread) with the current position tracking table.
-    void trackingTableUpdated(const QHash<QString, TrackedAircraft> &table);
-    void fetchFailed(const QString &errorString);
+    void trackingTableUpdated(const QHash<QString, TrackedAircraft>& table);
+    void fetchFailed(const QString& errorString);
 
 public slots:
-    void fetchTelemetry() {
-        if (!m_nam) return;
+    void fetchTelemetry()
+    {
+        if (!m_nam)
+        {
+            return;
+        }
 
         const QString templateUrl = m_endpoints.at(m_currentEndpointIdx);
 
@@ -116,24 +128,28 @@ public slots:
         qWarning().noquote() << urlStr;
 
         QNetworkRequest request{QUrl(urlStr)};
-        request.setHeader(QNetworkRequest::UserAgentHeader, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+        request.setHeader(QNetworkRequest::UserAgentHeader,
+                          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/122.0.0.0 Safari/537.36");
 
         m_nam->get(request);
     }
 
 private slots:
-    void onNetworkReply(QNetworkReply *reply) {
+    void onNetworkReply(QNetworkReply* reply)
+    {
         reply->deleteLater();
         const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        if (reply->error() != QNetworkReply::NoError || statusCode == 429) {
+        if (reply->error() != QNetworkReply::NoError || statusCode == 429)
+        {
             qWarning().noquote() << QString("Endpoint %1 failed (HTTP Status %2): %3")
-                                    .arg(m_endpoints.at(m_currentEndpointIdx))
-                                    .arg(statusCode)
-                                    .arg(reply->errorString());
+                                        .arg(m_endpoints.at(m_currentEndpointIdx))
+                                        .arg(statusCode)
+                                        .arg(reply->errorString());
 
             // Try next fallback mirror
             m_currentEndpointIdx = (m_currentEndpointIdx + 1) % m_endpoints.size();
-            
+
             emit fetchFailed(reply->errorString());
             return;
         }
@@ -142,7 +158,8 @@ private slots:
         QJsonParseError parseError;
         const QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
 
-        if (parseError.error != QJsonParseError::NoError) {
+        if (parseError.error != QJsonParseError::NoError)
+        {
             emit fetchFailed(QString("JSON Parse Error: %1").arg(parseError.errorString()));
             return;
         }
@@ -150,11 +167,16 @@ private slots:
         const QJsonObject rootObj = doc.object();
         QSet<QString> seenThisPoll;
 
-        if (rootObj.contains("ac") && rootObj["ac"].isArray()) {
+        if (rootObj.contains("ac") && rootObj["ac"].isArray())
+        {
             const QJsonArray acArray = rootObj["ac"].toArray();
 
-            for (const QJsonValue &val : acArray) {
-                if (!val.isObject()) continue;
+            for (const QJsonValue& val : acArray)
+            {
+                if (!val.isObject())
+                {
+                    continue;
+                }
 
                 const QJsonObject obj = val.toObject();
                 Aircraft ac;
@@ -172,14 +194,17 @@ private slots:
 
                 // Handle 'alt_baro' which can be int or string ("ground")
                 const QJsonValue altVal = obj.value("alt_baro");
-                if (altVal.isDouble()) {
+                if (altVal.isDouble())
+                {
                     ac.altBaro = altVal.toInt();
-                } else if (altVal.isString() && altVal.toString() == "ground") {
+                }
+                else if (altVal.isString() && altVal.toString() == "ground")
+                {
                     ac.altBaro = 0;
                 }
 
                 // Update (or insert) the tracking entry for this aircraft.
-                TrackedAircraft &entry = m_table[ac.hex];
+                TrackedAircraft& entry = m_table[ac.hex];
                 entry.latest = ac;
                 entry.missedCount = 0;
                 entry.history.append({ac.lat, ac.lon, QDateTime::currentDateTime()});
@@ -196,10 +221,13 @@ private slots:
         // an erase. Advancing past end() (which happens when the last element
         // is erased) is undefined behavior and crashes.
         auto it = m_table.begin();
-        while (it != m_table.end()) {
-            if (!seenThisPoll.contains(it.key())) {
+        while (it != m_table.end())
+        {
+            if (!seenThisPoll.contains(it.key()))
+            {
                 it.value().missedCount++;
-                if (it.value().missedCount >= m_missThreshold) {
+                if (it.value().missedCount >= m_missThreshold)
+                {
                     it = m_table.erase(it);
                     continue;
                 }
@@ -212,8 +240,8 @@ private slots:
     }
 
 private:
-    QNetworkAccessManager *m_nam = nullptr;
-    QTimer *m_timer = nullptr;
+    QNetworkAccessManager* m_nam = nullptr;
+    QTimer* m_timer = nullptr;
 
     double m_lat = 1.3644;
     double m_lon = 103.9915;

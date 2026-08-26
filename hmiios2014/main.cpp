@@ -1,9 +1,10 @@
-#include "hmiios2014.h"
-#include <QtWidgets/QApplication>
 #include <QSplashScreen>
-#include "TSDWindow.h"
 #include <QStyleFactory>
 #include <QSurfaceFormat>
+#include <QtWidgets/QApplication>
+
+#include "TSDWindow.h"
+#include "hmiios2014.h"
 
 hmiios2014* G_P_MAINWINDOW;
 int main(int argc, char* argv[])

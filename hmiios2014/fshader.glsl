@@ -9,15 +9,16 @@ uniform int color_id;
 // the uniform being set while the program is bound.
 const float kCircleRadius = 0.5;
 
-// Color lookup table, indexed by color_id (0..22). Replaces the old if/else
+// Color lookup table, indexed by color_id (0..27). Replaces the old if/else
 // ladder; GLSL 3.30 core allows dynamic indexing of constant arrays.
 //
 // color_id is set in TSDWindow.cpp. For map layers it is myLog2(l_layer->m_id),
 // i.e. the bit index of the layer's DisplayMaskBits flag (COASTAL=1<<0 -> 0,
-// PLACES=1<<2 -> 2, ... MAN_MADE=1<<22 -> 22). A few ids are also set directly
-// for the MRT station points (drawMRTStation) and the EBL range ring
-// (drawEBL). The meaning of each entry is annotated below.
-const vec4 kColorTable[23] = vec4[23](
+// PLACES=1<<2 -> 2, ... MAN_MADE=1<<22 -> 22, FLIGHTS=1<<25 -> 25,
+// FLIGHT_TRAILS=1<<27 -> 27). A few ids are also set directly for the MRT
+// station points (drawMRTStation) and the EBL range ring (drawEBL). The
+// meaning of each entry is annotated below.
+const vec4 kColorTable[28] = vec4[28](
 	vec4(.0, .6, .0, 1.0),        // 0  COASTAL (1<<0)
 	vec4(.0, .5, .0, 1.0),        // 1  (COASTAL_TEXT bit; unused as a fill color)
 	vec4(.9, .1, .2, .7),         // 2  PLACES (1<<2)
@@ -40,13 +41,18 @@ const vec4 kColorTable[23] = vec4[23](
 	vec4(.1, .1, .9, .7),         // 19 (AIR_WAYS_TEXT bit; used by downtown line color)
 	vec4(.0, 1.0, .0, .6),        // 20 MRT (1<<20)
 	vec4(0.24, 0.14, 0.08, 0.7),  // 21 (MRT_TEXT bit; used by thomason east coast line)
-	vec4(.0, .6, .0, 1.0)         // 22 MAN_MADE (1<<22)
+	vec4(.0, .6, .0, 1.0),        // 22 MAN_MADE (1<<22)
+	vec4(0.0, 0.0, 0.0, 0.0),     // 23 (MAN_MADE_TEXT bit; unused)
+	vec4(0.0, 0.0, 0.0, 0.0),     // 24 (MRT_POINT bit; unused)
+	vec4(1.0, .65, 0.0, .92),     // 25 FLIGHTS (1<<25) - plane silhouettes
+	vec4(0.0, 0.0, 0.0, 0.0),     // 26 (FLIGHTS_TEXT bit; unused)
+	vec4(1.0, .65, 0.0, .5)       // 27 FLIGHT_TRAILS (1<<27) - flight trails
 );
 
 void main() {
-	// Clamp to the valid range (out-of-range ids now map to entry 0/22
-	// instead of the old white default; all real ids are in 0..22).
-	fragColor = kColorTable[clamp(color_id, 0, 22)];
+	// Clamp to the valid range (out-of-range ids now map to entry 0/27
+	// instead of the old white default; all real ids are in 0..27).
+	fragColor = kColorTable[clamp(color_id, 0, 27)];
 
 	// For color_id 5 (EW MRT line / Expo & Changi stations) the points are
 	// drawn as GL_POINTS sprites, which are square by default. Discard every

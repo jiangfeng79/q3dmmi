@@ -2,37 +2,62 @@
 
 #include <QCoreApplication>
 #include <QDir>
-#include <time.h>   //or #include<ctime> for time function
-#include <stdlib.h> //or #include<cstdlib> for srand function.
-#include <random>
 #include <QPointF>
-#include <QVector>
 #include <QPolygonF>
+#include <QVector>
+
 #include <cstdlib>
 #include <ctime>
+#include <random>
+#include <stdlib.h>  //or #include<cstdlib> for srand function.
+#include <time.h>    //or #include<ctime> for time function
+
+#include "geoTransform.h"
 #include "hmiios2014.h"
 #include "mrt.h"
-#include "geoTransform.h"
 
 // screen position to map position
-// #define X_SCREEN_COORD_TO_MAP_COORD(X) -m_fMapCenterDeltaX/m_property.scale+((X)-width()/2)/(m_property.scale*m_fScaleFactor)
-// #define Y_SCREEN_COORD_TO_MAP_COORD(Y) m_fMapCenterDeltaY/m_property.scale-((Y)-height()/2)/(m_property.scale*m_fScaleFactor)
-#define X_SCREEN_COORD_TO_MAP_COORD(X) -m_fMapCenterDeltaX / m_sgCoastal.m_property.scale + ((X) - width() / 2) / (m_sgCoastal.m_property.scale * m_fScaleFactor)
-#define Y_SCREEN_COORD_TO_MAP_COORD(Y) m_fMapCenterDeltaY / m_sgCoastal.m_property.scale - ((Y) - height() / 2) / (m_sgCoastal.m_property.scale * m_fScaleFactor)
+// #define X_SCREEN_COORD_TO_MAP_COORD(X)
+// -m_fMapCenterDeltaX/m_property.scale+((X)-width()/2)/(m_property.scale*m_fScaleFactor) #define
+// Y_SCREEN_COORD_TO_MAP_COORD(Y) m_fMapCenterDeltaY/m_property.scale-((Y)-height()/2)/(m_property.scale*m_fScaleFactor)
+#define X_SCREEN_COORD_TO_MAP_COORD(X)                 \
+    -m_fMapCenterDeltaX / m_sgCoastal.m_property.scale \
+        + ((X) - width() / 2) / (m_sgCoastal.m_property.scale * m_fScaleFactor)
+#define Y_SCREEN_COORD_TO_MAP_COORD(Y)                \
+    m_fMapCenterDeltaY / m_sgCoastal.m_property.scale \
+        - ((Y) - height() / 2) / (m_sgCoastal.m_property.scale * m_fScaleFactor)
 
 // Note: the WGS84<->Mercator and metre/build map-space transforms now live in
 // geoTransform.h (shared with the layer parsers).
 
 // screen position to lat-long position
-#define X_SCREEN_COORD_TO_WGS84(X) m_sgCoastal.m_property.centerX - m_fMapCenterDeltaX / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale) + ((X) - width() * devicePixelRatio() / 2) / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale * m_fScaleFactor)
-#define Y_SCREEN_COORD_TO_WGS84(Y) WGS84WEBMERCATOR_TO_WGS84(m_sgCoastal.m_property.centerY + m_fMapCenterDeltaY / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale) - ((Y) - height() * devicePixelRatio() / 2) / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale * m_fScaleFactor))
+#define X_SCREEN_COORD_TO_WGS84(X)                                                                   \
+    m_sgCoastal.m_property.centerX                                                                   \
+        - m_fMapCenterDeltaX / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale) \
+        + ((X) - width() * devicePixelRatio() / 2)                                                   \
+              / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale * m_fScaleFactor)
+#define Y_SCREEN_COORD_TO_WGS84(Y)                                                                   \
+    WGS84WEBMERCATOR_TO_WGS84(                                                                       \
+        m_sgCoastal.m_property.centerY                                                               \
+        + m_fMapCenterDeltaY / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale) \
+        - ((Y) - height() * devicePixelRatio() / 2)                                                  \
+              / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale * m_fScaleFactor))
 
 // lat-long position to screen position, for drawing text
-#define X_WGS84_COORD_TO_SCREEN_COORD(X) width() * devicePixelRatio() / 2 + ((X) - m_sgCoastal.m_property.centerX + m_fMapCenterDeltaX / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale)) * m_sgCoastal.m_property.scale * m_fScaleFactor * m_sgCoastal.m_property.mapBuildScale
-#define Y_WGS84_COORD_TO_SCREEN_COORD(Y) height() * devicePixelRatio() / 2 - (WGS84_TO_WGS84WEBMERCATOR(Y) - m_sgCoastal.m_property.centerY - m_fMapCenterDeltaY / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale)) * m_sgCoastal.m_property.scale * m_fScaleFactor * m_sgCoastal.m_property.mapBuildScale
+#define X_WGS84_COORD_TO_SCREEN_COORD(X)                                                                 \
+    width() * devicePixelRatio() / 2                                                                     \
+        + ((X) - m_sgCoastal.m_property.centerX                                                          \
+           + m_fMapCenterDeltaX / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale)) \
+              * m_sgCoastal.m_property.scale * m_fScaleFactor * m_sgCoastal.m_property.mapBuildScale
+#define Y_WGS84_COORD_TO_SCREEN_COORD(Y)                                                                 \
+    height() * devicePixelRatio() / 2                                                                    \
+        - (WGS84_TO_WGS84WEBMERCATOR(Y) - m_sgCoastal.m_property.centerY                                 \
+           - m_fMapCenterDeltaY / (m_sgCoastal.m_property.mapBuildScale * m_sgCoastal.m_property.scale)) \
+              * m_sgCoastal.m_property.scale * m_fScaleFactor * m_sgCoastal.m_property.mapBuildScale
 
 #define X_WGS84_COORD_TO_MAP_COORD(X) ((X) - m_sgCoastal.m_property.centerX) * m_sgCoastal.m_property.mapBuildScale
-#define Y_WGS84_COORD_TO_MAP_COORD(Y) (WGS84_TO_WGS84WEBMERCATOR(Y) - m_sgCoastal.m_property.centerY) * m_sgCoastal.m_property.mapBuildScale
+#define Y_WGS84_COORD_TO_MAP_COORD(Y) \
+    (WGS84_TO_WGS84WEBMERCATOR(Y) - m_sgCoastal.m_property.centerY) * m_sgCoastal.m_property.mapBuildScale
 
 // scale
 #define SCALE (m_sgCoastal.m_property.scale * m_fScaleFactor)
@@ -41,12 +66,14 @@
 template<int N> void TSDWindow::printMrtStringToScreen()
 {
     printMrtStringToScreen<N-1>();
-    renderText( X_WGS84_COORD_TO_SCREEN_COORD(mrt[N*2])+7, Y_WGS84_COORD_TO_SCREEN_COORD(mrt[N*2+1])+5, QString(mrt_name[N]), QString("Tahoma"));
+    renderText( X_WGS84_COORD_TO_SCREEN_COORD(mrt[N*2])+7, Y_WGS84_COORD_TO_SCREEN_COORD(mrt[N*2+1])+5,
+QString(mrt_name[N]), QString("Tahoma"));
 }
 
 template<> void TSDWindow::printMrtStringToScreen<0>()
 {
-    renderText(X_WGS84_COORD_TO_SCREEN_COORD(mrt[0])+7, Y_WGS84_COORD_TO_SCREEN_COORD(mrt[1])+5, QString(mrt_name[0]), QString("Tahoma"));
+    renderText(X_WGS84_COORD_TO_SCREEN_COORD(mrt[0])+7, Y_WGS84_COORD_TO_SCREEN_COORD(mrt[1])+5, QString(mrt_name[0]),
+QString("Tahoma"));
 }
 
 template<int N> void TSDWindow::printStringToScreen(MapLayer & a_layer)
@@ -59,8 +86,9 @@ template<int N> void TSDWindow::printStringToScreen(MapLayer & a_layer)
 
     if(x>0&&x<width() &&y>0&&y<height() &&lable!=NULL)
     {
-        //qDebug() << "data:" << i << "x:" << (m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[0] <<"y:" <<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[1] << "value:" <<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].stringValue;
-        renderText(x,y, QString(lable), QString("Tahoma"));
+        //qDebug() << "data:" << i << "x:" << (m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[0] <<"y:"
+<<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[1] << "value:"
+<<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].stringValue; renderText(x,y, QString(lable), QString("Tahoma"));
     }
 }
 
@@ -72,43 +100,46 @@ template<> void TSDWindow::printStringToScreen<0>(MapLayer & a_layer)
 
     if(x>0&&x<width() &&y>0&&y<height() &&lable!=NULL)
     {
-        //qDebug() << "data:" << i << "x:" << (m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[0] <<"y:" <<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[1] << "value:" <<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].stringValue;
-        renderText(x,y, QString(lable), QString("Tahoma"));
+        //qDebug() << "data:" << i << "x:" << (m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[0] <<"y:"
+<<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[1] << "value:"
+<<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].stringValue; renderText(x,y, QString(lable), QString("Tahoma"));
     }
 }
 */
 
 TSDWindow::TSDWindow()
-    : m_program(0)
-    , m_bgProgram(0)
-    , m_lineProgram(0)
-    , m_bgMouse(0)
-    , m_bgMouseDelta(0)
-    , m_bgResolution(0)
-    , m_bgTime(0)
-    , m_bgShaderId(1)
-    , m_sgCoastal("./sgMap/singapore", COASTAL, COASTAL_TEXT)
-    , m_sgAmenities("./sgMap/singapore.osm-amenities", AMENITIES, AMENITIES_TEXT)
-    , m_sgLandUsages("./sgMap/singapore.osm-landusages", LAND_USAGE, LAND_USAGE_TEXT)
-    , m_sgPlaces("./sgMap/singapore.osm-places", PLACES, PLACES_TEXT)
-    , m_sgMRT("./sgMap/railways", MRT, MRT_TEXT)
-    , m_sgWaterArea("./sgMap/singapore.osm-waterareas", WATER_AREA, WATER_AREA_TEXT)
-    , m_sgBuilding("./sgMap/singapore.osm-buildings", BUILDING, BUILDING_TEXT)
-    , m_sgMainRoads("./sgMap/singapore.osm-mainroads", MAIN_ROADS, MAIN_ROADS_TEXT)
-    , m_sgMotorWays("./sgMap/singapore.osm-motorways", MOTOR_WAYS, MOTOR_WAYS_TEXT)
-    , m_sgMinorRoads("./sgMap/singapore.osm-minorroads", MINOR_ROADS, MINOR_ROADS_TEXT)
-    , m_sgAirWays("./sgMap/singapore.osm-aeroways", AIR_WAYS, AIR_WAYS_TEXT)
-    , m_sgManMade("./sgMap/singapore.osm-polygon", "man_made", MAN_MADE, MAN_MADE_TEXT)
-    , m_mrt(nullptr)
-    , m_mrtVBO(0)
-    , m_eblVBO(0)
-    , m_shader(0)
-    , m_displayMask(0xff5c032b)
-    , m_bAutoZoom(false)
-    , m_bAutoSwing(false)
-    , m_bShaderToys(false)
-    , m_flightThread(nullptr)
-    , m_flightWorker(nullptr)
+    : m_program(0),
+      m_bgProgram(0),
+      m_lineProgram(0),
+      m_bgMouse(0),
+      m_bgMouseDelta(0),
+      m_bgResolution(0),
+      m_bgTime(0),
+      m_bgShaderId(1),
+      m_sgCoastal("./sgMap/singapore", COASTAL, COASTAL_TEXT),
+      m_sgAmenities("./sgMap/singapore.osm-amenities", AMENITIES, AMENITIES_TEXT),
+      m_sgLandUsages("./sgMap/singapore.osm-landusages", LAND_USAGE, LAND_USAGE_TEXT),
+      m_sgPlaces("./sgMap/singapore.osm-places", PLACES, PLACES_TEXT),
+      m_sgMRT("./sgMap/railways", MRT, MRT_TEXT),
+      m_sgWaterArea("./sgMap/singapore.osm-waterareas", WATER_AREA, WATER_AREA_TEXT),
+      m_sgBuilding("./sgMap/singapore.osm-buildings", BUILDING, BUILDING_TEXT),
+      m_sgMainRoads("./sgMap/singapore.osm-mainroads", MAIN_ROADS, MAIN_ROADS_TEXT),
+      m_sgMotorWays("./sgMap/singapore.osm-motorways", MOTOR_WAYS, MOTOR_WAYS_TEXT),
+      m_sgMinorRoads("./sgMap/singapore.osm-minorroads", MINOR_ROADS, MINOR_ROADS_TEXT),
+      m_sgAirWays("./sgMap/singapore.osm-aeroways", AIR_WAYS, AIR_WAYS_TEXT),
+      m_sgManMade("./sgMap/singapore.osm-polygon", "man_made", MAN_MADE, MAN_MADE_TEXT),
+      m_mrt(nullptr),
+      m_mrtVBO(0),
+      m_eblVBO(0),
+      m_shader(0),
+      m_displayMask(0xff5c032b),
+      m_bAutoZoom(false),
+      m_bAutoSwing(false),
+      m_bShaderToys(false),
+      m_flightThread(nullptr),
+      m_flightWorker(nullptr),
+      m_flightDirty(false),
+      m_flightScale(0.0f)
 {
     m_sgCoastal.m_bToFill = true;
     m_sgWaterArea.m_bToFill = true;
@@ -130,29 +161,29 @@ TSDWindow::TSDWindow()
     m_sgAirWays.setParser(new ShapefileLayerParser(m_sgAirWays.m_fileName));
     m_sgManMade.setParser(new ShapefileLayerParser(m_sgManMade.m_fileName, m_sgManMade.m_layerName));
 
+    // Live airflight layers: the parser is fed the tracking table each poll
+    // (see onTrackingTableUpdated) and rebuilt into geometry on the GUI thread.
+    m_sgFlightTrails.m_id = FLIGHT_TRAILS;
+    m_sgFlightTrails.m_text_id = DISPLAY_VOID;
+    m_sgFlightTrails.setParser(new FlightLayerParser(FlightLayerParser::Trails));
+    m_sgFlightMarkers.m_id = FLIGHTS;
+    m_sgFlightMarkers.m_text_id = FLIGHTS_TEXT;
+    m_sgFlightMarkers.setParser(new FlightLayerParser(FlightLayerParser::Markers));
+
     setDisplayMask(MAN_MADE_TEXT, false);
     setDisplayMask(MOTOR_WAYS_TEXT, false);
     setDisplayMask(MAIN_ROADS_TEXT, false);
     setDisplayMask(MINOR_ROADS_TEXT, false);
     setDisplayMask(MRT_TEXT, false);
 
-    m_listOfLayers
-        << &m_sgCoastal
-        << &m_sgWaterArea
-        << &m_sgMRT
-        << &m_sgAmenities
-        << &m_sgLandUsages
-        << &m_sgPlaces
-        << &m_sgBuilding
-        << &m_sgMainRoads
-        << &m_sgMotorWays
-        << &m_sgMinorRoads
-        << &m_sgAirWays
-        << &m_sgManMade;
+    m_listOfLayers << &m_sgCoastal << &m_sgWaterArea << &m_sgMRT << &m_sgAmenities << &m_sgLandUsages << &m_sgPlaces
+                   << &m_sgBuilding << &m_sgMainRoads << &m_sgMotorWays << &m_sgMinorRoads << &m_sgAirWays
+                   << &m_sgManMade;
 
     // Live airflight tracking near Changi. The worker runs on a dedicated
     // thread and polls the adsb.lol API; its tracking table is queued onto the
-    // GUI thread and drawn by drawFlightMarkers()/drawFlightLabels().
+    // GUI thread, turned into the flight MapLayers (trails + markers) by
+    // rebuildFlightLayers(), and drawn through the normal map-layer passes.
     m_flightWorker = new TrackerWorker;
     m_flightThread = new QThread(this);
     m_flightWorker->moveToThread(m_flightThread);
@@ -160,11 +191,10 @@ TSDWindow::TSDWindow()
         // Changi Airport, 30 NM radius.
         m_flightWorker->start(1.3644, 103.9915, 60);
     });
-    connect(m_flightWorker, &TrackerWorker::trackingTableUpdated,
-            this, &TSDWindow::onTrackingTableUpdated, Qt::QueuedConnection);
-    connect(m_flightWorker, &TrackerWorker::fetchFailed, [](const QString& err) {
-        qWarning().noquote() << "Flight fetch failed:" << err;
-    });
+    connect(m_flightWorker, &TrackerWorker::trackingTableUpdated, this, &TSDWindow::onTrackingTableUpdated,
+            Qt::QueuedConnection);
+    connect(m_flightWorker, &TrackerWorker::fetchFailed,
+            [](const QString& err) { qWarning().noquote() << "Flight fetch failed:" << err; });
     m_flightThread->start();
 
     // bool bOK = connect(&(G_P_MAINWINDOW->UIQueue), SIGNAL(signal_send_msg()), this, SLOT(slot_process_msg()));
@@ -196,10 +226,12 @@ TSDWindow::~TSDWindow()
     free(m_mrt);
 }
 
-void TSDWindow::MapLayer::buildLayer(MapProperty &a_property, int a_iLayerDepth)
+void TSDWindow::MapLayer::buildLayer(MapProperty& a_property, int a_iLayerDepth)
 {
     if (!m_parser)
+    {
         return;
+    }
 
     LayerParser::Options options;
     options.baseProperty = a_property;
@@ -214,7 +246,9 @@ void TSDWindow::MapLayer::buildLayer(MapProperty &a_property, int a_iLayerDepth)
 void TSDWindow::MapLayer::buildLayer()
 {
     if (!m_parser)
+    {
         return;
+    }
 
     LayerParser::Options options;
     options.layerDepth = 0;
@@ -225,7 +259,7 @@ void TSDWindow::MapLayer::buildLayer()
     m_property = m_geometry.property;
 }
 
-void TSDWindow::drawTextWithAngle(TSDWindow::MapLayer &a_layer)
+void TSDWindow::drawTextWithAngle(TSDWindow::MapLayer& a_layer)
 {
     const qreal retinaScale = devicePixelRatio();
     if (a_layer.m_text_id & m_displayMask)
@@ -236,12 +270,14 @@ void TSDWindow::drawTextWithAngle(TSDWindow::MapLayer &a_layer)
             int x = X_WGS84_COORD_TO_SCREEN_COORD(labels[i].longitude) * retinaScale;
             int y = Y_WGS84_COORD_TO_SCREEN_COORD(labels[i].latitude) * retinaScale;
             if (x > 0 && x < width() * retinaScale && y > 0 && y < height() * retinaScale && !labels[i].text.empty())
+            {
                 renderText(x, y, QString::fromStdString(labels[i].text), QString("Tahoma"), labels[i].angle);
+            }
         }
     }
 }
 
-void TSDWindow::drawText(TSDWindow::MapLayer &a_layer)
+void TSDWindow::drawText(TSDWindow::MapLayer& a_layer)
 {
     const qreal retinaScale = devicePixelRatio();
     if (a_layer.m_text_id & m_displayMask)
@@ -259,7 +295,45 @@ void TSDWindow::drawText(TSDWindow::MapLayer &a_layer)
     }
 }
 
-static bool checkGL(const char *stage)
+// Draw the live airflight labels: the callsign and the barometric altitude
+// on two lines, positioned to the right of each airplane marker.
+void TSDWindow::drawFlightText(MapLayer& a_layer)
+{
+    const qreal retinaScale = devicePixelRatio();
+    if (a_layer.m_text_id & m_displayMask)
+    {
+        const std::vector<Label>& labels = a_layer.m_geometry.labels;
+        for (size_t i = 0; i < labels.size(); ++i)
+        {
+            int x = X_WGS84_COORD_TO_SCREEN_COORD(labels[i].longitude) * retinaScale;
+            int y = Y_WGS84_COORD_TO_SCREEN_COORD(labels[i].latitude) * retinaScale;
+            if (x > 0 && x < width() * retinaScale && y > 0 && y < height() * retinaScale && !labels[i].text.empty())
+            {
+                // Split "CALLSIGN ALT" into two lines, drawn to the right of
+                // the marker (fixed screen size, so a fixed pixel offset works).
+                const QString full = QString::fromStdString(labels[i].text);
+                const int sp = full.indexOf(' ');
+                const QString line1 = (sp >= 0) ? full.left(sp) : full;
+                const QString line2 = (sp >= 0) ? full.mid(sp + 1) : QString();
+
+                // renderText() centers on its x, so to left-align both lines on
+                // the same edge, offset each by half of its own advance.
+                const int px = 12 * devicePixelRatio();
+                FontEntry* fe = getCachedFont(QStringLiteral("Tahoma"), px, false);
+                const QFontMetricsF& metrics = fe->metrics;
+                const int left = x + 10 * retinaScale;
+                renderText(left + (int)(metrics.horizontalAdvance(line1) / 2), y - 30, line1, QString("Tahoma"));
+                if (!line2.isEmpty())
+                {
+                    renderText(left + (int)(metrics.horizontalAdvance(line2) / 2), y - 30 + px, line2,
+                               QString("Tahoma"));
+                }
+            }
+        }
+    }
+}
+
+static bool checkGL(const char* stage)
 {
     GLenum err = glGetError();
     if (err != GL_NO_ERROR)
@@ -270,7 +344,7 @@ static bool checkGL(const char *stage)
     return true;
 }
 
-GLuint TSDWindow::loadShader(GLenum type, const char *source)
+GLuint TSDWindow::loadShader(GLenum type, const char* source)
 {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, 0);
@@ -283,9 +357,13 @@ void TSDWindow::initialize()
     m_program = new QOpenGLShaderProgram(this);
 
     if (!m_program->addShaderFromSourceFile(QOpenGLShader::Vertex, QString(":/hmiios2014/vshader.glsl")))
+    {
         qWarning() << "Vertex shader compile error:" << m_program->log();
+    }
     if (!m_program->addShaderFromSourceFile(QOpenGLShader::Fragment, QString(":/hmiios2014/fshader.glsl")))
+    {
         qWarning() << "Fragment shader compile error:" << m_program->log();
+    }
 
     if (!m_program->link())
     {
@@ -297,15 +375,21 @@ void TSDWindow::initialize()
     m_colAttr = m_program->attributeLocation("colAttr");
     m_matrixUniform = m_program->uniformLocation("matrix");
     m_colorId = m_program->uniformLocation("color_id");
-    
+
     // Background (ShaderToy) shader: separate program, fullscreen triangle.
     m_bgProgram = new QOpenGLShaderProgram(this);
     if (!m_bgProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, QString(":/hmiios2014/vshader.glsl")))
+    {
         qWarning() << "Background vertex shader compile error:" << m_bgProgram->log();
+    }
     if (!m_bgProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, QString(":/hmiios2014/bgfshader.glsl")))
+    {
         qWarning() << "Background fragment shader compile error:" << m_bgProgram->log();
+    }
     if (!m_bgProgram->link())
+    {
         qWarning() << "Background shader program link error:" << m_bgProgram->log();
+    }
 
     m_bgMatrixUniform = m_bgProgram->uniformLocation("matrix");
     m_bgMouse = m_bgProgram->uniformLocation("mouse");
@@ -321,13 +405,21 @@ void TSDWindow::initialize()
     // cached (matrix, color_id, resolution).
     m_lineProgram = new QOpenGLShaderProgram(this);
     if (!m_lineProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, QString(":/hmiios2014/vshader.glsl")))
+    {
         qWarning() << "Line vertex shader compile error:" << m_lineProgram->log();
+    }
     if (!m_lineProgram->addShaderFromSourceFile(QOpenGLShader::Geometry, QString(":/hmiios2014/gshader.glsl")))
+    {
         qWarning() << "Line geometry shader compile error:" << m_lineProgram->log();
+    }
     if (!m_lineProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, QString(":/hmiios2014/fshader.glsl")))
+    {
         qWarning() << "Line fragment shader compile error:" << m_lineProgram->log();
+    }
     if (!m_lineProgram->link())
+    {
         qWarning() << "Line shader program link error:" << m_lineProgram->log();
+    }
 
     m_lineMatrixUniform = m_lineProgram->uniformLocation("matrix");
     m_lineColorId = m_lineProgram->uniformLocation("color_id");
@@ -343,23 +435,25 @@ void TSDWindow::initialize()
 
     for (int i = 0; i < m_listOfLayers.size(); ++i)
     {
-        TSDWindow::MapLayer *l_layer = m_listOfLayers[i];
+        TSDWindow::MapLayer* l_layer = m_listOfLayers[i];
         if (i == 0)
-            l_layer->buildLayer(); // sg coastal; base layer
+        {
+            l_layer->buildLayer();  // sg coastal; base layer
+        }
         else
+        {
             l_layer->buildLayer(m_sgCoastal.m_property, 0);
+        }
 
         if (!l_layer->m_geometry.vertices.empty())
         {
             glGenBuffers(2, l_layer->m_VBO_ID);
             glBindBuffer(GL_ARRAY_BUFFER, l_layer->m_VBO_ID[0]);
-            glBufferData(GL_ARRAY_BUFFER,
-                         l_layer->m_geometry.vertices.size() * 3 * sizeof(float),
-                         l_layer->m_geometry.vertices.data(),
-                         GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, l_layer->m_geometry.vertices.size() * 3 * sizeof(float),
+                         l_layer->m_geometry.vertices.data(), GL_STATIC_DRAW);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-            if(l_layer->m_geometry.renderType[0] == SHPT_ARC)
+            // if(l_layer->m_geometry.renderType[0] == SHPT_ARC)
             {
                 // Create and upload to Element Array Buffer (EBO)
                 if (!l_layer->m_VBO_ID[1])
@@ -368,16 +462,14 @@ void TSDWindow::initialize()
                 }
 
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, l_layer->m_VBO_ID[1]);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
-                            l_layer->m_geometry.lineIndices.size() * sizeof(GLuint), 
-                            l_layer->m_geometry.lineIndices.data(), 
-                            GL_STATIC_DRAW);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, l_layer->m_geometry.lineIndices.size() * sizeof(GLuint),
+                             l_layer->m_geometry.lineIndices.data(), GL_STATIC_DRAW);
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
             }
         }
     }
 
-    m_mrt = (GLfloat *)malloc(sizeof(mrt));
+    m_mrt = (GLfloat*)malloc(sizeof(mrt));
     for (int i = 0; i < sizeof(mrt) / sizeof(GLfloat) / 2; ++i)
     {
         m_mrt[i * 2] = X_WGS84_COORD_TO_MAP_COORD(mrt[i * 2]);
@@ -396,13 +488,15 @@ void TSDWindow::initialize()
 
 // Draw a single polygon ring as a triangle fan. Assumes the VBO is bound and
 // the vertex attribute pointer is set up by the caller's surrounding state.
-void TSDWindow::drawPolygonRing(MapLayer &a_layer, int i)
+void TSDWindow::drawPolygonRing(MapLayer& a_layer, int i)
 {
     const int vertCount = a_layer.m_geometry.rings[i + 1] - a_layer.m_geometry.rings[i];
     if (vertCount < 3)
-        return; // a triangle fan needs at least 3 vertices
+    {
+        return;  // a triangle fan needs at least 3 vertices
+    }
     glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void *)(intptr_t)(a_layer.m_geometry.rings[i] * 3 * 4));
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_geometry.rings[i] * 3 * 4));
     glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_TRIANGLE_FAN, 0, vertCount);
     glDisableVertexAttribArray(m_posAttr);
@@ -411,51 +505,57 @@ void TSDWindow::drawPolygonRing(MapLayer &a_layer, int i)
 
 // PASS 1: write every polygon ring into the stencil buffer (color writes off).
 // GL_INVERT toggles the bit, so overlapping rings cancel out (even-odd rule).
-void TSDWindow::drawRingsToStencil(MapLayer &a_layer)
+void TSDWindow::drawRingsToStencil(MapLayer& a_layer)
 {
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // disable writing to color buffer
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);  // disable writing to color buffer
     glStencilFunc(GL_ALWAYS, 0x1, 0x1);
     glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
 
     for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
     {
         if (a_layer.m_geometry.renderType[i] == SHPT_POLYGON)
+        {
             drawPolygonRing(a_layer, i);
+        }
     }
 }
 
 // PASS 2: color the pixels whose stencil bit ended up set (odd coverage).
-void TSDWindow::drawRingsToColor(MapLayer &a_layer)
+void TSDWindow::drawRingsToColor(MapLayer& a_layer)
 {
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // enable writing to color buffer
-    glStencilFunc(GL_EQUAL, 0x1, 0x1);               // test if it is odd(1)
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);  // enable writing to color buffer
+    glStencilFunc(GL_EQUAL, 0x1, 0x1);                // test if it is odd(1)
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
     for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
     {
         if (a_layer.m_geometry.renderType[i] == SHPT_POLYGON)
+        {
             drawPolygonRing(a_layer, i);
+        }
     }
 }
 
 // Fill a single ring: stencil pass then color pass, resolved immediately.
-void TSDWindow::drawRingFilled(MapLayer &a_layer, int i)
+void TSDWindow::drawRingFilled(MapLayer& a_layer, int i)
 {
     if (a_layer.m_geometry.renderType[i] != SHPT_POLYGON)
+    {
         return;
+    }
 
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // disable writing to color buffer
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);  // disable writing to color buffer
     glStencilFunc(GL_ALWAYS, 0x1, 0x1);
     glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
     drawPolygonRing(a_layer, i);
 
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // enable writing to color buffer
-    glStencilFunc(GL_EQUAL, 0x1, 0x1);               // test if it is odd(1)
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);  // enable writing to color buffer
+    glStencilFunc(GL_EQUAL, 0x1, 0x1);                // test if it is odd(1)
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
     drawPolygonRing(a_layer, i);
 }
 
-void TSDWindow::drawLayerAndFill(MapLayer &a_layer)
+void TSDWindow::drawLayerAndFill(MapLayer& a_layer)
 {
     // polygon
     glClear(GL_STENCIL_BUFFER_BIT);
@@ -478,46 +578,42 @@ void TSDWindow::drawLayerAndFill(MapLayer &a_layer)
         // Per-ring: each ring resolves its own stencil->color immediately, so
         // there is no cross-ring cancellation.
         for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
+        {
             drawRingFilled(a_layer, i);
+        }
     }
 
     glDisable(GL_STENCIL_TEST);
 }
 
-void TSDWindow::drawLayer(MapLayer &a_layer)
+void TSDWindow::drawLayer(MapLayer& a_layer)
 {
-    int totalVerts = a_layer.m_property.totalNumberOfVertex;
+    if (!a_layer.m_VBO_ID[0] || !a_layer.m_VBO_ID[1])
+    {
+        return;
+    }
+
     glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
     glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(m_posAttr);
 
-    glPointSize(6);
-    for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_VBO_ID[1]);
+
+    glEnable(GL_PRIMITIVE_RESTART);
+    glPrimitiveRestartIndex(0xFFFFFFFF);
+    // ONE SINGLE DRAW CALL FOR HUNDREDS OF THOUSANDS OF LINES:
+    if (a_layer.m_geometry.renderType[0] == SHPT_POLYGON)
     {
-        int startVert = a_layer.m_geometry.rings[i];
-        int vertCount = a_layer.m_geometry.rings[i + 1] - a_layer.m_geometry.rings[i];
-
-        // Skip invalid geometry entries (offset or count out of bounds)
-        if (startVert < 0 || vertCount <= 0 || startVert + vertCount > totalVerts)
-            continue;
-
-        // polygons
-        if (a_layer.m_geometry.renderType[i] == SHPT_POLYGON
-            /*|| a_layer.m_geometry.renderType[i] == SHPT_POLYGONZ
-            || a_layer.m_geometry.renderType[i] == SHPT_POLYGONM*/
-        )
-        {
-            glDrawArrays(GL_LINE_STRIP, startVert, vertCount);
-        }
-        // lines (SHPT_ARC) are drawn by the dedicated line shader in the line
-        // pass (drawLayerLines), not here.
-        // points
-        else if (a_layer.m_geometry.renderType[i] == SHPT_POINT)
-        {
-            glDrawArrays(GL_POINTS, startVert, vertCount);
-        }
+        glDrawElements(GL_LINE_STRIP, a_layer.m_geometry.lineIndices.size(), GL_UNSIGNED_INT, 0);
+    }
+    else if (a_layer.m_geometry.renderType[0] == SHPT_POINT)
+    {
+        glPointSize(6);
+        glDrawElements(GL_POINTS, a_layer.m_geometry.lineIndices.size(), GL_UNSIGNED_INT, 0);
     }
 
+    glDisable(GL_PRIMITIVE_RESTART);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(m_posAttr);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -526,10 +622,12 @@ void TSDWindow::drawLayer(MapLayer &a_layer)
 // shader (m_lineProgram). The caller must have bound m_lineProgram and set its
 // color_id uniform. The geometry shader expands each segment into a filled
 // quad, so lines are thickened beyond the driver's 1px glLineWidth limit.
-void TSDWindow::drawLayerLines(MapLayer &a_layer)
+void TSDWindow::drawLayerLines(MapLayer& a_layer)
 {
-    if (!a_layer.m_VBO_ID[0] || !a_layer.m_VBO_ID[1])
+    if (!a_layer.m_VBO_ID[0] || !a_layer.m_VBO_ID[1] || a_layer.m_geometry.renderType[0] != SHPT_ARC)
+    {
         return;
+    }
 
     glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
     glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
@@ -567,6 +665,25 @@ void TSDWindow::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_MULTISAMPLE);
 
+    // Rebuild the live flight layers if the tracking table changed since the
+    // last frame. Done here (not in onTrackingTableUpdated) so the GL context
+    // is guaranteed current when the VBOs are (re)uploaded.
+    // The marker size depends on the zoom factor, so a zoom change also
+    // requires a geometry rebuild.
+    if (m_sgFlightMarkers.m_parser)
+    {
+        if (m_fScaleFactor != m_flightScale)
+        {
+            m_flightScale = m_fScaleFactor;
+            m_flightDirty = true;
+        }
+        static_cast<FlightLayerParser*>(m_sgFlightMarkers.m_parser)->setScale(m_fScaleFactor);
+    }
+    if (m_flightDirty)
+    {
+        rebuildFlightLayers();
+    }
+
     GLfloat time = (GLfloat)clock() / (GLfloat)CLOCKS_PER_SEC;
     GLfloat mouse[] = {(GLfloat)m_iMousePosX, (GLfloat)m_iMousePosY};
     GLfloat mouseDelta[] = {(GLfloat)m_fMapCenterDeltaX * m_fScaleFactor, (GLfloat)m_fMapCenterDeltaY * m_fScaleFactor};
@@ -581,22 +698,30 @@ void TSDWindow::render()
 
     // l_fScaleFactor =  (abs(sin(time*0.1)));
     if (m_bAutoZoom)
+    {
         matrix.scale((abs(sin(time * 0.1))) * m_sgCoastal.m_property.scale * m_fScaleFactor);
+    }
     else
+    {
         matrix.scale(m_sgCoastal.m_property.scale * m_fScaleFactor);
+    }
     // matrix.scale( (abs(sin(time*0.1)))*m_sgCoastal.m_property.scale*m_fScaleFactor);
 
     // center on the new center postion
     // matrix.rotate(1000.0f * time / screen()->refreshRate(), 0, 0, 1);
     if (m_bAutoSwing)
+    {
         matrix.rotate(sin(time) * 10, 0, 0, 1);
+    }
 
-    QVector<int> shaderRenderLayers = {0, 11}; // COASTAL and MAN_MADE layers are drawn by shaders
+    QVector<int> shaderRenderLayers = {0, 11};  // COASTAL and MAN_MADE layers are drawn by shaders
     // Precompute which layers are drawn by the shader pass so the main loop
     // below can skip them with an O(1) lookup instead of scanning the list.
     QVector<bool> shaderRendered(m_listOfLayers.size(), false);
     for (int idx : shaderRenderLayers)
+    {
         shaderRendered[idx] = true;
+    }
 
     // PASS 0: m_listOfLayers[0], COASTAL shader, drawn before rest of the layers.
     if (m_bShaderToys && m_bgProgram && m_bgProgram->isLinked())
@@ -610,12 +735,12 @@ void TSDWindow::render()
         m_bgProgram->setUniformValue(m_bgShaderId, m_shader);
         this->glBindVertexArray(m_vao);
 
-        foreach(int layerIndex, shaderRenderLayers)
+        foreach (int layerIndex, shaderRenderLayers)
         {
-            auto *l_layer = m_listOfLayers[layerIndex];
+            auto* l_layer = m_listOfLayers[layerIndex];
             if (m_displayMask & l_layer->m_id)
             {
-               drawLayerAndFill(*l_layer);
+                drawLayerAndFill(*l_layer);
             }
         }
 
@@ -632,7 +757,7 @@ void TSDWindow::render()
 
     for (int i = 0; i < m_listOfLayers.size(); ++i)
     {
-        TSDWindow::MapLayer *l_layer = m_listOfLayers[i];
+        TSDWindow::MapLayer* l_layer = m_listOfLayers[i];
 
         // When ShaderToys is on, the layers in shaderRenderLayers are already
         // drawn with the ShaderToy background shader in the pass above, so skip
@@ -641,9 +766,13 @@ void TSDWindow::render()
         {
             m_program->setUniformValue(m_colorId, myLog2(l_layer->m_id));
             if (l_layer->m_bToFill)
+            {
                 drawLayerAndFill(*l_layer);
+            }
             else
+            {
                 drawLayer(*l_layer);
+            }
         }
     }
 
@@ -662,7 +791,7 @@ void TSDWindow::render()
 
         for (int i = 0; i < m_listOfLayers.size(); ++i)
         {
-            TSDWindow::MapLayer *l_layer = m_listOfLayers[i];
+            TSDWindow::MapLayer* l_layer = m_listOfLayers[i];
             if ((m_bShaderToys ? !shaderRendered[i] : true) && (m_displayMask & l_layer->m_id))
             {
                 m_lineProgram->setUniformValue(m_lineColorId, myLog2(l_layer->m_id));
@@ -670,15 +799,36 @@ void TSDWindow::render()
             }
         }
 
+        // Live airflight trails (SHPT_ARC), drawn with the same line shader so
+        // they are thickened like the other line layers.
+        if (m_displayMask & FLIGHT_TRAILS)
+        {
+            m_lineProgram->setUniformValue(m_lineColorId, myLog2(FLIGHT_TRAILS));
+            drawLayerLines(m_sgFlightTrails);
+        }
+
         m_lineProgram->release();
     }
 
     m_program->bind();
+
+    // Live airflight markers (SHPT_POLYGON plane silhouettes), drawn after the
+    // line pass so they sit on top of the trails (matching the original
+    // layering where the planes were drawn over their trails).
+    // drawLayerAndFill() gives the filled silhouette (the old QPainter version
+    // used a brush + pen).
+    if (m_displayMask & FLIGHTS)
+    {
+        m_program->setUniformValue(m_colorId, myLog2(FLIGHTS));
+        drawLayerAndFill(m_sgFlightMarkers);
+    }
+
     // checkGL("before drawMRTStation");
     drawMRTStation();
     // checkGL("after drawMRTStation");
 
-    drawEBL(X_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitX), Y_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitY), sqrt(m_iMouseDeltaX * m_iMouseDeltaX + m_iMouseDeltaY * m_iMouseDeltaY) / SCALE);
+    drawEBL(X_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitX), Y_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitY),
+            sqrt(m_iMouseDeltaX * m_iMouseDeltaX + m_iMouseDeltaY * m_iMouseDeltaY) / SCALE);
     // checkGL("after drawEBL");
 
     m_program->release();
@@ -698,7 +848,7 @@ void TSDWindow::render()
 
     // Begin a single batched 2D text pass: the underlying QOpenGLPaintDevice/
     // QPainter is created once and shared by every HUD/label draw below
-    //beginTextFrame();
+    // beginTextFrame();
     m_inTextFrame = true;
 
     renderShape(QRect(0, 0, 300 * retinaScale, 80 * retinaScale));
@@ -714,13 +864,14 @@ void TSDWindow::render()
 
     if (SCALE > 0.1)
     {
-
         for (int i = 0; i < sizeof(mrt) / sizeof(GLfloat) / 2; ++i)
         {
             int x = X_WGS84_COORD_TO_SCREEN_COORD(mrt[i * 2]) * retinaScale;
             int y = Y_WGS84_COORD_TO_SCREEN_COORD(mrt[i * 2 + 1]) * retinaScale;
             if (x > 0 && x < width() * retinaScale && y > 0 && y < height() * retinaScale)
+            {
                 renderText(x + 7, y + 5, QString(mrt_name[i]), QString("Tahoma"));
+            }
         }
         // printMrtStringToScreen<sizeof(mrt)/sizeof(GLfloat)/2-1>();
     }
@@ -745,14 +896,12 @@ void TSDWindow::render()
         drawText(m_sgManMade);
     }
 
-    // Live airflight trails + position vectors, plane silhouettes and callsign
-    // labels near Changi (always drawn, independent of zoom, since the
-    // aircraft are live and sparse).
-    drawFlightTrails();
-    drawFlightMarkers();
-    drawFlightLabels();
+    // Live airflight callsign labels (callsign + altitude on two lines, to
+    // the right of each marker). The trails and markers are drawn in the
+    // polygon/line passes above.
+    drawFlightText(m_sgFlightMarkers);
 
-    //endTextFrame();
+    // endTextFrame();
     m_inTextFrame = false;
 
     ++m_fpsCounter;
@@ -797,7 +946,7 @@ void TSDWindow::drawEBL(float x, float y, float r)
         // glBindBuffer(GL_ARRAY_BUFFER, m_eblVBO);
         glBindBuffer(GL_ARRAY_BUFFER, m_eblVBO);
         glBufferData(GL_ARRAY_BUFFER, l_vertexBuffer.size() * sizeof(GLfloat), l_vertexBuffer.data(), GL_DYNAMIC_DRAW);
-        glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+        glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
         glEnableVertexAttribArray(m_posAttr);
         glDrawArrays(GL_TRIANGLE_FAN, 0, granularity);
         m_program->setUniformValue(m_colorId, 3);
@@ -806,17 +955,27 @@ void TSDWindow::drawEBL(float x, float y, float r)
 
         float angle = 0;
         if (m_iMousePosX != m_iMouseInitX)
-            angle = (m_iMousePosX - m_iMouseInitX) >= 0 ? atan((float)(m_iMousePosY - m_iMouseInitY) / (float)(m_iMousePosX - m_iMouseInitX)) / 3.1416 * 180 + 90 : atan((float)(m_iMousePosY - m_iMouseInitY) / (float)(m_iMousePosX - m_iMouseInitX)) / 3.1416 * 180 + 270;
+        {
+            angle =
+                (m_iMousePosX - m_iMouseInitX) >= 0
+                    ? atan((float)(m_iMousePosY - m_iMouseInitY) / (float)(m_iMousePosX - m_iMouseInitX)) / 3.1416 * 180
+                          + 90
+                    : atan((float)(m_iMousePosY - m_iMouseInitY) / (float)(m_iMousePosX - m_iMouseInitX)) / 3.1416 * 180
+                          + 270;
+        }
         if (m_bMouseIsPressing)
         {
             glBufferData(GL_ARRAY_BUFFER, sizeof(l_vertexBuffer2), l_vertexBuffer2, GL_DYNAMIC_DRAW);
             m_program->setUniformValue(m_colorId, 3);
-            glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+            glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
             glEnableVertexAttribArray(m_posAttr);
             glDrawArrays(GL_LINES, 0, 2);
             glDisableVertexAttribArray(m_posAttr);
 
-            renderText(m_iMousePosX * devicePixelRatio() + 15, m_iMousePosY * devicePixelRatio() + 20, QString(tr("Angle: %1, Dist: %2")).arg(angle, 5, 'f', 1, QChar('0')).arg(r, 6, 'f', 1, QChar('0')), QString("Courier"));
+            renderText(
+                m_iMousePosX * devicePixelRatio() + 15, m_iMousePosY * devicePixelRatio() + 20,
+                QString(tr("Angle: %1, Dist: %2")).arg(angle, 5, 'f', 1, QChar('0')).arg(r, 6, 'f', 1, QChar('0')),
+                QString("Courier"));
         }
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -829,50 +988,50 @@ void TSDWindow::drawMRTStation()
     glPointSize(12);
     glBindBuffer(GL_ARRAY_BUFFER, m_mrtVBO);
 
-    m_program->setUniformValue(m_colorId, 5); // EW
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+    m_program->setUniformValue(m_colorId, 5);  // EW
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 29);
     glDisableVertexAttribArray(m_posAttr);
 
-    m_program->setUniformValue(m_colorId, 3); // NS
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(29 * 2 * sizeof(GLfloat)));
+    m_program->setUniformValue(m_colorId, 3);  // NS
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(29 * 2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 25);
     glDisableVertexAttribArray(m_posAttr);
 
-    m_program->setUniformValue(m_colorId, 5); // expo, changi
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(54 * 2 * sizeof(GLfloat)));
+    m_program->setUniformValue(m_colorId, 5);  // expo, changi
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(54 * 2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 3);
     glDisableVertexAttribArray(m_posAttr);
 
-    m_program->setUniformValue(m_colorId, 9); // NE
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(57 * 2 * sizeof(GLfloat)));
+    m_program->setUniformValue(m_colorId, 9);  // NE
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(57 * 2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 16);
     glDisableVertexAttribArray(m_posAttr);
 
-    m_program->setUniformValue(m_colorId, 7); // circle
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(73 * 2 * sizeof(GLfloat)));
+    m_program->setUniformValue(m_colorId, 7);  // circle
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(73 * 2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 31);
     glDisableVertexAttribArray(m_posAttr);
 
-    m_program->setUniformValue(m_colorId, 7); // marina bay
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(104 * 2 * sizeof(GLfloat)));
+    m_program->setUniformValue(m_colorId, 7);  // marina bay
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(104 * 2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 3);
     glDisableVertexAttribArray(m_posAttr);
 
-    m_program->setUniformValue(m_colorId, 19); // downtown
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(107 * 2 * sizeof(GLfloat)));
+    m_program->setUniformValue(m_colorId, 19);  // downtown
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(107 * 2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 35);
     glDisableVertexAttribArray(m_posAttr);
 
-    m_program->setUniformValue(m_colorId, 21); // thomason east coast
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void *)(142 * 2 * sizeof(GLfloat)));
+    m_program->setUniformValue(m_colorId, 21);  // thomason east coast
+    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(142 * 2 * sizeof(GLfloat)));
     glEnableVertexAttribArray(m_posAttr);
     glDrawArrays(GL_POINTS, 0, 31);
     glDisableVertexAttribArray(m_posAttr);
@@ -882,207 +1041,76 @@ void TSDWindow::drawMRTStation()
 
 // Receives the live airflight tracking table from the TrackerWorker (emitted
 // from the worker thread, queued to the GUI thread). We copy it into a
-// member so render() can read it without any cross-thread access.
+// member, feed it to the flight layer parsers, and mark the flight layers
+// dirty so render() rebuilds their geometry (where the GL context is current).
 void TSDWindow::onTrackingTableUpdated(const QHash<QString, TrackedAircraft>& table)
 {
     m_flightTable = table;
-}
-
-// Draw the live airflight trails (fading position history) + position vectors
-// near Changi. Called in the batched 2D text pass, before the plane markers,
-// so the trails sit behind the planes. The trail opacity degrades with age:
-// the newest segment (adjacent to the plane) is 50% opaque and older segments
-// fade toward fully transparent.
-void TSDWindow::drawFlightTrails()
-{
-    if (!(m_displayMask & FLIGHTS) || m_flightTable.isEmpty())
-        return;
-
-    const qreal retinaScale = devicePixelRatio();
-    bool shared = false;
-    QPainter* painter = activeTextPainter(shared);
-    if (!painter)
-        return;
-
-    painter->setRenderHint(QPainter::Antialiasing);
-
-    const int kMaxTrailSamples = 90; // bound the trail length
-    const int kBaseAlpha = 127;      // newest segment = 50% opaque
-
-    for (auto it = m_flightTable.constBegin(); it != m_flightTable.constEnd(); ++it)
+    if (m_sgFlightTrails.m_parser)
     {
-        const TrackedAircraft& t = it.value();
-        const QList<PositionSample>& hist = t.history;
-        const int n = hist.size();
-        if (n < 2)
-            continue;
-
-        const int start = qMax(0, n - kMaxTrailSamples);
-        const int count = n - start;
-
-        // Project the (bounded) history to screen space.
-        QVector<QPointF> pts(count);
-        for (int i = 0; i < count; ++i)
-        {
-            pts[i] = QPointF(
-                X_WGS84_COORD_TO_SCREEN_COORD(hist[start + i].lon) * retinaScale,
-                Y_WGS84_COORD_TO_SCREEN_COORD(hist[start + i].lat) * retinaScale);
-        }
-
-        // Trail: per-segment lines whose opacity degrades with age. The newest
-        // segment (adjacent to the plane) is 50% opaque; older segments fade
-        // toward fully transparent.
-        for (int i = 0; i < count - 1; ++i)
-        {
-            const qreal recency = qreal(i + 1) / qreal(count - 1);
-            const int alpha = int(kBaseAlpha * recency);
-            if (alpha <= 0)
-                continue;
-            QPen pen(QColor(255, 165, 0, alpha), 1.5 * retinaScale, Qt::SolidLine, Qt::RoundCap);
-            painter->setPen(pen);
-            painter->drawLine(pts[i], pts[i + 1]);
-        }
-
-        // Position (velocity) vector: a line from the current position in the
-        // direction of travel, length proportional to ground speed.
-        const Aircraft& ac = t.latest;
-        const QPointF& head = pts[count - 1];
-        const PositionSample& p0 = hist[n - 2];
-        const PositionSample& p1 = hist[n - 1];
-        const double dLat = p1.lat - p0.lat;
-        const double dLon = (p1.lon - p0.lon) * qCos(p0.lat * M_PI / 180.0);
-        const double len = qSqrt(dLat * dLat + dLon * dLon);
-        if (len > 1e-9)
-        {
-            const double ux = dLon / len;
-            const double uy = -dLat / len; // screen y is down
-            const qreal vlen = qBound(qreal(10), qreal(ac.groundSpeed) * 0.1, qreal(80)) * retinaScale;
-            const QPointF tip(head.x() + ux * vlen, head.y() + uy * vlen);
-            QPen pen(QColor(255, 165, 0, 200), 1.5 * retinaScale, Qt::SolidLine, Qt::RoundCap);
-            painter->setPen(pen);
-            painter->drawLine(head, tip);
-        }
+        static_cast<FlightLayerParser*>(m_sgFlightTrails.m_parser)->setTable(table);
     }
-
-    if (!shared)
-        painter->end();
+    if (m_sgFlightMarkers.m_parser)
+    {
+        static_cast<FlightLayerParser*>(m_sgFlightMarkers.m_parser)->setTable(table);
+    }
+    m_flightDirty = true;
 }
 
-// Draw the live airflight markers as plane silhouettes (screen space) near
-// Changi. Called in the batched 2D text pass so the planes keep a fixed size
-// regardless of zoom. Each plane is oriented by the aircraft's heading, which
-// is derived from the last two position samples in its history.
-void TSDWindow::drawFlightMarkers()
+// Rebuild the live flight layers (trails + markers) from the latest tracking
+// table and upload them to the GPU. Called from render() (where the GL context
+// is current) whenever the tracking table has changed. The base property is the
+// coastal layer's, so the flight geometry lands in the same map space as the
+// rest of the map.
+void TSDWindow::rebuildFlightLayers()
 {
-    if (!(m_displayMask & FLIGHTS) || m_flightTable.isEmpty())
-        return;
+    // Parse a flight layer's (already updated) parser and (re)upload its
+    // geometry to the GPU. The flight layers are small and change every poll,
+    // so GL_DYNAMIC_DRAW is appropriate.
+    auto rebuildOne = [this](MapLayer& a_layer) {
+        if (!a_layer.m_parser)
+        {
+            return;
+        }
 
-    const qreal retinaScale = devicePixelRatio();
-    bool shared = false;
-    QPainter* painter = activeTextPainter(shared);
-    if (!painter)
-        return;
+        LayerParser::Options options;
+        options.baseProperty = m_sgCoastal.m_property;
+        options.layerDepth = 0;
+        options.isBaseLayer = false;
+        options.useWgs84BuildTransform = true;  // flight input is WGS84
 
-    // A top-down airplane silhouette in local coordinates, nose pointing up
-    // (-Y). Symmetric about the fuselage (Y) axis.
-    static const QPointF kPlaneOutline[] = {
-        QPointF(0.00, -1.00),  // nose
-        QPointF(0.15, -0.60),
-        QPointF(0.15, -0.15),
-        QPointF(1.10,  0.20),  // right wing tip
-        QPointF(1.10,  0.35),
-        QPointF(0.15,  0.30),
-        QPointF(0.15,  0.75),
-        QPointF(0.55,  0.95),  // right tail tip
-        QPointF(0.55,  1.05),
-        QPointF(0.00,  1.00),  // stern
-        QPointF(-0.55, 1.05),
-        QPointF(-0.55, 0.95),
-        QPointF(-0.15, 0.75),
-        QPointF(-0.15, 0.30),
-        QPointF(-1.10, 0.35),  // left wing tip
-        QPointF(-1.10, 0.20),
-        QPointF(-0.15, -0.15),
-        QPointF(-0.15, -0.60),
+        a_layer.m_geometry = a_layer.m_parser->parse(options);
+        a_layer.m_property = a_layer.m_geometry.property;
+
+        if (!a_layer.m_geometry.vertices.empty())
+        {
+            if (!a_layer.m_VBO_ID[0])
+            {
+                glGenBuffers(1, &a_layer.m_VBO_ID[0]);
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
+            glBufferData(GL_ARRAY_BUFFER, a_layer.m_geometry.vertices.size() * 3 * sizeof(float),
+                         a_layer.m_geometry.vertices.data(), GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+            // Trails (SHPT_ARC) need the element array buffer for the line pass.
+            if (a_layer.m_geometry.renderType[0] == SHPT_ARC)
+            {
+                if (!a_layer.m_VBO_ID[1])
+                {
+                    glGenBuffers(1, &a_layer.m_VBO_ID[1]);
+                }
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_VBO_ID[1]);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_geometry.lineIndices.size() * sizeof(GLuint),
+                             a_layer.m_geometry.lineIndices.data(), GL_DYNAMIC_DRAW);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            }
+        }
     };
-    const int kPlaneVerts = int(sizeof(kPlaneOutline) / sizeof(kPlaneOutline[0]));
-    const qreal kPlaneSize = 8.0 * retinaScale; // half-extent in device pixels
 
-    QPolygonF basePlane;
-    basePlane.reserve(kPlaneVerts);
-    for (int i = 0; i < kPlaneVerts; ++i)
-        basePlane << kPlaneOutline[i] * kPlaneSize;
-
-    painter->setRenderHint(QPainter::Antialiasing);
-    painter->setBrush(QColor(255, 165, 0, 235));
-    painter->setPen(QPen(QColor(180, 90, 0, 255), 1.0 * retinaScale));
-
-    for (auto it = m_flightTable.constBegin(); it != m_flightTable.constEnd(); ++it)
-    {
-        const TrackedAircraft& t = it.value();
-        const Aircraft& ac = t.latest;
-        int x = X_WGS84_COORD_TO_SCREEN_COORD(ac.lon) * retinaScale;
-        int y = Y_WGS84_COORD_TO_SCREEN_COORD(ac.lat) * retinaScale;
-        if (x < -50 || x > width() * retinaScale + 50 || y < -50 || y > height() * retinaScale + 50)
-            continue;
-
-        // Heading (degrees, clockwise from north) from the last two samples.
-        qreal heading = 0.0;
-        if (t.history.size() >= 2)
-        {
-            const PositionSample& p0 = t.history[t.history.size() - 2];
-            const PositionSample& p1 = t.history[t.history.size() - 1];
-            const double dLat = p1.lat - p0.lat;
-            const double dLon = (p1.lon - p0.lon) * qCos(p0.lat * M_PI / 180.0);
-            if (qAbs(dLat) > 1e-9 || qAbs(dLon) > 1e-9)
-                heading = qRadiansToDegrees(atan2(dLon, dLat));
-        }
-
-        painter->save();
-        painter->translate(x, y);
-        painter->rotate(heading);
-        painter->drawPolygon(basePlane);
-        painter->restore();
-    }
-
-    if (!shared)
-        painter->end();
-}
-
-// Draw the live airflight callsign labels (2D text pass) near Changi. Called
-// in the batched 2D text pass so the labels are drawn on top of the map.
-void TSDWindow::drawFlightLabels()
-{
-    if (!(m_displayMask & FLIGHTS_TEXT) || m_flightTable.isEmpty())
-        return;
-
-    const qreal retinaScale = devicePixelRatio();
-    bool shared = false;
-    QPainter* painter = activeTextPainter(shared);
-    if (!painter)
-        return;
-
-    painter->setPen(QColor(120, 255, 120, 220));
-    const int px = 13 * devicePixelRatio();
-    FontEntry* fe = getCachedFont(QStringLiteral("Tahoma"), px, true);
-    painter->setFont(fe->font);
-
-    for (auto it = m_flightTable.constBegin(); it != m_flightTable.constEnd(); ++it)
-    {
-        const Aircraft& ac = it.value().latest;
-        int x = X_WGS84_COORD_TO_SCREEN_COORD(ac.lon) * retinaScale;
-        int y = Y_WGS84_COORD_TO_SCREEN_COORD(ac.lat) * retinaScale;
-        if (x > 0 && x < width() * retinaScale && y > 0 && y < height() * retinaScale)
-        {
-            // Offset to the right of the plane silhouette so the text is clear.
-            painter->drawText(x + 20, y - 10, ac.callsign);
-            // altitude (ft) as a secondary line
-            if (ac.altBaro > 0)
-                painter->drawText(x + 20, y + 12, QString::number(ac.altBaro));
-        }
-    }
-    if (!shared)
-        painter->end();
+    rebuildOne(m_sgFlightTrails);
+    rebuildOne(m_sgFlightMarkers);
+    m_flightDirty = false;
 }
 
 void TSDWindow::centerMap()
@@ -1097,9 +1125,13 @@ void TSDWindow::centerMap()
 void TSDWindow::setDisplayMask(DisplayMaskBits layer, bool b)
 {
     if (b)
+    {
         m_displayMask |= layer;
+    }
     else
+    {
         m_displayMask &= ~layer;
+    }
 }
 
 void TSDWindow::selectShader(uint shaderId)
@@ -1149,16 +1181,26 @@ void TSDWindow::resetGpuResources()
 
     // Per-layer CPU data + VBOs, so initialize() can rebuild everything
     // cleanly (buildLayer() re-parses the input layer from disk).
-    for (int i = 0; i < m_listOfLayers.size(); ++i)
-    {
-        TSDWindow::MapLayer *l_layer = m_listOfLayers[i];
+    auto clearLayer = [this](TSDWindow::MapLayer* l_layer) {
         if (l_layer->m_VBO_ID[0] || l_layer->m_VBO_ID[1])
         {
             glDeleteBuffers(2, l_layer->m_VBO_ID);
             l_layer->m_VBO_ID[0] = l_layer->m_VBO_ID[1] = 0;
         }
         if (l_layer->m_parser)
+        {
             l_layer->m_parser->freeMemory();
+        }
         l_layer->m_geometry.clear();
+    };
+
+    for (int i = 0; i < m_listOfLayers.size(); ++i)
+    {
+        clearLayer(m_listOfLayers[i]);
     }
+
+    // The live flight layers are not in m_listOfLayers; clear them too so the
+    // next rebuild (rebuildFlightLayers) starts from a clean slate.
+    clearLayer(&m_sgFlightTrails);
+    clearLayer(&m_sgFlightMarkers);
 }

@@ -1,0 +1,82 @@
+# Clang-format configuration for q3dmmi / HMIIOS.
+#
+# Based on Google style, adjusted to match the existing codebase:
+#   - 4-space indentation (Google uses 2)
+#   - 120-column limit (the code has many long macro/transform lines)
+#   - Allow short functions/ifs on one line (e.g. "if (n < 2) continue;")
+#
+# Apply with:  clang-format -i hmiios2014/*.cpp hmiios2014/*.h
+# (or install the clang-format extension and use "Format Document").
+
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+
+# Keep short control statements on one line, as in the existing code:
+#   if (n < 2)
+#       continue;
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: true
+
+# Constructor initializer lists use leading commas (Google default).
+ConstructorInitializerIndentWidth: 4
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+
+# Pointers/references: left-aligned (e.g. "MapLayer &a_layer", "GLuint* p").
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# Braces: Allman (opening brace on its own line), matching the existing code.
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterNamespace: true
+  AfterControlStatement: true
+  AfterEnum: true
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+# Wrapping: break before binary operators and after commas in long lines.
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeTernaryOperators: true
+ContinuationIndentWidth: 4
+AlignAfterOpenBracket: Align
+
+# Includes: sort and group (standard, then project, then local).
+SortIncludes: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<Q[A-Z]'
+    Priority: 1
+  - Regex: '^<[a-z]'
+    Priority: 2
+  - Regex: '^<'
+    Priority: 3
+  - Regex: '^".*'
+    Priority: 4
+
+# Misc.
+AccessModifierOffset: -4
+NamespaceIndentation: None
+Standard: c++11
+FixNamespaceComments: true
+SpaceBeforeParens: ControlStatements
+AlignConsecutiveMacros: false
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+MaxEmptyLinesToKeep: 2

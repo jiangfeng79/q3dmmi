@@ -1,10 +1,11 @@
 #ifndef LAYERPARSER_H
 #define LAYERPARSER_H
 
+#include <QString>
+
+#include "dbfReader.h"
 #include "layerGeometry.h"
 #include "shpReader.h"
-#include "dbfReader.h"
-#include <QString>
 
 // ---------------------------------------------------------------------------
 // A layer parser is coupled to a single input layer and turns it into
@@ -21,10 +22,10 @@ public:
     // Options controlling how the source layer is transformed into map space.
     struct Options
     {
-        MapProperty baseProperty;   // base (coastal) layer property, used for coordinate transforms
-        int layerDepth = 0;         // z depth assigned to every vertex
-        bool isBaseLayer = false;   // if true, derive center/scale from the data itself
-        bool useWgs84BuildTransform = false; // MAN_MADE / MRT style transform
+        MapProperty baseProperty;             // base (coastal) layer property, used for coordinate transforms
+        int layerDepth = 0;                   // z depth assigned to every vertex
+        bool isBaseLayer = false;             // if true, derive center/scale from the data itself
+        bool useWgs84BuildTransform = false;  // MAN_MADE / MRT style transform
     };
 
     // Parse the source layer and return renderable geometry.
@@ -52,4 +53,4 @@ private:
     DBFReader m_dbfFileReader;
 };
 
-#endif // LAYERPARSER_H
+#endif  // LAYERPARSER_H

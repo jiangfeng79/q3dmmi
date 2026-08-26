@@ -1,16 +1,16 @@
 #include "layerParser.h"
-#include "geoTransform.h"
 
-#include <math.h>
 #include <cstdlib>
 #include <ctime>
+#include <math.h>
+
+#include "geoTransform.h"
 
 // ---------------------------------------------------------------------------
 // ShapefileLayerParser
 // ---------------------------------------------------------------------------
 ShapefileLayerParser::ShapefileLayerParser(const QString& a_fileName, const QString& a_layerName)
-    : m_fileName(a_fileName)
-    , m_layerName(a_layerName)
+    : m_fileName(a_fileName), m_layerName(a_layerName)
 {
 }
 
@@ -83,7 +83,8 @@ LayerGeometry ShapefileLayerParser::parse(const Options& a_options)
                 else
                 {
                     lon = ((l_shapeEntity[n].maxX + l_shapeEntity[n].minX) / 2) / geo.property.mapBuildScale;
-                    lat = WGS84WEBMERCATOR_TO_WGS84(((l_shapeEntity[n].maxY + l_shapeEntity[n].minY) / 2) / geo.property.mapBuildScale);
+                    lat = WGS84WEBMERCATOR_TO_WGS84(((l_shapeEntity[n].maxY + l_shapeEntity[n].minY) / 2)
+                                                    / geo.property.mapBuildScale);
                 }
                 if (l_shapeEntity[n].type == SHPT_ARC)
                 {
@@ -92,11 +93,17 @@ LayerGeometry ShapefileLayerParser::parse(const Options& a_options)
                     if (random_variable == (l_shapeEntity[n].totalVertex - 1))
                         random_variable--;
 
-                    lon = (l_shapeEntity[n].coordinate[random_variable][0] + l_shapeEntity[n].coordinate[random_variable + 1][0]) / 2 / geo.property.mapBuildScale;
-                    lat = WGS84WEBMERCATOR_TO_WGS84((l_shapeEntity[n].coordinate[random_variable][1] + l_shapeEntity[n].coordinate[random_variable + 1][1]) / 2 / geo.property.mapBuildScale);
-                    angle = (float)(atan2(-l_shapeEntity[n].coordinate[random_variable + 1][1] + l_shapeEntity[n].coordinate[random_variable][1],
-                                          l_shapeEntity[n].coordinate[random_variable + 1][0] - l_shapeEntity[n].coordinate[random_variable][0]) /
-                                    M_PI * 180.0);
+                    lon = (l_shapeEntity[n].coordinate[random_variable][0]
+                           + l_shapeEntity[n].coordinate[random_variable + 1][0])
+                          / 2 / geo.property.mapBuildScale;
+                    lat = WGS84WEBMERCATOR_TO_WGS84((l_shapeEntity[n].coordinate[random_variable][1]
+                                                     + l_shapeEntity[n].coordinate[random_variable + 1][1])
+                                                    / 2 / geo.property.mapBuildScale);
+                    angle = (float)(atan2(-l_shapeEntity[n].coordinate[random_variable + 1][1]
+                                              + l_shapeEntity[n].coordinate[random_variable][1],
+                                          l_shapeEntity[n].coordinate[random_variable + 1][0]
+                                              - l_shapeEntity[n].coordinate[random_variable][0])
+                                    / M_PI * 180.0);
                 }
 
                 Label label;
@@ -135,7 +142,7 @@ LayerGeometry ShapefileLayerParser::parse(const Options& a_options)
             }
             geo.rings.push_back(l_iTotalVertex);
             geo.renderType.push_back(l_shapeEntity[n].type);
-            geo.lineIndices.push_back(0xFFFFFFFF); // Primitive Restart Index
+            geo.lineIndices.push_back(0xFFFFFFFF);  // Primitive Restart Index
         }
     }
 

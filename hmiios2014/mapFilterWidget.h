@@ -1,10 +1,11 @@
 #ifndef MAPFILTERWIDGET_H
 #define MAPFILTERWIDGET_H
 
-#include <QWidget>
 #include <QToolBar>
-#include "ui_mapFilter.h"
+#include <QWidget>
+
 #include "TSDWindow.h"
+#include "ui_mapFilter.h"
 
 class MapFilterWidget : public QWidget, Ui::MapFilterWidget
 {
@@ -16,7 +17,6 @@ public:
     void retranslate();
 
 private:
-
 signals:
     void signal_checkBox_state(TSDWindow::DisplayMaskBits layer, int state);
 
@@ -36,4 +36,4 @@ private slots:
     void on_checkBoxFlights_stateChanged(int state);
 };
 
-#endif // MAPFILTERWIDGET_H
+#endif  // MAPFILTERWIDGET_H

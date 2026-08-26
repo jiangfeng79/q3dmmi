@@ -1,8 +1,8 @@
 #ifndef LAYERGEOMETRY_H
 #define LAYERGEOMETRY_H
 
-#include <vector>
 #include <string>
+#include <vector>
 
 // ---------------------------------------------------------------------------
 // Renderable geometry produced by a layer parser.
@@ -27,7 +27,7 @@ struct Vertex
 struct GeometryRing
 {
     std::vector<Vertex> vertices;
-    int type; // source shape type (SHPT_*), used to pick the draw primitive
+    int type;  // source shape type (SHPT_*), used to pick the draw primitive
 };
 
 // A text label positioned in WGS84 (longitude, latitude) space.
@@ -35,7 +35,7 @@ struct Label
 {
     double longitude;
     double latitude;
-    float angle; // degrees; 0 = no rotation
+    float angle;  // degrees; 0 = no rotation
     std::string text;
 };
 
@@ -43,13 +43,13 @@ struct Label
 struct MapProperty
 {
     MapProperty()
-        : scale(0.0f)
-        , centerX(0.0f)
-        , centerY(0.0f)
-        , width(0.0f)
-        , height(0.0f)
-        , mapBuildScale(111319.4907777778f)
-        , totalNumberOfVertex(0)
+        : scale(0.0f),
+          centerX(0.0f),
+          centerY(0.0f),
+          width(0.0f),
+          height(0.0f),
+          mapBuildScale(111319.4907777778f),
+          totalNumberOfVertex(0)
     {
     }
 
@@ -70,7 +70,7 @@ struct LayerGeometry
 
     // Ring boundaries: ring i spans vertices [rings[i], rings[i + 1]).
     std::vector<int> rings;
-    std::vector<int> renderType; // SHPT_* type per ring
+    std::vector<int> renderType;  // SHPT_* type per ring
 
     std::vector<unsigned int> lineIndices;
 
@@ -87,4 +87,4 @@ struct LayerGeometry
     }
 };
 
-#endif // LAYERGEOMETRY_H
+#endif  // LAYERGEOMETRY_H

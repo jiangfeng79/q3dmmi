@@ -1,15 +1,15 @@
 #ifndef OPENGLWINDOW_H
 #define OPENGLWINDOW_H
 
-#include <QWindow>
-#include <QOpenGLFunctions_3_3_Core>
 #include <QElapsedTimer>
-#include <QTimer>
-#include <QMouseEvent>
-#include <QWheelEvent>
 #include <QFont>
 #include <QFontMetricsF>
 #include <QHash>
+#include <QMouseEvent>
+#include <QOpenGLFunctions_3_3_Core>
+#include <QTimer>
+#include <QWheelEvent>
+#include <QWindow>
 
 QT_BEGIN_NAMESPACE
 class QPainter;
@@ -71,8 +71,8 @@ protected:
     int m_iMouseInitX, m_iMouseInitY;
     int m_iMouseDeltaX, m_iMouseDeltaY;
 
-    float m_fMapCenterDeltaX, m_fMapCenterDeltaY; // in meter
-    float m_fMapPrevCenterDeltaX, m_fMapPrevCenterDeltaY; // in meter
+    float m_fMapCenterDeltaX, m_fMapCenterDeltaY;          // in meter
+    float m_fMapPrevCenterDeltaX, m_fMapPrevCenterDeltaY;  // in meter
     float m_fMotionSpeed, m_fMotionDir;
     QElapsedTimer m_mousePressTimer;
 
@@ -85,7 +85,7 @@ protected:
     // false = swap interval 0 (benchmark mode, unlimited FPS).
     bool m_bVsyncEnabled;
     QOpenGLPaintDevice* m_device;
-    unsigned int  m_uiMapOpMask;
+    unsigned int m_uiMapOpMask;
 
     QFont m_font;
     bool m_inTextFrame;
@@ -122,8 +122,7 @@ private:
 
 signals:
     void signal_setFps(int a_iFps);
-
 };
 //! [1]
 
-#endif // OPENGLWINDOW_H
+#endif  // OPENGLWINDOW_H

@@ -1,13 +1,14 @@
 #ifndef HMIIOS2014_H
 #define HMIIOS2014_H
 
-#include <QMainWindow>
-#include <QKeyEvent>
-#include "ui_hmiios2014.h"
 #include <QDebug>
+#include <QKeyEvent>
+#include <QMainWindow>
 #include <QTranslator>
+
 #include "TSDWindow.h"
 #include "mapFilterWidget.h"
+#include "ui_hmiios2014.h"
 
 class hmiios2014 : public QMainWindow
 {
@@ -17,24 +18,25 @@ public:
     hmiios2014(QWidget* parent = 0);
     ~hmiios2014();
     void setStatusBarText(QString text);
-    void setTsdWindow(TSDWindow* a_tsd);// {m_tsd = a_tsd;}
-    //the comms object
-    //HmiiosComms UIQueue; //("168.99.88.80");
+    void setTsdWindow(TSDWindow* a_tsd);  // {m_tsd = a_tsd;}
+    // the comms object
+    // HmiiosComms UIQueue; //("168.99.88.80");
 
 private:
     Ui::hmiios2014Class ui;
     QActionGroup* m_mapOpActionGroup;
     TSDWindow* m_tsd;
     QWidget* m_tsdContainer;
-    //MapFilterWidget * m_mapFilterWidget;
+    // MapFilterWidget * m_mapFilterWidget;
 
-    QTranslator m_translatorChinese; // contains the translations for this application
-    QTranslator m_translatorDefault; // contains the translations for qt
+    QTranslator m_translatorChinese;  // contains the translations for this application
+    QTranslator m_translatorDefault;  // contains the translations for qt
 
 signals:
     void signal_widget_resize(QRect rect);
+
 protected:
-    bool eventFilter(QObject *obj, QEvent *ev) override;
+    bool eventFilter(QObject* obj, QEvent* ev) override;
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
     bool forwardTsdKeyEvent(QEvent* event) const;
@@ -56,4 +58,4 @@ private slots:
     void slot_setMapFilter(TSDWindow::DisplayMaskBits layer_id, int state);
 };
 
-#endif // HMIIOS2014_H
+#endif  // HMIIOS2014_H

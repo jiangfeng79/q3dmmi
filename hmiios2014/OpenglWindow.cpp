@@ -1,50 +1,52 @@
 ﻿#include "OpenglWindow.h"
-#include <QCoreApplication>
 
+#include <QCoreApplication>
+#include <QDebug>
+#include <QFontMetricsF>
 #include <QOpenGLContext>
 #include <QOpenGLPaintDevice>
 #include <QPainter>
-#include <QFontMetricsF>
 
-#include <time.h>
 #include <math.h>
-#include <QDebug>
+#include <time.h>
 
 #define MOTION_TIMEOUT 20
 //! [1]
 OpenglWindow::OpenglWindow(QWindow* parent)
-    : QWindow(parent)
-    , m_update_pending(false)
-    , m_animating(false)
-    , m_context(0)
-    , m_device(0)
-    , m_batchDevice(nullptr)
-    , m_batchPainter(nullptr)
-    , m_inTextFrame(false)
-    , m_fps(0)
-    , m_fpsCounter(0)
-    , m_iMousePosX(0)
-    , m_iMousePosY(0)
-    , m_iMouseInitX(0)
-    , m_iMouseInitY(0)
-    , m_iMouseDeltaX(0)
-    , m_iMouseDeltaY(0)
-    //	, m_iCenterDeltaX(0)
-    //	, m_iCenterDeltaY(0)
-    , m_fMapCenterDeltaX(0)
-    , m_fMapCenterDeltaY(0)
-    , m_fMapPrevCenterDeltaX(0)
-    , m_fMapPrevCenterDeltaY(0)
-    , m_dPrevRotationAngle(0)
-    , m_fMotionSpeed(0)
-    , m_fMotionDir(0)
-    , m_uiMapOpMask(PAN)
-    , m_fScaleFactor(1)
-    , m_bMouseIsPressing(false)
-    , m_windowMaximized(false)
-    // Start with vsync ON (~60 Hz cap). The user can flip this at runtime via
-    // the Debug > Vsync toggle menu item to enter benchmark mode (unlimited FPS).
-    , m_bVsyncEnabled(true)
+    : QWindow(parent),
+      m_update_pending(false),
+      m_animating(false),
+      m_context(0),
+      m_device(0),
+      m_batchDevice(nullptr),
+      m_batchPainter(nullptr),
+      m_inTextFrame(false),
+      m_fps(0),
+      m_fpsCounter(0),
+      m_iMousePosX(0),
+      m_iMousePosY(0),
+      m_iMouseInitX(0),
+      m_iMouseInitY(0),
+      m_iMouseDeltaX(0),
+      m_iMouseDeltaY(0)
+      //	, m_iCenterDeltaX(0)
+      //	, m_iCenterDeltaY(0)
+      ,
+      m_fMapCenterDeltaX(0),
+      m_fMapCenterDeltaY(0),
+      m_fMapPrevCenterDeltaX(0),
+      m_fMapPrevCenterDeltaY(0),
+      m_dPrevRotationAngle(0),
+      m_fMotionSpeed(0),
+      m_fMotionDir(0),
+      m_uiMapOpMask(PAN),
+      m_fScaleFactor(1),
+      m_bMouseIsPressing(false),
+      m_windowMaximized(false)
+      // Start with vsync ON (~60 Hz cap). The user can flip this at runtime via
+      // the Debug > Vsync toggle menu item to enter benchmark mode (unlimited FPS).
+      ,
+      m_bVsyncEnabled(true)
 
 {
     setSurfaceType(QWindow::OpenGLSurface);
@@ -60,7 +62,9 @@ OpenglWindow::~OpenglWindow()
     delete m_context;
     delete m_device;
     if (m_batchPainter)
+    {
         m_batchPainter->end();
+    }
     delete m_batchPainter;
     delete m_batchDevice;
 }
@@ -70,9 +74,7 @@ void OpenglWindow::render(QPainter* painter)
     Q_UNUSED(painter);
 }
 
-void OpenglWindow::initialize()
-{
-}
+void OpenglWindow::initialize() {}
 
 void OpenglWindow::render()
 {
@@ -90,7 +92,8 @@ void OpenglWindow::render()
 //! [3]
 void OpenglWindow::renderLater()
 {
-    if (!m_update_pending) {
+    if (!m_update_pending)
+    {
         m_update_pending = true;
         QCoreApplication::postEvent(this, new QEvent(QEvent::UpdateRequest));
     }
@@ -98,165 +101,159 @@ void OpenglWindow::renderLater()
 
 bool OpenglWindow::event(QEvent* event)
 {
-    switch (event->type()) {
-    case QEvent::UpdateRequest:
+    switch (event->type())
     {
-        m_update_pending = false;
-        renderNow();
-        return true;
-    }
-    case QEvent::MouseMove:
-    {
-        QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
-        m_iMousePosX = qRound(l_mouseEvent->position().x());
-        m_iMousePosY = qRound(l_mouseEvent->position().y());
-        if (m_bMouseIsPressing)
-        {
-            m_iMouseDeltaX = m_iMousePosX - m_iMouseInitX;
-            m_iMouseDeltaY = m_iMousePosY - m_iMouseInitY;
-            if (l_mouseEvent->buttons() == Qt::RightButton)
+        case QEvent::UpdateRequest: {
+            m_update_pending = false;
+            renderNow();
+            return true;
+        }
+        case QEvent::MouseMove: {
+            QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
+            m_iMousePosX = qRound(l_mouseEvent->position().x());
+            m_iMousePosY = qRound(l_mouseEvent->position().y());
+            if (m_bMouseIsPressing)
             {
-                /*
-                //calculate angle
-                //qDebug() << "prev angle: " << m_dPrevRotationAngle << "angle:" <<m_dRotationAngle;
-                double a = sqrt(m_iMouseDeltaY*m_iMouseDeltaY+m_iMouseDeltaX*m_iMouseDeltaX);
-                double b = sqrt((m_iMousePosY-m_fMapCenterDeltaY)*(m_iMousePosY-m_fMapCenterDeltaY) + (m_iMousePosX-m_fMapCenterDeltaX)*(m_iMousePosX-m_fMapCenterDeltaX));
-                double c = sqrt((m_iMouseInitY-m_fMapCenterDeltaY)*(m_iMouseInitY-m_fMapCenterDeltaY) + (m_iMouseInitX-m_fMapCenterDeltaX)*(m_iMouseInitX-m_fMapCenterDeltaX));
-                //b^2+c^2-a^2)/2bc
-                //m_dRotationAngle = m_dPrevRotationAngle+atan2(m_iMouseDeltaY,(m_iMouseInitX-m_fMapCenterDeltaX));
-                float y = (float)m_iMouseInitY*((float)m_iMousePosX - m_fMapCenterDeltaX)-m_fMapCenterDeltaY*(float)m_iMouseDeltaX;
-                float x = (float)m_iMouseInitX-m_fMapCenterDeltaX;
-                qDebug() << "y:" <<y << "x:" << x;
-                if(y*x >0)
+                m_iMouseDeltaX = m_iMousePosX - m_iMouseInitX;
+                m_iMouseDeltaY = m_iMousePosY - m_iMouseInitY;
+                if (l_mouseEvent->buttons() == Qt::RightButton)
                 {
+                    /*
+                    //calculate angle
+                    //qDebug() << "prev angle: " << m_dPrevRotationAngle << "angle:" <<m_dRotationAngle;
+                    double a = sqrt(m_iMouseDeltaY*m_iMouseDeltaY+m_iMouseDeltaX*m_iMouseDeltaX);
+                    double b = sqrt((m_iMousePosY-m_fMapCenterDeltaY)*(m_iMousePosY-m_fMapCenterDeltaY) +
+                    (m_iMousePosX-m_fMapCenterDeltaX)*(m_iMousePosX-m_fMapCenterDeltaX)); double c =
+                    sqrt((m_iMouseInitY-m_fMapCenterDeltaY)*(m_iMouseInitY-m_fMapCenterDeltaY) +
+                    (m_iMouseInitX-m_fMapCenterDeltaX)*(m_iMouseInitX-m_fMapCenterDeltaX));
+                    //b^2+c^2-a^2)/2bc
+                    //m_dRotationAngle = m_dPrevRotationAngle+atan2(m_iMouseDeltaY,(m_iMouseInitX-m_fMapCenterDeltaX));
+                    float y = (float)m_iMouseInitY*((float)m_iMousePosX -
+                    m_fMapCenterDeltaX)-m_fMapCenterDeltaY*(float)m_iMouseDeltaX; float x =
+                    (float)m_iMouseInitX-m_fMapCenterDeltaX; qDebug() << "y:" <<y << "x:" << x; if(y*x >0)
+                    {
 
-                    m_dRotationAngle = m_dPrevRotationAngle-acos((b*b+c*c-a*a)/(2*b*c));
+                        m_dRotationAngle = m_dPrevRotationAngle-acos((b*b+c*c-a*a)/(2*b*c));
+                    }
+                    else
+                        m_dRotationAngle = m_dPrevRotationAngle+acos((b*b+c*c-a*a)/(2*b*c));
+                    qDebug() << "prev angle: " << m_dPrevRotationAngle << "angle:" <<m_dRotationAngle;
+                    //m_dPrevRotationAngle += m_dRotationAngle;
+                    */
+                }
+            }
+            if (m_uiMapOpMask == PAN && l_mouseEvent->buttons() & Qt::LeftButton)
+            {
+                m_fMapCenterDeltaX = m_fMapPrevCenterDeltaX + m_iMouseDeltaX / m_fScaleFactor;
+                m_fMapCenterDeltaY = m_fMapPrevCenterDeltaY + m_iMouseDeltaY / m_fScaleFactor;
+            }
+
+            return true;
+            // return QWindow::event(event);
+        }
+        case QEvent::MouseButtonPress: {
+            QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
+            if (l_mouseEvent->buttons() & Qt::LeftButton /*|| l_mouseEvent->buttons() == Qt::RightButton*/)
+            {
+                // qDebug() << "left click";
+                m_iMouseInitX = qRound(l_mouseEvent->position().x());
+                m_iMouseInitY = qRound(l_mouseEvent->position().y());
+                m_iMouseDeltaX = 0;
+                m_iMouseDeltaY = 0;
+                m_bMouseIsPressing = true;
+
+                m_fMotionSpeed = 0.0f;
+                m_mousePressTimer.restart();
+            }
+            else if (l_mouseEvent->buttons() & Qt::RightButton)
+            {
+                // qDebug() << "right click";
+                m_iMouseInitX = qRound(l_mouseEvent->position().x());
+                m_iMouseInitY = qRound(l_mouseEvent->position().y());
+                m_iMouseDeltaX = 0;
+                m_iMouseDeltaY = 0;
+                m_bMouseIsPressing = true;
+                // m_dRotationAngle = 0;
+            }
+            return true;
+        }
+        case QEvent::MouseButtonRelease: {
+            QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
+            m_bMouseIsPressing = false;
+            // m_iCenterDeltaX += m_iMouseDeltaX;
+            // m_iCenterDeltaY += m_iMouseDeltaY;
+            if (m_uiMapOpMask == PAN)
+            {
+                m_fMapPrevCenterDeltaX = m_fMapCenterDeltaX;
+                m_fMapPrevCenterDeltaY = m_fMapCenterDeltaY;
+
+                const qreal dx = qreal(m_iMouseDeltaX);
+                const qreal dy = qreal(m_iMouseDeltaY);
+                const qreal dt = m_mousePressTimer.isValid() ? m_mousePressTimer.elapsed() / 1000.0 : qreal(0.0);
+                const qreal scaleFactor = qMax(qreal(m_fScaleFactor), qreal(1e-4));
+
+                if (dt > 0.0 && dt < 0.2 && (dx != 0.0 || dy != 0.0))
+                {
+                    m_fMotionSpeed = float(std::hypot(dx, dy) / dt / scaleFactor);
+                    m_fMotionDir = float(std::atan2(dy, dx));
+                }
+            }
+            m_iMouseDeltaX = 0;
+            m_iMouseDeltaY = 0;
+            if (l_mouseEvent->button() == Qt::RightButton)
+            {
+                m_dPrevRotationAngle = m_dRotationAngle;
+                // m_dRotationAngle = 0;
+                qDebug() << "accumulate prev angle: " << m_dPrevRotationAngle;
+            }
+            return true;
+        }
+        case QEvent::Wheel: {
+            QWheelEvent* l_wheelEvent = static_cast<QWheelEvent*>(event);
+            int numDegrees = l_wheelEvent->angleDelta().y() / 8;
+            int numSteps = numDegrees / 15;
+            m_fScaleFactor *= pow(1.2, numSteps);
+            if (m_fScaleFactor > 1600.0)
+            {
+                m_fScaleFactor = 1600.0;
+            }
+            if (m_fScaleFactor < .0001)
+            {
+                m_fScaleFactor = .0001;
+            }
+
+            return true;
+        }
+        case QEvent::KeyPress: {
+            QKeyEvent* l_keyevent = static_cast<QKeyEvent*>(event);
+            if (l_keyevent->key() == Qt::Key_F)
+            {
+                if (m_windowMaximized)
+                {
+                    showNormal();
+                    m_windowMaximized = false;
                 }
                 else
-                    m_dRotationAngle = m_dPrevRotationAngle+acos((b*b+c*c-a*a)/(2*b*c));
-                qDebug() << "prev angle: " << m_dPrevRotationAngle << "angle:" <<m_dRotationAngle;
-                //m_dPrevRotationAngle += m_dRotationAngle;
-                */
+                {
+                    showFullScreen();
+                    m_windowMaximized = true;
+                }
             }
-        }
-        if (m_uiMapOpMask == PAN && l_mouseEvent->buttons() & Qt::LeftButton)
-        {
-            m_fMapCenterDeltaX = m_fMapPrevCenterDeltaX + m_iMouseDeltaX / m_fScaleFactor;
-            m_fMapCenterDeltaY = m_fMapPrevCenterDeltaY + m_iMouseDeltaY / m_fScaleFactor;
-        }
-
-        return true;
-        //return QWindow::event(event);
-    }
-    case QEvent::MouseButtonPress:
-    {
-        QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
-        if (l_mouseEvent->buttons() & Qt::LeftButton /*|| l_mouseEvent->buttons() == Qt::RightButton*/)
-        {
-            //qDebug() << "left click";
-            m_iMouseInitX = qRound(l_mouseEvent->position().x());
-            m_iMouseInitY = qRound(l_mouseEvent->position().y());
-            m_iMouseDeltaX = 0;
-            m_iMouseDeltaY = 0;
-            m_bMouseIsPressing = true;
-
-            m_fMotionSpeed = 0.0f;
-            m_mousePressTimer.restart();
-        }
-        else if (l_mouseEvent->buttons() & Qt::RightButton)
-        {
-            //qDebug() << "right click";
-            m_iMouseInitX = qRound(l_mouseEvent->position().x());
-            m_iMouseInitY = qRound(l_mouseEvent->position().y());
-            m_iMouseDeltaX = 0;
-            m_iMouseDeltaY = 0;
-            m_bMouseIsPressing = true;
-            //m_dRotationAngle = 0;
-        }
-        return true;
-    }
-    case QEvent::MouseButtonRelease:
-    {
-        QMouseEvent* l_mouseEvent = static_cast<QMouseEvent*>(event);
-        m_bMouseIsPressing = false;
-        //m_iCenterDeltaX += m_iMouseDeltaX;
-        //m_iCenterDeltaY += m_iMouseDeltaY;
-        if (m_uiMapOpMask == PAN)
-        {
-            m_fMapPrevCenterDeltaX = m_fMapCenterDeltaX;
-            m_fMapPrevCenterDeltaY = m_fMapCenterDeltaY;
-
-            const qreal dx = qreal(m_iMouseDeltaX);
-            const qreal dy = qreal(m_iMouseDeltaY);
-            const qreal dt = m_mousePressTimer.isValid() ? m_mousePressTimer.elapsed() / 1000.0 : qreal(0.0);
-            const qreal scaleFactor = qMax(qreal(m_fScaleFactor), qreal(1e-4));
-
-            if (dt > 0.0 && dt < 0.2 && (dx != 0.0 || dy != 0.0))
+            else if (l_keyevent->key() == Qt::Key_Escape)
             {
-                m_fMotionSpeed = float(std::hypot(dx, dy) / dt / scaleFactor);
-                m_fMotionDir = float(std::atan2(dy, dx));
+                close();
             }
-        }
-        m_iMouseDeltaX = 0;
-        m_iMouseDeltaY = 0;
-        if (l_mouseEvent->button() == Qt::RightButton)
-        {
-            m_dPrevRotationAngle = m_dRotationAngle;
-            //m_dRotationAngle = 0;
-            qDebug() << "accumulate prev angle: " << m_dPrevRotationAngle;
-        }
-        return true;
-    }
-    case QEvent::Wheel:
-    {
-        QWheelEvent* l_wheelEvent = static_cast<QWheelEvent*>(event);
-        int numDegrees = l_wheelEvent->angleDelta().y() / 8;
-        int numSteps = numDegrees / 15;
-        m_fScaleFactor *= pow(1.2, numSteps);
-        if (m_fScaleFactor > 1600.0)
-            m_fScaleFactor = 1600.0;
-        if (m_fScaleFactor < .0001)
-            m_fScaleFactor = .0001;
-
-        return true;
-    }
-    case QEvent::KeyPress:
-    {
-        QKeyEvent* l_keyevent = static_cast<QKeyEvent*>(event);
-        if (l_keyevent->key() == Qt::Key_F)
-        {
-            if (m_windowMaximized)
+            else if (l_keyevent->key() == Qt::Key_1 || l_keyevent->key() == Qt::Key_2 || l_keyevent->key() == Qt::Key_3
+                     || l_keyevent->key() == Qt::Key_4 || l_keyevent->key() == Qt::Key_5
+                     || l_keyevent->key() == Qt::Key_6 || l_keyevent->key() == Qt::Key_7
+                     || l_keyevent->key() == Qt::Key_8 || l_keyevent->key() == Qt::Key_9
+                     || l_keyevent->key() == Qt::Key_0)
             {
-                showNormal();
-                m_windowMaximized = false;
+                selectShader(l_keyevent->key() - Qt::Key_0);
             }
-            else
-            {
-                showFullScreen();
-                m_windowMaximized = true;
-            }
+            return true;
         }
-        else if (l_keyevent->key() == Qt::Key_Escape)
-        {
-            close();
-        }
-        else if (l_keyevent->key() == Qt::Key_1
-              || l_keyevent->key() == Qt::Key_2
-              || l_keyevent->key() == Qt::Key_3
-              || l_keyevent->key() == Qt::Key_4
-              || l_keyevent->key() == Qt::Key_5
-              || l_keyevent->key() == Qt::Key_6
-              || l_keyevent->key() == Qt::Key_7
-              || l_keyevent->key() == Qt::Key_8
-              || l_keyevent->key() == Qt::Key_9
-              || l_keyevent->key() == Qt::Key_0)
-        {
-            selectShader(l_keyevent->key() - Qt::Key_0);
-        }
-        return true;
-    }
-    default:
-        return QWindow::event(event);
+        default: return QWindow::event(event);
     }
 }
 
@@ -265,7 +262,9 @@ void OpenglWindow::exposeEvent(QExposeEvent* event)
     Q_UNUSED(event);
 
     if (isExposed())
+    {
         renderNow();
+    }
 }
 //! [3]
 
@@ -273,11 +272,14 @@ void OpenglWindow::exposeEvent(QExposeEvent* event)
 void OpenglWindow::renderNow()
 {
     if (!isExposed())
+    {
         return;
+    }
 
     bool needsInitialize = false;
 
-    if (!m_context) {
+    if (!m_context)
+    {
         m_context = new QOpenGLContext(this);
         QSurfaceFormat format = requestedFormat();
         // Use the window's requested format directly; it is already configured
@@ -293,8 +295,9 @@ void OpenglWindow::renderNow()
         format.setSwapInterval(m_bVsyncEnabled ? 1 : 0);
 
         m_context->setFormat(format);
-        //qDebug() << "Requested surface format:" << format;
-        if (!m_context->create()) {
+        // qDebug() << "Requested surface format:" << format;
+        if (!m_context->create())
+        {
             qWarning() << "QOpenGLContext::create() failed for window" << title();
             // m_context is a child of this QWindow, so it will be deleted with
             // the parent; only release the GLX resources here.
@@ -302,42 +305,45 @@ void OpenglWindow::renderNow()
             m_context = nullptr;
             return;
         }
-        //qDebug() << "Created context format:" << m_context->format() << "window format:" << requestedFormat();
+        // qDebug() << "Created context format:" << m_context->format() << "window format:" << requestedFormat();
         needsInitialize = true;
     }
 
-    if (!m_context->makeCurrent(this)) {
-        qWarning() << "QOpenGLContext::makeCurrent() failed, error:"
-                   << m_context->format().profile();
+    if (!m_context->makeCurrent(this))
+    {
+        qWarning() << "QOpenGLContext::makeCurrent() failed, error:" << m_context->format().profile();
         return;
     }
 
-    //qDebug() << "Context made current";
+    // qDebug() << "Context made current";
     initializeOpenGLFunctions();
 
-    if (needsInitialize) {
-        //qDebug() << "Calling initialize()";
+    if (needsInitialize)
+    {
+        // qDebug() << "Calling initialize()";
         initialize();
-        //GLenum err = glGetError();
-        //if (err != GL_NO_ERROR)
-        //    qWarning() << "GL error after initialize:" << err;
+        // GLenum err = glGetError();
+        // if (err != GL_NO_ERROR)
+        //     qWarning() << "GL error after initialize:" << err;
     }
 
     glViewport(0, 0, width() * devicePixelRatio(), height() * devicePixelRatio());
-    //qDebug() << "Calling render()";
+    // qDebug() << "Calling render()";
     render();
     GLenum err = glGetError();
-    //if (err != GL_NO_ERROR)
-    //    qWarning() << "GL error after render:" << err;
+    // if (err != GL_NO_ERROR)
+    //     qWarning() << "GL error after render:" << err;
 
     m_context->swapBuffers(this);
-    //qDebug() << "swapBuffers returned";
+    // qDebug() << "swapBuffers returned";
 
     // not to starve the other window events like window move
     QCoreApplication::processEvents();
 
     if (m_animating)
+    {
         renderLater();
+    }
 }
 //! [4]
 
@@ -347,7 +353,9 @@ void OpenglWindow::setAnimating(bool animating)
     m_animating = animating;
 
     if (animating)
+    {
         renderLater();
+    }
 }
 //! [5]
 
@@ -371,7 +379,9 @@ void OpenglWindow::toggleVsync()
         // The batched text device's FBO belongs to the context being dropped;
         // drop it so it gets recreated on the next frame.
         if (m_batchPainter)
+        {
             m_batchPainter->end();
+        }
         delete m_batchPainter;
         m_batchPainter = nullptr;
         delete m_batchDevice;
@@ -389,12 +399,16 @@ void OpenglWindow::toggleVsync()
 void OpenglWindow::renderText(int posX, int posY, const QString& text)
 {
     if (text.isEmpty())
+    {
         return;
+    }
 
     bool shared = false;
     QPainter* painter = activeTextPainter(shared);
     if (!painter)
+    {
         return;
+    }
 
     painter->save();
     painter->setPen(QColor(255, 255, 255, 127));
@@ -405,7 +419,9 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text)
     painter->drawText(posX, posY, text);
     painter->restore();
     if (!shared)
+    {
         painter->end();
+    }
 }
 //! [6]
 
@@ -429,14 +445,18 @@ void OpenglWindow::renderShape(const QRect& rec)
         painter->setBrush(QBrush(QColor(0, 255, 0, 63), Qt::SolidPattern));
         painter->drawRect(rec);
         if (!shared)
+        {
             painter->end();
+        }
     }
 }
 
 void OpenglWindow::drawLines(const QVector<QPointF>& pointPairs)
 {
     if (pointPairs.isEmpty())
+    {
         return;
+    }
 
     bool shared = false;
     QPainter* painter = activeTextPainter(shared);
@@ -446,7 +466,9 @@ void OpenglWindow::drawLines(const QVector<QPointF>& pointPairs)
         painter->setRenderHint(QPainter::Antialiasing);
         painter->drawLines(pointPairs);
         if (!shared)
+        {
             painter->end();
+        }
     }
 }
 //! [8]
@@ -458,7 +480,7 @@ void OpenglWindow::resetGeometry(QRect a_rect)
 //! [9]
 
 //! [10]
-void OpenglWindow::setMapOpMask(MapOpMaskBits a_layer/*, bool a_b*/)
+void OpenglWindow::setMapOpMask(MapOpMaskBits a_layer /*, bool a_b*/)
 {
     /*
     if(a_b)
@@ -474,12 +496,16 @@ void OpenglWindow::setMapOpMask(MapOpMaskBits a_layer/*, bool a_b*/)
 void OpenglWindow::renderText(int posX, int posY, const QString& text, const QString& font)
 {
     if (text.isEmpty())
+    {
         return;
+    }
 
     bool shared = false;
     QPainter* painter = activeTextPainter(shared);
     if (!painter)
+    {
         return;
+    }
 
     painter->save();
     painter->setPen(QColor(255, 255, 127, 160));
@@ -493,7 +519,9 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
     painter->drawText(posX - adv / 2, posY + 12 * devicePixelRatio(), text);
     painter->restore();
     if (!shared)
+    {
         painter->end();
+    }
 }
 //! [11]
 
@@ -501,12 +529,16 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
 void OpenglWindow::renderText(int posX, int posY, const QString& text, const QString& a_font, qreal a_angle)
 {
     if (text.isEmpty())
+    {
         return;
+    }
 
     bool shared = false;
     QPainter* painter = activeTextPainter(shared);
     if (!painter)
+    {
         return;
+    }
 
     // Draw directly on the shared paint device (the original approach) rather
     // than baking into a QImage + drawImage, which distorts text on
@@ -527,7 +559,9 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
     painter->drawText(0, 14, ">>");
 
     if (qAbs(a_angle) > 90)
+    {
         painter->rotate(180.0);
+    }
 
     painter->setFont(feText->font);
     painter->drawText(8 - metrics.horizontalAdvance(text) / 2, 18, text);
@@ -535,17 +569,21 @@ void OpenglWindow::renderText(int posX, int posY, const QString& text, const QSt
     painter->drawText(7 - metrics.horizontalAdvance(text) / 2, 17, text);
     painter->restore();
     if (!shared)
+    {
         painter->end();
+    }
 }
 //! [12]
 
 OpenglWindow::FontEntry* OpenglWindow::getCachedFont(const QString& family, int pixelSize, bool bold)
 {
     const QString key = family + QLatin1Char('|') + QString::number(pixelSize) + QLatin1Char('|')
-                         + (bold ? QLatin1Char('1') : QLatin1Char('0'));
+                        + (bold ? QLatin1Char('1') : QLatin1Char('0'));
     QHash<QString, FontEntry>::Iterator it = m_fontCache.find(key);
     if (it != m_fontCache.end())
+    {
         return &it.value();
+    }
 
     QFont font(family);
     font.setPixelSize(pixelSize);
@@ -558,15 +596,21 @@ QPainter* OpenglWindow::activeTextPainter(bool& shared)
 {
     shared = m_inTextFrame && m_batchPainter && m_batchPainter->isActive();
     if (shared)
+    {
         return m_batchPainter;
+    }
 
     // Standalone mode: create a painter on demand for callers that are not
     // inside a beginTextFrame()/endTextFrame() block (e.g. drawEBL's label).
     if (!m_batchDevice)
+    {
         m_batchDevice = new QOpenGLPaintDevice;
+    }
     m_batchDevice->setSize(size() * devicePixelRatio());
     if (!m_batchPainter)
+    {
         m_batchPainter = new QPainter;
+    }
     m_batchPainter->begin(m_batchDevice);
     return m_batchPainter;
 }
@@ -580,4 +624,3 @@ void OpenglWindow::resetGpuResources()
 {
     qDebug() << "virtual parent, do nothing";
 }
-

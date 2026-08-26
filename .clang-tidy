@@ -1,0 +1,43 @@
+# Clang-tidy configuration for q3dmmi / HMIIOS.
+#
+# Enforces braces around all control statements (if/else/for/while), even
+# when the body is a single line:
+#
+#   // flagged:
+#   if (n < 2)
+#       continue;
+#   if (n < 2) continue;
+#
+#   // required:
+#   if (n < 2)
+#   {
+#       continue;
+#   }
+#
+# Note: clang-format CANNOT add braces (it only reformats), so this rule
+# lives here in clang-tidy instead of .clang-format.
+#
+# Check for violations (requires compile_commands.json in build/):
+#   clang-tidy -p build hmiios2014/*.cpp hmiios2014/*.h
+#
+# Auto-fix in place (two steps: clang-tidy adds the braces, clang-format
+# re-normalizes them to the project's Allman style):
+#   clang-tidy -p build --fix --fix-errors hmiios2014/*.cpp hmiios2014/*.h
+#   clang-format -i hmiios2014/*.cpp hmiios2014/*.h
+
+---
+Checks: '-*,readability-braces-around-statements'
+CheckOptions:
+  # Flag even short one-line statements like "if (x) return;".
+  - key: readability-braces-around-statements.AllowSingleLineStatements
+    value: false
+  - key: readability-braces-around-statements.AllowShortIfStatementsOnASingleLine
+    value: false
+  - key: readability-braces-around-statements.AllowShortLoopsOnASingleLine
+    value: false
+  - key: readability-braces-around-statements.AllowShortBlocksOnASingleLine
+    value: false
+  - key: readability-braces-around-statements.AllowShortCaseLabelsOnASingleLine
+    value: false
+WarningsAsErrors: 'readability-braces-around-statements'
+HeaderFilterRegex: '.*'

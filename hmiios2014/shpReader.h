@@ -2,9 +2,10 @@
 #define SHPREAD_H_
 #include <shapefil.h>
 #include <stdlib.h>
+
 #include "dbfReader.h"
 
-//#define MAX_VERTEX 200000
+// #define MAX_VERTEX 200000
 class ShpReader
 {
 public:
@@ -18,10 +19,10 @@ public:
         unsigned int totalVertex;
         double minX, minY;
         double maxX, maxY;
-        double** coordinate;//[MAX_VERTEX][3];
-        unsigned char* isRing;//[MAX_VERTEX];
+        double** coordinate;    //[MAX_VERTEX][3];
+        unsigned char* isRing;  //[MAX_VERTEX];
         unsigned int type;
-    }ShpEntity;
+    } ShpEntity;
 
     int read(const char* filename);
     int readLayer(const char* filename, DBFReader& layer);
