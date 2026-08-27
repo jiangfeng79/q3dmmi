@@ -537,22 +537,23 @@ void TSDWindow::drawRingsToColor(MapLayer& a_layer)
 }
 
 // Fill a single ring: stencil pass then color pass, resolved immediately.
-void TSDWindow::drawRingFilled(MapLayer& a_layer, int i)
+void TSDWindow::drawRingFilled(MapLayer& a_layer)
 {
-    if (a_layer.m_geometry.renderType[i] != SHPT_POLYGON)
+   for(int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
     {
-        return;
+        if (a_layer.m_geometry.renderType[i] == SHPT_POLYGON)
+        {
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);  // disable writing to color buffer
+            glStencilFunc(GL_ALWAYS, 0x1, 0x1);
+            glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
+            drawPolygonRing(a_layer, i);
+
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);  // enable writing to color buffer
+            glStencilFunc(GL_EQUAL, 0x1, 0x1);                // test if it is odd(1)
+            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+            drawPolygonRing(a_layer, i);
+        }
     }
-
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);  // disable writing to color buffer
-    glStencilFunc(GL_ALWAYS, 0x1, 0x1);
-    glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
-    drawPolygonRing(a_layer, i);
-
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);  // enable writing to color buffer
-    glStencilFunc(GL_EQUAL, 0x1, 0x1);                // test if it is odd(1)
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-    drawPolygonRing(a_layer, i);
 }
 
 void TSDWindow::drawLayerAndFill(MapLayer& a_layer)
@@ -577,10 +578,7 @@ void TSDWindow::drawLayerAndFill(MapLayer& a_layer)
     {
         // Per-ring: each ring resolves its own stencil->color immediately, so
         // there is no cross-ring cancellation.
-        for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
-        {
-            drawRingFilled(a_layer, i);
-        }
+        drawRingFilled(a_layer);
     }
 
     glDisable(GL_STENCIL_TEST);

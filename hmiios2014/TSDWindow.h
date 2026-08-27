@@ -158,7 +158,7 @@ public:
     void drawPolygonRing(MapLayer& a_layer, int i);
     void drawRingsToStencil(MapLayer& a_layer);
     void drawRingsToColor(MapLayer& a_layer);
-    void drawRingFilled(MapLayer& a_layer, int i);
+    void drawRingFilled(MapLayer& a_layer);
     void drawText(MapLayer& a_layer);
     void drawTextWithAngle(MapLayer& a_layer);
     // Draw the live airflight labels: callsign + altitude on two lines,
