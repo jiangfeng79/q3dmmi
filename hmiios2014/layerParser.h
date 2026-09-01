@@ -33,6 +33,8 @@ public:
 
     // Release any cached raw data (e.g. after the GL context is destroyed).
     virtual void freeMemory() = 0;
+
+    virtual void setScale(float) {}
 };
 
 // Parser for shapefile + dbf input layers (the default map data source).

@@ -33,7 +33,7 @@ public:
 
     // Update the tracking table consumed by the next parse().
     void setTable(const QHash<QString, TrackedAircraft>& a_table) { m_table = a_table; }
-    void setScale(const float a_scale) { m_scale = a_scale; }
+    void setScale(float a_scale) override { m_scale = a_scale; }
 
     LayerGeometry parse(const Options& a_options) override;
     void freeMemory() override {}

@@ -49,6 +49,15 @@
     <addaction name="actionNormalscreen"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuBus">
+    <property name="title">
+     <string>Bus</string>
+    </property>
+    <addaction name="actionBusRoute"/>
+    <addaction name="actionBusTrack"/>
+    <addaction name="separator"/>
+    <addaction name="actionClearBus"/>
+   </widget>
    <widget class="QMenu" name="menuGfx_Effect">
     <property name="title">
      <string>Gfx Effect</string>
@@ -72,6 +81,7 @@
     <addaction name="actionVsync"/>
    </widget>
    <addaction name="menuWindow"/>
+   <addaction name="menuBus"/>
    <addaction name="menuGfx_Effect"/>
    <addaction name="menuLanguage"/>
    <addaction name="menuDebug"/>
@@ -304,6 +314,30 @@
    </property>
    <property name="toolTip">
     <string>Toggle vertical sync (off = benchmark mode, unlimited FPS)</string>
+   </property>
+  </action>
+  <action name="actionBusRoute">
+   <property name="text">
+    <string>Bus route</string>
+   </property>
+   <property name="toolTip">
+    <string>Get route information of a bus number</string>
+   </property>
+  </action>
+  <action name="actionBusTrack">
+   <property name="text">
+    <string>Bus track</string>
+   </property>
+   <property name="toolTip">
+    <string>Retrieve arriving buses for a bus stop number</string>
+   </property>
+  </action>
+  <action name="actionClearBus">
+   <property name="text">
+    <string>Clear bus info</string>
+   </property>
+   <property name="toolTip">
+    <string>Clear all bus routes and tracks from map</string>
    </property>
   </action>
  </widget>

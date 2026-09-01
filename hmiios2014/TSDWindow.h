@@ -17,22 +17,28 @@
 #include <QThread>
 #include <qmath.h>
 
+#include <array>
+#include <functional>
+#include <memory>
 #include <time.h>
+#include <vector>
 
 #include "OpenglWindow.h"
+#include "busLayerParser.h"
+#include "busRoute.h"
+#include "busTracker.h"
 #include "flightLayerParser.h"
 #include "flightTracker.h"
-#include "layerGeometry.h"
-#include "layerParser.h"
+#include "MapLayer.h"
+#include "WorkerEntry.h"
 
 class TSDWindow : public OpenglWindow
 {
     Q_OBJECT
 
 public:
-    enum DisplayMaskBits
+    enum DisplayMaskBits: std::uint64_t
     {
-        DISPLAY_VOID = 0,
         COASTAL = 1,            // polygon
         COASTAL_TEXT = 1 << 1,  // polygon
         PLACES = 1 << 2,        // points
@@ -62,10 +68,19 @@ public:
         FLIGHTS = 1 << 25,        // live airflight markers (SHPT_POLYGON)
         FLIGHTS_TEXT = 1 << 26,   // live airflight callsign labels
         FLIGHT_TRAILS = 1 << 27,  // live airflight trails (SHPT_ARC)
-        DIPLAY_ALL = 0xFFFFFFFF
+        BUS_ROUTES = 1 << 28,     // bus route lines
+        BUS_ROUTES2 = 1 << 29,     // bus route lines2
+        BUS_ROUTES_TEXT = 1 << 30,// bus route stop labels
+        BUS_STOPS = 1ULL << 31,  // bus stop nodes
+        BUS_STOPS_TEXT = 1ULL << 32,// bus stop labels
+        BUS_TRACKS = 1ULL << 33,     // bus tracking symbols
+        BUS_TRACKS_TEXT = 1ULL << 34, // bus tracking vehicle labels
+        BUS_TRACKS_WINDSHIELD = 1ULL << 35,
+        BUS_STOPS2 = 1ULL << 36,     // return-direction bus stop nodes
+        DIPLAY_ALL = 0xFFFFFFFFFFFFFFFF
     };
 
-    unsigned int myLog2(unsigned int value)
+    unsigned int myLog2(uint64_t value)
     {
         unsigned int targetlevel = 0;
         while (value >>= 1)
@@ -77,66 +92,6 @@ public:
 
     // template<int N> void printMrtStringToScreen();
     // template<> void printMrtStringToScreen<0>();
-
-    // MapProperty is defined in layerGeometry.h.
-
-    // A map layer is coupled to a single input layer through an injected
-    // LayerParser. The parser turns the raw input (shapefile + dbf, or any
-    // other source) into renderable geometry (polygons, lines, points and
-    // labels) held in m_geometry. The renderer consumes m_geometry directly
-    // and never touches the raw file format.
-    class MapLayer
-    {
-    public:
-        // Default constructor for layers whose input is not a shapefile (e.g.
-        // the live flight layers, whose geometry is rebuilt from a tracking
-        // table). The display bits are set by the caller after construction.
-        MapLayer() : m_id(DISPLAY_VOID), m_text_id(DISPLAY_VOID), m_bToFill(false), m_parser(nullptr)
-        {
-            m_VBO_ID[0] = m_VBO_ID[1] = 0;
-            m_property.scale = 0.1;
-        }
-
-        MapLayer(const char* fileName, DisplayMaskBits id, DisplayMaskBits text_id)
-            : m_id(id), m_text_id(text_id), m_bToFill(false), m_parser(nullptr)
-        {
-            m_VBO_ID[0] = m_VBO_ID[1] = 0;
-            m_property.scale = 0.1;
-            m_fileName = QString(fileName);
-            m_layerName.clear();
-        }
-
-        MapLayer(const char* fileName, const char* layerName, DisplayMaskBits id, DisplayMaskBits text_id)
-            : m_id(id), m_text_id(text_id), m_bToFill(false), m_parser(nullptr)
-        {
-            m_VBO_ID[0] = m_VBO_ID[1] = 0;
-            m_property.scale = 0.1;
-            m_fileName = QString(fileName);
-            m_layerName = QString(layerName);
-        }
-
-        ~MapLayer() { delete m_parser; }
-
-        // Inject the parser coupled to this layer's input data.
-        void setParser(LayerParser* a_parser) { m_parser = a_parser; }
-        LayerParser* parser() const { return m_parser; }
-
-        MapProperty m_property;
-        QString m_fileName;
-        QString m_layerName;
-        LayerParser* m_parser;
-        // Renderable geometry produced by the parser (vertices, rings, types, labels).
-        LayerGeometry m_geometry;
-        GLuint m_VBO_ID[2];
-
-        DisplayMaskBits m_id;
-        DisplayMaskBits m_text_id;
-
-        bool m_bToFill;
-
-        void buildLayer();
-        void buildLayer(MapProperty& a_property, int a_iLayerId);
-    };
 
     // template<int N> void printStringToScreen(MapLayer & a_layer);
     // template<> void printStringToScreen<0>(MapLayer & a_layer);
@@ -166,11 +121,6 @@ public:
     void drawFlightText(MapLayer& a_layer);
     void drawEBL(float x, float y, float r);
     void drawMRTStation();
-    // Rebuild the live flight layers (trails + markers) from the latest
-    // tracking table and upload them to the GPU. Called from render() (where
-    // the GL context is current) whenever the tracking table has changed, so
-    // the fresh geometry is drawn through the normal map-layer passes.
-    void rebuildFlightLayers();
     void centerMap();
     void setDisplayMask(DisplayMaskBits layer, bool b);
     inline void setAutoZoom(bool value) { m_bAutoZoom = value; }
@@ -187,6 +137,17 @@ public slots:
     // (emitted from the worker thread, queued to the GUI thread).
     void onTrackingTableUpdated(const QHash<QString, TrackedAircraft>& table);
 
+    // Request route information for a bus service number.
+    void fetchBusRoute(const QString& busNo, const QString& accountKey = QString());
+    void onBusRouteReady(const QString& busNo, const QList<BusRoute>& routes);
+
+    // Request live bus tracking for a bus stop number.
+    void trackBusStop(const QString& stopCode, const QString& accountKey = QString());
+    void onBusArrivalUpdated(const BusStopSnapshot& snapshot);
+
+    // Clear all bus routes and tracks from map
+    void clearBusInfo();
+
 protected:
     // Release all GL resources + CPU-side layer data so initialize() can run
     // again after the context is recreated (e.g. vsync toggle).
@@ -202,6 +163,7 @@ private:
     GLuint m_eblVBO;
 
     QOpenGLShaderProgram* m_program;
+    std::array<QOpenGLShaderProgram**, 3> m_programSlots;
     GLuint m_posAttr;
     GLuint m_colAttr;
     GLuint m_colorIdAttr;
@@ -240,33 +202,44 @@ private:
     MapLayer m_sgManMade;
     // Live airflight layers. Rendered through the normal map-layer passes
     // (trails as SHPT_ARC lines, markers as SHPT_POLYGON silhouettes) instead
-    // of the old QPainter overlay. They are NOT in m_listOfLayers because
-    // their geometry is rebuilt every poll (see rebuildFlightLayers()).
+    // of the old QPainter overlay. Their geometry is rebuilt through the
+    // common live-layer loop.
     MapLayer m_sgFlightTrails;
     MapLayer m_sgFlightMarkers;
-    QVector<TSDWindow::MapLayer*> m_listOfLayers;
+
+    // Live bus route and vehicle tracking layers. Like the flight layers,
+    // these are rebuilt through m_listOfLayers whenever their data changes.
+    MapLayer m_sgBusRouteLines;
+    MapLayer m_sgBusRouteLines2;
+    MapLayer m_sgBusStops;
+    MapLayer m_sgBusStops2;
+    MapLayer m_sgBusVehicles;
+    MapLayer m_sgBusWindshields;
+
+    QVector<MapLayer*> m_listOfLayers;
 
     GLfloat* m_mrt;
 
-    unsigned int m_displayMask;
+    std::uint64_t m_displayMask;
 
     bool m_bAutoZoom;
     bool m_bAutoSwing;
     bool m_bShaderToys;
 
-    // Live airflight tracking near Changi. The worker runs on a dedicated
-    // thread and polls the adsb.lol API; the tracking table is copied onto the
-    // GUI thread (via onTrackingTableUpdated) and drawn as the flight
-    // MapLayers (trails + markers) through the normal map-layer passes.
-    QThread* m_flightThread;
-    TrackerWorker* m_flightWorker;
+    std::vector<std::unique_ptr<WorkerEntry>> m_workers;
+
     QHash<QString, TrackedAircraft> m_flightTable;
-    // Set when the tracking table changes (onTrackingTableUpdated); the flight
-    // layers are rebuilt in render() (where the GL context is current).
-    bool m_flightDirty;
-    // Last zoom factor used to build the flight marker geometry (the marker
-    // size depends on it, so a zoom change marks the layers dirty).
-    float m_flightScale;
+
+    // Bus Route worker thread, VBO, and current route data.
+    QString m_accountKey;
+    QList<BusRoute> m_activeBusRoutes;
+    QString m_currentBusNo;
+
+    // Bus Tracker snapshot, VBO, and vehicle infos.
+    BusStopSnapshot m_currentBusStopSnapshot;
+    void rebuildBusRouteLayers();
+    void rebuildBusTrackerLayers();
+    void rebuildLiveLayers();
 };
 
 #endif  // TSDWINDOW_H

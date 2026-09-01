@@ -34,6 +34,8 @@ private slots:
     void on_checkBoxPlaces_stateChanged(int state);
     void on_checkBoxManMade_stateChanged(int state);
     void on_checkBoxFlights_stateChanged(int state);
+    void on_checkBoxBusRoutes_stateChanged(int state);
+    void on_checkBoxBusTracks_stateChanged(int state);
 };
 
 #endif  // MAPFILTERWIDGET_H

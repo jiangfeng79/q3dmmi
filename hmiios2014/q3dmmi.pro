@@ -20,7 +20,9 @@ TEMPLATE = app
 SOURCES += \
     OpenglWindow.cpp \
     TSDWindow.cpp \
+    busLayerParser.cpp \
     dbfReader.cpp \
+    flightLayerParser.cpp \
     hmiios2014.cpp \
     layerParser.cpp \
     main.cpp \
@@ -30,7 +32,12 @@ SOURCES += \
 HEADERS += \
     OpenglWindow.h \
     TSDWindow.h \
+    busLayerParser.h \
+    busRoute.h \
+    busTracker.h \
     dbfReader.h \
+    flightLayerParser.h \
+    flightTracker.h \
     geoTransform.h \
     hmiios2014.h \
     layerGeometry.h \

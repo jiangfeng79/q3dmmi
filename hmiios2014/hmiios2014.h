@@ -32,6 +32,8 @@ private:
     QTranslator m_translatorChinese;  // contains the translations for this application
     QTranslator m_translatorDefault;  // contains the translations for qt
 
+    QString getOrPromptAccountKey();
+
 signals:
     void signal_widget_resize(QRect rect);
 
@@ -55,6 +57,9 @@ private slots:
     void on_actionVsync_triggered();
     void on_actionChineseLang_triggered();
     void on_actionDefaultLang_triggered();
+    void on_actionBusRoute_triggered();
+    void on_actionBusTrack_triggered();
+    void on_actionClearBus_triggered();
     void slot_setMapFilter(TSDWindow::DisplayMaskBits layer_id, int state);
 };
 

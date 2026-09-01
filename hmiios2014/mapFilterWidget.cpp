@@ -43,6 +43,7 @@ void MapFilterWidget::on_checkBoxRailways_stateChanged(int state)
 {
     qDebug() << "on_checkBoxRailways_stateChanged" << state;
     emit signal_checkBox_state(TSDWindow::MRT, state);
+    emit signal_checkBox_state(TSDWindow::MRT_POINT, state);
 }
 void MapFilterWidget::on_checkBoxMainRoads_stateChanged(int state)
 {
@@ -83,6 +84,19 @@ void MapFilterWidget::on_checkBoxFlights_stateChanged(int state)
     // and the position trails (FLIGHT_TRAILS).
     emit signal_checkBox_state(TSDWindow::FLIGHTS, state);
     emit signal_checkBox_state(TSDWindow::FLIGHT_TRAILS, state);
+}
+
+void MapFilterWidget::on_checkBoxBusRoutes_stateChanged(int state)
+{
+    qDebug() << "on_checkBoxBusRoutes_stateChanged" << state;
+    emit signal_checkBox_state(TSDWindow::BUS_ROUTES, state);
+    emit signal_checkBox_state(TSDWindow::BUS_ROUTES2, state);
+}
+
+void MapFilterWidget::on_checkBoxBusTracks_stateChanged(int state)
+{
+    qDebug() << "on_checkBoxBusTracks_stateChanged" << state;
+    emit signal_checkBox_state(TSDWindow::BUS_TRACKS, state);
 }
 
 void MapFilterWidget::retranslate()

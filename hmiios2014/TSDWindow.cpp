@@ -116,18 +116,26 @@ TSDWindow::TSDWindow()
       m_bgResolution(0),
       m_bgTime(0),
       m_bgShaderId(1),
-      m_sgCoastal("./sgMap/singapore", COASTAL, COASTAL_TEXT),
+      m_sgCoastal("./sgMap/singapore", COASTAL, COASTAL_TEXT, true),
       m_sgAmenities("./sgMap/singapore.osm-amenities", AMENITIES, AMENITIES_TEXT),
       m_sgLandUsages("./sgMap/singapore.osm-landusages", LAND_USAGE, LAND_USAGE_TEXT),
       m_sgPlaces("./sgMap/singapore.osm-places", PLACES, PLACES_TEXT),
       m_sgMRT("./sgMap/railways", MRT, MRT_TEXT),
-      m_sgWaterArea("./sgMap/singapore.osm-waterareas", WATER_AREA, WATER_AREA_TEXT),
+      m_sgWaterArea("./sgMap/singapore.osm-waterareas", WATER_AREA, WATER_AREA_TEXT, true),
       m_sgBuilding("./sgMap/singapore.osm-buildings", BUILDING, BUILDING_TEXT),
       m_sgMainRoads("./sgMap/singapore.osm-mainroads", MAIN_ROADS, MAIN_ROADS_TEXT),
       m_sgMotorWays("./sgMap/singapore.osm-motorways", MOTOR_WAYS, MOTOR_WAYS_TEXT),
       m_sgMinorRoads("./sgMap/singapore.osm-minorroads", MINOR_ROADS, MINOR_ROADS_TEXT),
       m_sgAirWays("./sgMap/singapore.osm-aeroways", AIR_WAYS, AIR_WAYS_TEXT),
-      m_sgManMade("./sgMap/singapore.osm-polygon", "man_made", MAN_MADE, MAN_MADE_TEXT),
+      m_sgManMade("./sgMap/singapore.osm-polygon", "man_made", MAN_MADE, MAN_MADE_TEXT, true),
+      m_sgFlightTrails(FLIGHT_TRAILS, FLIGHTS_TEXT, false, true),
+      m_sgFlightMarkers(FLIGHTS, FLIGHTS_TEXT, true, true),
+      m_sgBusRouteLines(BUS_ROUTES, BUS_ROUTES_TEXT, false, true),
+      m_sgBusRouteLines2(BUS_ROUTES2, BUS_ROUTES_TEXT, false, true),
+      m_sgBusStops(BUS_STOPS, BUS_STOPS_TEXT, false, true),
+      m_sgBusStops2(BUS_STOPS2, BUS_STOPS_TEXT, false, true),
+      m_sgBusVehicles(BUS_TRACKS, BUS_TRACKS_TEXT, true, true),
+      m_sgBusWindshields(BUS_TRACKS_WINDSHIELD, BUS_STOPS_TEXT, true, true),
       m_mrt(nullptr),
       m_mrtVBO(0),
       m_eblVBO(0),
@@ -135,15 +143,9 @@ TSDWindow::TSDWindow()
       m_displayMask(0xff5c032b),
       m_bAutoZoom(false),
       m_bAutoSwing(false),
-      m_bShaderToys(false),
-      m_flightThread(nullptr),
-      m_flightWorker(nullptr),
-      m_flightDirty(false),
-      m_flightScale(0.0f)
+      m_bShaderToys(false)
 {
-    m_sgCoastal.m_bToFill = true;
-    m_sgWaterArea.m_bToFill = true;
-    m_sgManMade.m_bToFill = true;
+    m_programSlots = {&m_program, &m_bgProgram, &m_lineProgram};
 
     // Inject the parser coupled to each layer's input data. Each layer is now
     // paired with an independent parser that turns its raw input into
@@ -163,39 +165,66 @@ TSDWindow::TSDWindow()
 
     // Live airflight layers: the parser is fed the tracking table each poll
     // (see onTrackingTableUpdated) and rebuilt into geometry on the GUI thread.
-    m_sgFlightTrails.m_id = FLIGHT_TRAILS;
-    m_sgFlightTrails.m_text_id = DISPLAY_VOID;
     m_sgFlightTrails.setParser(new FlightLayerParser(FlightLayerParser::Trails));
-    m_sgFlightMarkers.m_id = FLIGHTS;
-    m_sgFlightMarkers.m_text_id = FLIGHTS_TEXT;
     m_sgFlightMarkers.setParser(new FlightLayerParser(FlightLayerParser::Markers));
+
+    // Live bus layers: the parser is fed bus routes or bus arrival snapshots.
+    m_sgBusRouteLines.setParser(new BusLayerParser(BusLayerParser::RouteLines));
+    m_sgBusRouteLines2.setParser(new BusLayerParser(BusLayerParser::RouteLines));
+    m_sgBusStops.setParser(new BusLayerParser(BusLayerParser::RouteStops));
+    m_sgBusStops2.setParser(new BusLayerParser(BusLayerParser::RouteStops));
+    m_sgBusVehicles.setParser(new BusLayerParser(BusLayerParser::Vehicles));
+    m_sgBusWindshields.setParser(new BusLayerParser(BusLayerParser::VehicleWindshields));
 
     setDisplayMask(MAN_MADE_TEXT, false);
     setDisplayMask(MOTOR_WAYS_TEXT, false);
     setDisplayMask(MAIN_ROADS_TEXT, false);
     setDisplayMask(MINOR_ROADS_TEXT, false);
     setDisplayMask(MRT_TEXT, false);
+    setDisplayMask(BUS_ROUTES2, true);
+    setDisplayMask(BUS_STOPS2, true);
+    setDisplayMask(BUS_TRACKS, true);
+    setDisplayMask(BUS_TRACKS_WINDSHIELD, true);
+    setDisplayMask(BUS_TRACKS_TEXT, true);
 
     m_listOfLayers << &m_sgCoastal << &m_sgWaterArea << &m_sgMRT << &m_sgAmenities << &m_sgLandUsages << &m_sgPlaces
                    << &m_sgBuilding << &m_sgMainRoads << &m_sgMotorWays << &m_sgMinorRoads << &m_sgAirWays
-                   << &m_sgManMade;
+                   << &m_sgManMade << &m_sgFlightTrails << &m_sgFlightMarkers << &m_sgBusRouteLines
+                   << &m_sgBusRouteLines2 << &m_sgBusStops << &m_sgBusStops2 << &m_sgBusVehicles << &m_sgBusWindshields;
 
     // Live airflight tracking near Changi. The worker runs on a dedicated
     // thread and polls the adsb.lol API; its tracking table is queued onto the
-    // GUI thread, turned into the flight MapLayers (trails + markers) by
-    // rebuildFlightLayers(), and drawn through the normal map-layer passes.
-    m_flightWorker = new TrackerWorker;
-    m_flightThread = new QThread(this);
-    m_flightWorker->moveToThread(m_flightThread);
-    connect(m_flightThread, &QThread::started, m_flightWorker, [this]() {
+    // GUI thread, turned into flight MapLayers, and drawn through the normal
+    // map-layer passes.
+    m_workers.emplace_back(std::make_unique<WorkerEntryImpl<TrackerWorker>>(this));
+    m_workers.emplace_back(std::make_unique<WorkerEntryImpl<BusTrackerWorker>>(this));
+    m_workers.emplace_back(std::make_unique<WorkerEntryImpl<BusRouteWorker>>(this));
+
+    auto* flightWorker = workerAt<TrackerWorker>(m_workers, FlightWorkerIndex);
+    auto* busWorker = workerAt<BusTrackerWorker>(m_workers, BusWorkerIndex);
+    auto* busRouteWorker = workerAt<BusRouteWorker>(m_workers, BusRouteWorkerIndex);
+
+    connect(m_workers[FlightWorkerIndex]->thread(), &QThread::started, flightWorker, [flightWorker]() {
         // Changi Airport, 30 NM radius.
-        m_flightWorker->start(1.3644, 103.9915, 60);
+        flightWorker->start(1.3644, 103.9915, 60);
     });
-    connect(m_flightWorker, &TrackerWorker::trackingTableUpdated, this, &TSDWindow::onTrackingTableUpdated,
+    connect(flightWorker, &TrackerWorker::trackingTableUpdated, this, &TSDWindow::onTrackingTableUpdated,
             Qt::QueuedConnection);
-    connect(m_flightWorker, &TrackerWorker::fetchFailed,
+    connect(flightWorker, &TrackerWorker::fetchFailed,
             [](const QString& err) { qWarning().noquote() << "Flight fetch failed:" << err; });
-    m_flightThread->start();
+    m_workers[FlightWorkerIndex]->thread()->start();
+
+    // Live sg bus arrival time tracker per bus stop. The worker runs on a dedicated
+    // thread and polls the LTA DataMall API.
+    connect(busWorker, &BusTrackerWorker::busArrivalUpdated, this, &TSDWindow::onBusArrivalUpdated,
+            Qt::QueuedConnection);
+    connect(busWorker, &BusTrackerWorker::fetchFailed,
+            [](const QString& err) { qWarning().noquote() << "Bus fetch failed:" << err; });
+
+    // Bus route worker running on a dedicated worker thread.
+    connect(busRouteWorker, &BusRouteWorker::busRouteReady, this, &TSDWindow::onBusRouteReady, Qt::QueuedConnection);
+    connect(busRouteWorker, &BusRouteWorker::fetchFailed,
+            [](const QString& err) { qWarning().noquote() << "Bus route fetch failed:" << err; });
 
     // bool bOK = connect(&(G_P_MAINWINDOW->UIQueue), SIGNAL(signal_send_msg()), this, SLOT(slot_process_msg()));
     // assert(bOK);
@@ -203,30 +232,24 @@ TSDWindow::TSDWindow()
 
 TSDWindow::~TSDWindow()
 {
-    // Stop the live flight tracker and let its worker thread finish cleanly.
-    // The worker's QTimer lives on the worker thread, so it must be stopped
-    // from that thread; calling stop() directly from here (the main thread)
-    // triggers "QObject::killTimer: Timers cannot be stopped from another
-    // thread". Post stop() into the worker's event loop, then quit and wait.
-    if (m_flightWorker)
+    for (const auto& entry : m_workers)
     {
-        QMetaObject::invokeMethod(m_flightWorker, &TrackerWorker::stop, Qt::QueuedConnection);
+        entry->stop();
     }
-    if (m_flightThread)
+    for (const auto& entry : m_workers)
     {
-        m_flightThread->quit();
-        m_flightThread->wait();
+        if (entry->thread()->isRunning())
+        {
+            entry->thread()->quit();
+            entry->thread()->wait();
+        }
     }
-    if (m_flightWorker)
-    {
-        delete m_flightWorker;
-        m_flightWorker = nullptr;
-    }
-    // m_flightThread is a child of this window and is deleted automatically.
+    m_workers.clear();
+
     free(m_mrt);
 }
 
-void TSDWindow::MapLayer::buildLayer(MapProperty& a_property, int a_iLayerDepth)
+void MapLayer::buildLayer(MapProperty& a_property, int a_iLayerDepth)
 {
     if (!m_parser)
     {
@@ -237,13 +260,13 @@ void TSDWindow::MapLayer::buildLayer(MapProperty& a_property, int a_iLayerDepth)
     options.baseProperty = a_property;
     options.layerDepth = a_iLayerDepth;
     options.isBaseLayer = false;
-    options.useWgs84BuildTransform = (m_id == MAN_MADE || m_id == MRT);
+    options.useWgs84BuildTransform = (m_id == TSDWindow::MAN_MADE || m_id == TSDWindow::MRT);
 
     m_geometry = m_parser->parse(options);
     m_property = m_geometry.property;
 }
 
-void TSDWindow::MapLayer::buildLayer()
+void MapLayer::buildLayer()
 {
     if (!m_parser)
     {
@@ -259,7 +282,7 @@ void TSDWindow::MapLayer::buildLayer()
     m_property = m_geometry.property;
 }
 
-void TSDWindow::drawTextWithAngle(TSDWindow::MapLayer& a_layer)
+void TSDWindow::drawTextWithAngle(MapLayer& a_layer)
 {
     const qreal retinaScale = devicePixelRatio();
     if (a_layer.m_text_id & m_displayMask)
@@ -277,7 +300,7 @@ void TSDWindow::drawTextWithAngle(TSDWindow::MapLayer& a_layer)
     }
 }
 
-void TSDWindow::drawText(TSDWindow::MapLayer& a_layer)
+void TSDWindow::drawText(MapLayer& a_layer)
 {
     const qreal retinaScale = devicePixelRatio();
     if (a_layer.m_text_id & m_displayMask)
@@ -435,7 +458,7 @@ void TSDWindow::initialize()
 
     for (int i = 0; i < m_listOfLayers.size(); ++i)
     {
-        TSDWindow::MapLayer* l_layer = m_listOfLayers[i];
+        MapLayer* l_layer = m_listOfLayers[i];
         if (i == 0)
         {
             l_layer->buildLayer();  // sg coastal; base layer
@@ -539,7 +562,7 @@ void TSDWindow::drawRingsToColor(MapLayer& a_layer)
 // Fill a single ring: stencil pass then color pass, resolved immediately.
 void TSDWindow::drawRingFilled(MapLayer& a_layer)
 {
-   for(int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
+    for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
     {
         if (a_layer.m_geometry.renderType[i] == SHPT_POLYGON)
         {
@@ -600,13 +623,13 @@ void TSDWindow::drawLayer(MapLayer& a_layer)
     glEnable(GL_PRIMITIVE_RESTART);
     glPrimitiveRestartIndex(0xFFFFFFFF);
     // ONE SINGLE DRAW CALL FOR HUNDREDS OF THOUSANDS OF LINES:
-    if (a_layer.m_geometry.renderType[0] == SHPT_POLYGON)
+    if (a_layer.m_geometry.renderType.size() > 0 && a_layer.m_geometry.renderType[0] == SHPT_POLYGON)
     {
         glDrawElements(GL_LINE_STRIP, a_layer.m_geometry.lineIndices.size(), GL_UNSIGNED_INT, 0);
     }
-    else if (a_layer.m_geometry.renderType[0] == SHPT_POINT)
+    else if (a_layer.m_geometry.renderType.size() > 0 && a_layer.m_geometry.renderType[0] == SHPT_POINT)
     {
-        glPointSize(6);
+        glPointSize(a_layer.m_id == BUS_STOPS ? 7.0f : 6.0f);
         glDrawElements(GL_POINTS, a_layer.m_geometry.lineIndices.size(), GL_UNSIGNED_INT, 0);
     }
 
@@ -622,7 +645,8 @@ void TSDWindow::drawLayer(MapLayer& a_layer)
 // quad, so lines are thickened beyond the driver's 1px glLineWidth limit.
 void TSDWindow::drawLayerLines(MapLayer& a_layer)
 {
-    if (!a_layer.m_VBO_ID[0] || !a_layer.m_VBO_ID[1] || a_layer.m_geometry.renderType[0] != SHPT_ARC)
+    if (!a_layer.m_VBO_ID[0] || !a_layer.m_VBO_ID[1]
+        || (a_layer.m_geometry.renderType.size() > 0 && a_layer.m_geometry.renderType[0] != SHPT_ARC))
     {
         return;
     }
@@ -663,24 +687,7 @@ void TSDWindow::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_MULTISAMPLE);
 
-    // Rebuild the live flight layers if the tracking table changed since the
-    // last frame. Done here (not in onTrackingTableUpdated) so the GL context
-    // is guaranteed current when the VBOs are (re)uploaded.
-    // The marker size depends on the zoom factor, so a zoom change also
-    // requires a geometry rebuild.
-    if (m_sgFlightMarkers.m_parser)
-    {
-        if (m_fScaleFactor != m_flightScale)
-        {
-            m_flightScale = m_fScaleFactor;
-            m_flightDirty = true;
-        }
-        static_cast<FlightLayerParser*>(m_sgFlightMarkers.m_parser)->setScale(m_fScaleFactor);
-    }
-    if (m_flightDirty)
-    {
-        rebuildFlightLayers();
-    }
+    rebuildLiveLayers();
 
     GLfloat time = (GLfloat)clock() / (GLfloat)CLOCKS_PER_SEC;
     GLfloat mouse[] = {(GLfloat)m_iMousePosX, (GLfloat)m_iMousePosY};
@@ -755,7 +762,7 @@ void TSDWindow::render()
 
     for (int i = 0; i < m_listOfLayers.size(); ++i)
     {
-        TSDWindow::MapLayer* l_layer = m_listOfLayers[i];
+        MapLayer* l_layer = m_listOfLayers[i];
 
         // When ShaderToys is on, the layers in shaderRenderLayers are already
         // drawn with the ShaderToy background shader in the pass above, so skip
@@ -789,7 +796,7 @@ void TSDWindow::render()
 
         for (int i = 0; i < m_listOfLayers.size(); ++i)
         {
-            TSDWindow::MapLayer* l_layer = m_listOfLayers[i];
+            MapLayer* l_layer = m_listOfLayers[i];
             if ((m_bShaderToys ? !shaderRendered[i] : true) && (m_displayMask & l_layer->m_id))
             {
                 m_lineProgram->setUniformValue(m_lineColorId, myLog2(l_layer->m_id));
@@ -797,29 +804,10 @@ void TSDWindow::render()
             }
         }
 
-        // Live airflight trails (SHPT_ARC), drawn with the same line shader so
-        // they are thickened like the other line layers.
-        if (m_displayMask & FLIGHT_TRAILS)
-        {
-            m_lineProgram->setUniformValue(m_lineColorId, myLog2(FLIGHT_TRAILS));
-            drawLayerLines(m_sgFlightTrails);
-        }
-
         m_lineProgram->release();
     }
 
     m_program->bind();
-
-    // Live airflight markers (SHPT_POLYGON plane silhouettes), drawn after the
-    // line pass so they sit on top of the trails (matching the original
-    // layering where the planes were drawn over their trails).
-    // drawLayerAndFill() gives the filled silhouette (the old QPainter version
-    // used a brush + pen).
-    if (m_displayMask & FLIGHTS)
-    {
-        m_program->setUniformValue(m_colorId, myLog2(FLIGHTS));
-        drawLayerAndFill(m_sgFlightMarkers);
-    }
 
     // checkGL("before drawMRTStation");
     drawMRTStation();
@@ -860,7 +848,7 @@ void TSDWindow::render()
 
     renderText(10, 72 * retinaScale, QString("Refresh Rate: %1").arg(m_fps, 4, 10, QChar(' ')));
 
-    if (SCALE > 0.1)
+    if (SCALE > 0.5)
     {
         for (int i = 0; i < sizeof(mrt) / sizeof(GLfloat) / 2; ++i)
         {
@@ -872,6 +860,92 @@ void TSDWindow::render()
             }
         }
         // printMrtStringToScreen<sizeof(mrt)/sizeof(GLfloat)/2-1>();
+    }
+
+    if ((m_displayMask & BUS_ROUTES) && !m_activeBusRoutes.isEmpty())
+    {
+        int pointCount = 0;
+        for (const BusRoute& route : m_activeBusRoutes)
+        {
+            for (const RouteStop& rstop : route.stops)
+            {
+                if (rstop.stop.latitude != 0.0 || rstop.stop.longitude != 0.0)
+                {
+                    ++pointCount;
+                }
+            }
+        }
+
+        renderText(10, 100 * retinaScale, QString("Bus Route: %1 (%2 stops)").arg(m_currentBusNo).arg(pointCount));
+
+        if ((m_displayMask & BUS_ROUTES_TEXT) && SCALE > 0.5)
+        {
+            for (const BusRoute& route : m_activeBusRoutes)
+            {
+                for (const RouteStop& rstop : route.stops)
+                {
+                    if (rstop.stop.latitude == 0.0 && rstop.stop.longitude == 0.0)
+                    {
+                        continue;
+                    }
+                    int x = X_WGS84_COORD_TO_SCREEN_COORD(rstop.stop.longitude) * retinaScale;
+                    int y = Y_WGS84_COORD_TO_SCREEN_COORD(rstop.stop.latitude) * retinaScale;
+                    if (x > -50 && x < width() * retinaScale + 50 && y > -50 && y < height() * retinaScale + 50)
+                    {
+                        QString desc =
+                            rstop.stop.description.isEmpty() ? rstop.stop.busStopCode : rstop.stop.description;
+                        QString label = QString("D%1: %2 (%3)").arg(route.direction).arg(desc, rstop.stop.busStopCode);
+                        renderText(x + 7, y + 5, label, QString("Tahoma"));
+                    }
+                }
+            }
+        }
+    }
+
+    if ((m_displayMask & BUS_TRACKS) && !m_currentBusStopSnapshot.busStopCode.isEmpty())
+    {
+        renderText(10, 120 * retinaScale,
+                   QString("Bus Track Stop: %1 (%2 services, Updated %3)")
+                       .arg(m_currentBusStopSnapshot.busStopCode)
+                       .arg(m_currentBusStopSnapshot.services.size())
+                       .arg(m_currentBusStopSnapshot.lastUpdated.toString("hh:mm:ss")));
+
+        if ((m_displayMask & BUS_TRACKS_TEXT) && SCALE > 0.5)
+        {
+            auto getMinsToArr = [](const QString& timeStr) -> int {
+                if (timeStr.isEmpty())
+                    return -1;
+                QDateTime dt = QDateTime::fromString(timeStr, Qt::ISODate);
+                if (!dt.isValid())
+                    return -1;
+                qint64 secs = QDateTime::currentDateTime().secsTo(dt);
+                return std::max(0, static_cast<int>(secs / 60));
+            };
+
+            const auto busInfos = m_sgBusVehicles.m_parser
+                                      ? static_cast<BusLayerParser*>(m_sgBusVehicles.m_parser)->getBusInfos()
+                                      : std::vector<BusLayerParser::TrackedBusInfo>();
+
+            for (const auto& info : busInfos)
+            {
+                int x = X_WGS84_COORD_TO_SCREEN_COORD(info.bus.longitude) * retinaScale;
+                int y = Y_WGS84_COORD_TO_SCREEN_COORD(info.bus.latitude) * retinaScale;
+                if (x > -50 && x < width() * retinaScale + 50 && y > -50 && y < height() * retinaScale + 50)
+                {
+                    int mins = getMinsToArr(info.bus.estimatedArrival);
+                    QString eta = (mins >= 0) ? QString("%1m").arg(mins) : QStringLiteral("Arr");
+                    QString loadStr = info.bus.load.isEmpty() ? QStringLiteral("SEA") : info.bus.load;
+                    QString typeStr = info.bus.type.isEmpty() ? QStringLiteral("SD") : info.bus.type;
+                    QString label = QString("Svc %1 (%2): %3 [%4,%5]")
+                                        .arg(info.serviceNo)
+                                        .arg(info.labelPrefix)
+                                        .arg(eta)
+                                        .arg(loadStr)
+                                        .arg(typeStr);
+                    renderText(x + 8, y + 5, label, QString("Tahoma"));
+                }
+            }
+        }
     }
 
     if (SCALE > 0.6)
@@ -983,57 +1057,33 @@ void TSDWindow::drawEBL(float x, float y, float r)
 
 void TSDWindow::drawMRTStation()
 {
+    if (!(m_displayMask & MRT_POINT))
+    {
+        return;
+    }
+
+    struct MrtStationGroup
+    {
+        int colorId;
+        int firstVertex;
+        int vertexCount;
+    };
+    static const MrtStationGroup kGroups[] = {
+        {5, 0, 29}, {3, 29, 25}, {5, 54, 3}, {9, 57, 16}, {7, 73, 31}, {7, 104, 3}, {19, 107, 35}, {21, 142, 31},
+    };
+
     glPointSize(12);
     glBindBuffer(GL_ARRAY_BUFFER, m_mrtVBO);
-
-    m_program->setUniformValue(m_colorId, 5);  // EW
     glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 29);
-    glDisableVertexAttribArray(m_posAttr);
 
-    m_program->setUniformValue(m_colorId, 3);  // NS
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(29 * 2 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 25);
-    glDisableVertexAttribArray(m_posAttr);
+    for (const MrtStationGroup& group : kGroups)
+    {
+        m_program->setUniformValue(m_colorId, group.colorId);
+        glDrawArrays(GL_POINTS, group.firstVertex, group.vertexCount);
+    }
 
-    m_program->setUniformValue(m_colorId, 5);  // expo, changi
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(54 * 2 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 3);
     glDisableVertexAttribArray(m_posAttr);
-
-    m_program->setUniformValue(m_colorId, 9);  // NE
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(57 * 2 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 16);
-    glDisableVertexAttribArray(m_posAttr);
-
-    m_program->setUniformValue(m_colorId, 7);  // circle
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(73 * 2 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 31);
-    glDisableVertexAttribArray(m_posAttr);
-
-    m_program->setUniformValue(m_colorId, 7);  // marina bay
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(104 * 2 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 3);
-    glDisableVertexAttribArray(m_posAttr);
-
-    m_program->setUniformValue(m_colorId, 19);  // downtown
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(107 * 2 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 35);
-    glDisableVertexAttribArray(m_posAttr);
-
-    m_program->setUniformValue(m_colorId, 21);  // thomason east coast
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)(142 * 2 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_POINTS, 0, 31);
-    glDisableVertexAttribArray(m_posAttr);
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -1052,7 +1102,8 @@ void TSDWindow::onTrackingTableUpdated(const QHash<QString, TrackedAircraft>& ta
     {
         static_cast<FlightLayerParser*>(m_sgFlightMarkers.m_parser)->setTable(table);
     }
-    m_flightDirty = true;
+    m_sgFlightTrails.m_dirty = true;
+    m_sgFlightMarkers.m_dirty = true;
 }
 
 // Rebuild the live flight layers (trails + markers) from the latest tracking
@@ -1060,8 +1111,17 @@ void TSDWindow::onTrackingTableUpdated(const QHash<QString, TrackedAircraft>& ta
 // is current) whenever the tracking table has changed. The base property is the
 // coastal layer's, so the flight geometry lands in the same map space as the
 // rest of the map.
-void TSDWindow::rebuildFlightLayers()
+void TSDWindow::rebuildLiveLayers()
 {
+    if (m_sgBusRouteLines.m_dirty || m_sgBusRouteLines2.m_dirty || m_sgBusStops.m_dirty || m_sgBusStops2.m_dirty)
+    {
+        rebuildBusRouteLayers();
+    }
+    if (m_sgBusVehicles.m_dirty || m_sgBusWindshields.m_dirty)
+    {
+        rebuildBusTrackerLayers();
+    }
+
     // Parse a flight layer's (already updated) parser and (re)upload its
     // geometry to the GPU. The flight layers are small and change every poll,
     // so GL_DYNAMIC_DRAW is appropriate.
@@ -1106,9 +1166,26 @@ void TSDWindow::rebuildFlightLayers()
         }
     };
 
-    rebuildOne(m_sgFlightTrails);
-    rebuildOne(m_sgFlightMarkers);
-    m_flightDirty = false;
+    for (MapLayer* layer : m_listOfLayers)
+    {
+        if (!layer->m_isLive)
+        {
+            continue;
+        }
+
+        if (layer->m_lastScale != m_fScaleFactor)
+        {
+            layer->m_lastScale = m_fScaleFactor;
+            layer->m_parser->setScale(m_fScaleFactor);
+            layer->m_dirty = true;
+        }
+
+        if (layer->m_dirty)
+        {
+            rebuildOne(*layer);
+            layer->m_dirty = false;
+        }
+    }
 }
 
 void TSDWindow::centerMap()
@@ -1147,14 +1224,13 @@ void TSDWindow::resetGpuResources()
     // before doneCurrent(): the Qt GL object destructors and the raw GL
     // delete calls need a live context to release their resources.
 
-    // Shader programs (parented to this window; delete explicitly so the GL
-    // programs are released now instead of at window destruction).
-    delete m_program;
-    m_program = nullptr;
-    delete m_bgProgram;
-    m_bgProgram = nullptr;
-    delete m_lineProgram;
-    m_lineProgram = nullptr;
+    // Shader programs are parented to this window, but released here while
+    // their GL context is still current.
+    for (QOpenGLShaderProgram** programSlot : m_programSlots)
+    {
+        delete *programSlot;
+        *programSlot = nullptr;
+    }
 
     // Raw GL objects.
     if (m_vao)
@@ -1179,7 +1255,7 @@ void TSDWindow::resetGpuResources()
 
     // Per-layer CPU data + VBOs, so initialize() can rebuild everything
     // cleanly (buildLayer() re-parses the input layer from disk).
-    auto clearLayer = [this](TSDWindow::MapLayer* l_layer) {
+    auto clearLayer = [this](MapLayer* l_layer) {
         if (l_layer->m_VBO_ID[0] || l_layer->m_VBO_ID[1])
         {
             glDeleteBuffers(2, l_layer->m_VBO_ID);
@@ -1196,9 +1272,299 @@ void TSDWindow::resetGpuResources()
     {
         clearLayer(m_listOfLayers[i]);
     }
+}
 
-    // The live flight layers are not in m_listOfLayers; clear them too so the
-    // next rebuild (rebuildFlightLayers) starts from a clean slate.
-    clearLayer(&m_sgFlightTrails);
-    clearLayer(&m_sgFlightMarkers);
+void TSDWindow::fetchBusRoute(const QString& busNo, const QString& accountKey)
+{
+    BusRouteWorker* busRouteWorker = workerAt<BusRouteWorker>(m_workers, BusRouteWorkerIndex);
+    QThread* busRouteThread = m_workers[BusRouteWorkerIndex]->thread();
+    if (busNo.isEmpty() || !busRouteWorker || !busRouteThread)
+    {
+        return;
+    }
+
+    if (!accountKey.trimmed().isEmpty())
+    {
+        m_accountKey = accountKey.trimmed();
+    }
+
+    if (!busRouteThread->isRunning())
+    {
+        busRouteThread->start();
+    }
+
+    const QString targetBus = busNo.trimmed();
+    const QString key = m_accountKey;
+    qWarning().noquote() << "Fetching route for bus service:" << targetBus;
+
+    QMetaObject::invokeMethod(
+        busRouteWorker, [busRouteWorker, targetBus, key]() { busRouteWorker->fetchRouteForBus(targetBus, key); },
+        Qt::QueuedConnection);
+}
+
+void TSDWindow::onBusRouteReady(const QString& busNo, const QList<BusRoute>& routes)
+{
+    m_currentBusNo = busNo;
+
+    // Append routes for busNo (replacing any existing route entry for the same busNo)
+    for (int i = m_activeBusRoutes.size() - 1; i >= 0; --i)
+    {
+        if (m_activeBusRoutes[i].serviceNo.compare(busNo, Qt::CaseInsensitive) == 0)
+        {
+            m_activeBusRoutes.removeAt(i);
+        }
+    }
+    m_activeBusRoutes.append(routes);
+
+    m_sgBusRouteLines.m_dirty = true;
+    m_sgBusRouteLines2.m_dirty = true;
+    m_sgBusStops.m_dirty = true;
+    m_sgBusStops2.m_dirty = true;
+    renderLater();
+}
+
+void TSDWindow::rebuildBusRouteLayers()
+{
+    // Build the vertex VBO, and
+    // additionally the index VBO for primitive types that need it (ARC line
+    // strips and POINT sprites both use primitive-restart indices; POLYGON
+    // fills only need the vertex buffer).
+    auto rebuildOne = [this](MapLayer& a_layer) {
+        if (!a_layer.m_parser)
+        {
+            return;
+        }
+
+        LayerParser::Options options;
+        options.baseProperty = m_sgCoastal.m_property;
+        options.layerDepth = 0;
+        options.isBaseLayer = false;
+        options.useWgs84BuildTransform = true;
+
+        a_layer.m_geometry = a_layer.m_parser->parse(options);
+        a_layer.m_property = a_layer.m_geometry.property;
+
+        if (!a_layer.m_geometry.vertices.empty())
+        {
+            if (!a_layer.m_VBO_ID[0])
+            {
+                glGenBuffers(1, &a_layer.m_VBO_ID[0]);
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
+            glBufferData(GL_ARRAY_BUFFER, a_layer.m_geometry.vertices.size() * 3 * sizeof(float),
+                         a_layer.m_geometry.vertices.data(), GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+            if (!a_layer.m_geometry.renderType.empty()
+                && (a_layer.m_geometry.renderType[0] == SHPT_ARC || a_layer.m_geometry.renderType[0] == SHPT_POINT))
+            {
+                if (!a_layer.m_VBO_ID[1])
+                {
+                    glGenBuffers(1, &a_layer.m_VBO_ID[1]);
+                }
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_VBO_ID[1]);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_geometry.lineIndices.size() * sizeof(GLuint),
+                             a_layer.m_geometry.lineIndices.data(), GL_DYNAMIC_DRAW);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            }
+        }
+    };
+
+    QList<BusRoute> outboundRoutes;
+    QList<BusRoute> returnRoutes;
+    for (const BusRoute& route : m_activeBusRoutes)
+    {
+        if (route.direction == 1)
+        {
+            outboundRoutes.append(route);
+        }
+        else if (route.direction == 2)
+        {
+            returnRoutes.append(route);
+        }
+    }
+
+    if (m_sgBusRouteLines.m_parser)
+    {
+        static_cast<BusLayerParser*>(m_sgBusRouteLines.m_parser)->setRoutes(outboundRoutes);
+    }
+    if (m_sgBusRouteLines2.m_parser)
+    {
+        static_cast<BusLayerParser*>(m_sgBusRouteLines2.m_parser)->setRoutes(returnRoutes);
+    }
+    if (m_sgBusStops.m_parser)
+    {
+        static_cast<BusLayerParser*>(m_sgBusStops.m_parser)->setRoutes(outboundRoutes);
+    }
+    if (m_sgBusStops2.m_parser)
+    {
+        static_cast<BusLayerParser*>(m_sgBusStops2.m_parser)->setRoutes(returnRoutes);
+    }
+    rebuildOne(m_sgBusRouteLines);
+    rebuildOne(m_sgBusRouteLines2);
+    rebuildOne(m_sgBusStops);
+    rebuildOne(m_sgBusStops2);
+    qWarning() << "Bus route geometry:" << "direction 1 routes" << outboundRoutes.size() << "vertices"
+               << m_sgBusRouteLines.m_geometry.vertices.size() << "indices"
+               << m_sgBusRouteLines.m_geometry.lineIndices.size() << "direction 2 routes" << returnRoutes.size()
+               << "vertices" << m_sgBusRouteLines2.m_geometry.vertices.size() << "indices"
+               << m_sgBusRouteLines2.m_geometry.lineIndices.size();
+    m_sgBusRouteLines.m_dirty = false;
+    m_sgBusRouteLines2.m_dirty = false;
+    m_sgBusStops.m_dirty = false;
+    m_sgBusStops2.m_dirty = false;
+}
+
+void TSDWindow::clearBusInfo()
+{
+    if (BusTrackerWorker* busWorker = workerAt<BusTrackerWorker>(m_workers, BusWorkerIndex))
+    {
+        QMetaObject::invokeMethod(busWorker, &BusTrackerWorker::stop, Qt::QueuedConnection);
+    }
+    if (BusRouteWorker* busRouteWorker = workerAt<BusRouteWorker>(m_workers, BusRouteWorkerIndex))
+    {
+        QMetaObject::invokeMethod(busRouteWorker, &BusRouteWorker::stop, Qt::QueuedConnection);
+    }
+
+    m_currentBusNo.clear();
+    m_activeBusRoutes.clear();
+    if (m_sgBusRouteLines.m_parser)
+    {
+        static_cast<BusLayerParser*>(m_sgBusRouteLines.m_parser)->setRoutes(QList<BusRoute>());
+    }
+    if (m_sgBusRouteLines2.m_parser)
+    {
+        static_cast<BusLayerParser*>(m_sgBusRouteLines2.m_parser)->setRoutes(QList<BusRoute>());
+    }
+    if (m_sgBusStops.m_parser)
+    {
+        static_cast<BusLayerParser*>(m_sgBusStops.m_parser)->setRoutes(QList<BusRoute>());
+    }
+    if (m_sgBusStops2.m_parser)
+    {
+        static_cast<BusLayerParser*>(m_sgBusStops2.m_parser)->setRoutes(QList<BusRoute>());
+    }
+    m_sgBusRouteLines.m_dirty = true;
+    m_sgBusRouteLines2.m_dirty = true;
+    m_sgBusStops.m_dirty = true;
+    m_sgBusStops2.m_dirty = true;
+
+    m_currentBusStopSnapshot = BusStopSnapshot();
+    if (m_sgBusVehicles.m_parser)
+    {
+        static_cast<BusLayerParser*>(m_sgBusVehicles.m_parser)->setSnapshot(BusStopSnapshot());
+    }
+    m_sgBusVehicles.m_dirty = true;
+    m_sgBusWindshields.m_dirty = true;
+
+    renderLater();
+}
+
+void TSDWindow::trackBusStop(const QString& stopCode, const QString& accountKey)
+{
+    BusTrackerWorker* busWorker = workerAt<BusTrackerWorker>(m_workers, BusWorkerIndex);
+    QThread* busThread = m_workers[BusWorkerIndex]->thread();
+    QThread* busRouteThread = m_workers[BusRouteWorkerIndex]->thread();
+    if (stopCode.isEmpty() || !busWorker || !busThread)
+    {
+        return;
+    }
+
+    if (!accountKey.trimmed().isEmpty())
+    {
+        m_accountKey = accountKey.trimmed();
+    }
+
+    if (!busThread->isRunning())
+    {
+        busThread->start();
+    }
+
+    if (busRouteThread && !busRouteThread->isRunning())
+    {
+        busRouteThread->start();
+    }
+
+    // Reset active bus routes when tracking a new bus stop
+    m_activeBusRoutes.clear();
+    m_sgBusRouteLines.m_dirty = true;
+    m_sgBusRouteLines2.m_dirty = true;
+    m_sgBusStops.m_dirty = true;
+    m_sgBusStops2.m_dirty = true;
+
+    const QString targetStop = stopCode.trimmed();
+    const QString key = m_accountKey;
+    qWarning().noquote() << "Tracking bus stop:" << targetStop;
+
+    QMetaObject::invokeMethod(
+        busWorker, [busWorker, targetStop, key]() { busWorker->trackBusStop(targetStop, key, 15000); },
+        Qt::QueuedConnection);
+}
+
+void TSDWindow::onBusArrivalUpdated(const BusStopSnapshot& snapshot)
+{
+    m_currentBusStopSnapshot = snapshot;
+    m_sgBusVehicles.m_dirty = true;
+    m_sgBusWindshields.m_dirty = true;
+
+    // Automatically fetch and draw routes for all bus services arriving at this bus stop
+    for (const BusService& service : snapshot.services)
+    {
+        if (!service.serviceNo.isEmpty())
+        {
+            fetchBusRoute(service.serviceNo, m_accountKey);
+        }
+    }
+
+    renderLater();
+}
+
+void TSDWindow::rebuildBusTrackerLayers()
+{
+    auto rebuildOne = [this](MapLayer& a_layer) {
+        if (!a_layer.m_parser)
+        {
+            return;
+        }
+
+        LayerParser::Options options;
+        options.baseProperty = m_sgCoastal.m_property;
+        options.layerDepth = 0;
+        options.isBaseLayer = false;
+        options.useWgs84BuildTransform = true;
+
+        a_layer.m_geometry = a_layer.m_parser->parse(options);
+        a_layer.m_property = a_layer.m_geometry.property;
+
+        if (!a_layer.m_geometry.vertices.empty())
+        {
+            if (!a_layer.m_VBO_ID[0])
+            {
+                glGenBuffers(1, &a_layer.m_VBO_ID[0]);
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
+            glBufferData(GL_ARRAY_BUFFER, a_layer.m_geometry.vertices.size() * 3 * sizeof(float),
+                         a_layer.m_geometry.vertices.data(), GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
+    };
+
+    if (m_sgBusVehicles.m_parser)
+    {
+        auto* busParser = static_cast<BusLayerParser*>(m_sgBusVehicles.m_parser);
+        busParser->setRoutes(m_activeBusRoutes);
+        busParser->setSnapshot(m_currentBusStopSnapshot);
+    }
+
+    if (m_sgBusWindshields.m_parser)
+    {
+        auto* windshieldParser = static_cast<BusLayerParser*>(m_sgBusWindshields.m_parser);
+        windshieldParser->setRoutes(m_activeBusRoutes);
+        windshieldParser->setSnapshot(m_currentBusStopSnapshot);
+    }
+
+    rebuildOne(m_sgBusVehicles);
+    rebuildOne(m_sgBusWindshields);
+    m_sgBusVehicles.m_dirty = false;
+    m_sgBusWindshields.m_dirty = false;
 }

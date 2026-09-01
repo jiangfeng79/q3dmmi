@@ -205,6 +205,32 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="checkBoxBusRoutes">
+     <property name="text">
+      <string>Bus Routes</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+     <property name="tristate">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkBoxBusTracks">
+     <property name="text">
+      <string>Bus Tracks</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+     <property name="tristate">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

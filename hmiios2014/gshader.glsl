@@ -17,11 +17,10 @@ uniform vec2 resolution; // viewport size in pixels
 uniform float time;
 
 void main() {
-	// Thicken the MRT layer (color_id 20) and the live flight trails
-	// (color_id 27); keep every other line at 1px to match the current
-	// driver-clamped appearance.
+	// Thicken the MRT layer (color_id 20), flight trails (color_id 27),
+    // and bus route lines (color_id 28 & 29).
    
-    float width = (color_id == 20) ? 1.2 : (color_id == 27) ? 1.0 : 0.6;
+    float width = (color_id == 20) ? 1.2 : (color_id == 27) ? 0.3 : (color_id == 28 || color_id == 29) ? 0.4 : 0.6;
 
     // Segment endpoints in NDC.
     vec2 a = gl_in[0].gl_Position.xy / gl_in[0].gl_Position.w;
@@ -42,8 +41,8 @@ void main() {
 */
     vec2 center = vec2(0.0);
     float dist = distance((a + b) * 0.5, center);
-    float ripple = sin(dist * 30.0 - time * 18.0);
-    float amp = ripple * 0.001;
+    float ripple = sin(dist * 30.0 - time * 10.0);
+    float amp = ripple * 0.0005;
     a += n * amp;
     b += n * amp;
 

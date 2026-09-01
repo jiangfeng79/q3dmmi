@@ -20,6 +20,8 @@
 #include <QNetworkReply>
 #include <QObject>
 #include <QSet>
+#include <QSslError>
+#include <QSslSocket>
 #include <QTimer>
 #include <QUrl>
 
@@ -68,11 +70,18 @@ public:
                     << "https://api.adsb.lol/v2/lat/%1/lon/%2/dist/%3";
     }
 
+    ~TrackerWorker() override
+    {
+        stop();
+    }
+
     // Start polling. Must be called from the worker thread (e.g. via
     // moveToThread). The network manager and timer are created here so they
     // inherit the worker thread's affinity.
     void start(double lat = 1.3644, double lon = 103.9915, int radiusNm = 30)
     {
+        stop();
+
         m_lat = lat;
         m_lon = lon;
         m_radiusNm = radiusNm;
@@ -132,7 +141,13 @@ public slots:
                           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/122.0.0.0 Safari/537.36");
 
-        m_nam->get(request);
+        QSslConfiguration sslConfig = request.sslConfiguration();
+        sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
+        request.setSslConfiguration(sslConfig);
+
+        QNetworkReply* reply = m_nam->get(request);
+        connect(reply, &QNetworkReply::sslErrors, reply,
+                static_cast<void (QNetworkReply::*)(const QList<QSslError>&)>(&QNetworkReply::ignoreSslErrors));
     }
 
 private slots:
@@ -208,6 +223,10 @@ private slots:
                 entry.latest = ac;
                 entry.missedCount = 0;
                 entry.history.append({ac.lat, ac.lon, QDateTime::currentDateTime()});
+                if (entry.history.size() > m_maxHistorySamples)
+                {
+                    entry.history.removeFirst();
+                }
 
                 seenThisPoll.insert(ac.hex);
             }
@@ -251,6 +270,7 @@ private:
 
     // Number of consecutive missed polls before an aircraft is removed.
     static constexpr int m_missThreshold = 3;
+    static constexpr int m_maxHistorySamples = 100;
 
     QHash<QString, TrackedAircraft> m_table;
 };
