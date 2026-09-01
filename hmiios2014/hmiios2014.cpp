@@ -145,30 +145,20 @@ void hmiios2014::setTsdWindow(TSDWindow* a_tsd)
 void hmiios2014::slot_setMapFilter(TSDWindow::DisplayMaskBits layer, int state)
 {
     const std::uint64_t layerText = static_cast<std::uint64_t>(layer) << 1;
-    const bool hasTextLayer = layer != TSDWindow::MRT_POINT;
     if (state == Qt::Unchecked)
     {
         m_tsd->setDisplayMask(layer, false);
-        if (hasTextLayer)
-        {
-            m_tsd->setDisplayMask(static_cast<TSDWindow::DisplayMaskBits>(layerText), false);
-        }
+        m_tsd->setDisplayMask(static_cast<TSDWindow::DisplayMaskBits>(layerText), false);
     }
     else if (state == Qt::Checked)
     {
         m_tsd->setDisplayMask(layer, true);
-        if (hasTextLayer)
-        {
-            m_tsd->setDisplayMask(static_cast<TSDWindow::DisplayMaskBits>(layerText), true);
-        }
+        m_tsd->setDisplayMask(static_cast<TSDWindow::DisplayMaskBits>(layerText), true);
     }
     else if (state == Qt::PartiallyChecked)
     {
         m_tsd->setDisplayMask(layer, true);
-        if (hasTextLayer)
-        {
-            m_tsd->setDisplayMask(static_cast<TSDWindow::DisplayMaskBits>(layerText), false);
-        }
+        m_tsd->setDisplayMask(static_cast<TSDWindow::DisplayMaskBits>(layerText), false);
     }
 }
 

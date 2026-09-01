@@ -848,7 +848,7 @@ void TSDWindow::render()
 
     renderText(10, 72 * retinaScale, QString("Refresh Rate: %1").arg(m_fps, 4, 10, QChar(' ')));
 
-    if (SCALE > 0.5)
+    if ((m_displayMask & MRT_POINT_TEXT) && SCALE > 0.5)
     {
         for (int i = 0; i < sizeof(mrt) / sizeof(GLfloat) / 2; ++i)
         {

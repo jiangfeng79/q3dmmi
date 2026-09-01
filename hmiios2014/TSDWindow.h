@@ -23,21 +23,21 @@
 #include <time.h>
 #include <vector>
 
+#include "MapLayer.h"
 #include "OpenglWindow.h"
+#include "WorkerEntry.h"
 #include "busLayerParser.h"
 #include "busRoute.h"
 #include "busTracker.h"
 #include "flightLayerParser.h"
 #include "flightTracker.h"
-#include "MapLayer.h"
-#include "WorkerEntry.h"
 
 class TSDWindow : public OpenglWindow
 {
     Q_OBJECT
 
 public:
-    enum DisplayMaskBits: std::uint64_t
+    enum DisplayMaskBits : std::uint64_t
     {
         COASTAL = 1,            // polygon
         COASTAL_TEXT = 1 << 1,  // polygon
@@ -64,20 +64,20 @@ public:
         MAN_MADE = 1 << 22,
         MAN_MADE_TEXT = 1 << 23,
 
-        MRT_POINT = 1 << 24,      // points
-        FLIGHTS = 1 << 25,        // live airflight markers (SHPT_POLYGON)
-        FLIGHTS_TEXT = 1 << 26,   // live airflight callsign labels
-        FLIGHT_TRAILS = 1 << 27,  // live airflight trails (SHPT_ARC)
-        BUS_ROUTES = 1 << 28,     // bus route lines
-        BUS_ROUTES2 = 1 << 29,     // bus route lines2
-        BUS_ROUTES_TEXT = 1 << 30,// bus route stop labels
-        BUS_STOPS = 1ULL << 31,  // bus stop nodes
-        BUS_STOPS_TEXT = 1ULL << 32,// bus stop labels
-        BUS_TRACKS = 1ULL << 33,     // bus tracking symbols
-        BUS_TRACKS_TEXT = 1ULL << 34, // bus tracking vehicle labels
-        BUS_TRACKS_WINDSHIELD = 1ULL << 35,
-        BUS_STOPS2 = 1ULL << 36,     // return-direction bus stop nodes
-        DIPLAY_ALL = 0xFFFFFFFFFFFFFFFF
+        MRT_POINT = 1 << 24,           // points
+        MRT_POINT_TEXT = 1 << 25,      // points
+        FLIGHTS = 1 << 26,             // live airflight markers (SHPT_POLYGON)
+        FLIGHTS_TEXT = 1 << 27,        // live airflight callsign labels
+        FLIGHT_TRAILS = 1 << 28,       // live airflight trails (SHPT_ARC)
+        BUS_ROUTES = 1 << 29,          // bus route lines
+        BUS_ROUTES2 = 1 << 30,         // bus route lines2
+        BUS_ROUTES_TEXT = 1ULL << 31,  // bus route stop labels
+        BUS_STOPS = 1ULL << 32,        // bus stop nodes
+        BUS_STOPS_TEXT = 1ULL << 33,   // bus stop labels
+        BUS_TRACKS = 1ULL << 34,       // bus tracking symbols
+        BUS_TRACKS_TEXT = 1ULL << 35,  // bus tracking vehicle labels
+        BUS_TRACKS_WINDSHIELD = 1ULL << 36,
+        BUS_STOPS2 = 1ULL << 37  // return-direction bus stop nodes
     };
 
     unsigned int myLog2(uint64_t value)
