@@ -140,7 +140,7 @@ TSDWindow::TSDWindow()
       m_mrtVBO(0),
       m_eblVBO(0),
       m_shader(0),
-      m_displayMask(0xff5c032b),
+      m_displayMask(0x3DFF5C032B),
       m_bAutoZoom(false),
       m_bAutoSwing(false),
       m_bShaderToys(false)
@@ -175,17 +175,6 @@ TSDWindow::TSDWindow()
     m_sgBusStops2.setParser(new BusLayerParser(BusLayerParser::RouteStops));
     m_sgBusVehicles.setParser(new BusLayerParser(BusLayerParser::Vehicles));
     m_sgBusWindshields.setParser(new BusLayerParser(BusLayerParser::VehicleWindshields));
-
-    setDisplayMask(MAN_MADE_TEXT, false);
-    setDisplayMask(MOTOR_WAYS_TEXT, false);
-    setDisplayMask(MAIN_ROADS_TEXT, false);
-    setDisplayMask(MINOR_ROADS_TEXT, false);
-    setDisplayMask(MRT_TEXT, false);
-    setDisplayMask(BUS_ROUTES2, true);
-    setDisplayMask(BUS_STOPS2, true);
-    setDisplayMask(BUS_TRACKS, true);
-    setDisplayMask(BUS_TRACKS_WINDSHIELD, true);
-    setDisplayMask(BUS_TRACKS_TEXT, true);
 
     m_listOfLayers << &m_sgCoastal << &m_sgWaterArea << &m_sgMRT << &m_sgAmenities << &m_sgLandUsages << &m_sgPlaces
                    << &m_sgBuilding << &m_sgMainRoads << &m_sgMotorWays << &m_sgMinorRoads << &m_sgAirWays
