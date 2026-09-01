@@ -52,11 +52,11 @@ const vec4 kColorTable[38] = vec4[38](
 	vec4(0.0, 0.85, 0.85, 0.9),   // 29 BUS_ROUTES (1<<28) - route lines
 	vec4(0.75, 0.0, 0.0, 0.7),   // 30 BUS_ROUTES2 (1<<29) - route lines
 	vec4(.0, .0, .0, .0),         // 31 (BUS_ROUTES_TEXT bit; unused)
-	vec4(.15, 0.15, 0.8, 0.5),    // 32 BUS_STOPS (1<<31) - bus stop points
+	vec4(.15, 0.15, 0.8, 0.9),    // 32 BUS_STOPS (1<<31) - bus stop points
 	vec4(1.0, 0.55, 0.0, 0.5),    // 33 BUS_STOPS_TEXT (1<<32) - bus stop points text
 	vec4(1.0, .65, 0.0, .82),    // 34 BUS_TRACKS (1<<33) - bus vehicle symbol
 	vec4(1.0, 0.55, 0.0, 0.5),    // 35 BUS_TRACKS_TEXT (1<<34) - bus vehicle symbol text
-	vec4(0.12, 0.36, 0.48, 0.6),  // 36 BUS_TRACKS_WINDSHIELD (1<<35)
+	vec4(0.12, 0.36, 0.48, 0.9),  // 36 BUS_TRACKS_WINDSHIELD (1<<35)
 	vec4(0.80, 0.15, 0.15, 0.90)  // 37 BUS_STOPS2 (1<<36)
 );
 

@@ -899,7 +899,7 @@ void TSDWindow::render()
                        .arg(m_currentBusStopSnapshot.services.size())
                        .arg(m_currentBusStopSnapshot.lastUpdated.toString("hh:mm:ss")));
 
-        if ((m_displayMask & BUS_TRACKS_TEXT) && SCALE > 0.5)
+        if ((m_displayMask & BUS_TRACKS_TEXT) && SCALE > 0.05)
         {
             auto getMinsToArr = [](const QString& timeStr) -> int {
                 if (timeStr.isEmpty())

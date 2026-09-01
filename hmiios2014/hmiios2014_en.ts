@@ -68,11 +68,26 @@
         <source>Man Made</source>
         <translation type="unfinished">Man Made</translation>
     </message>
+    <message>
+        <location filename="mapFilter.ui" line="197"/>
+        <source>Flights</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mapFilter.ui" line="210"/>
+        <source>Bus Routes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mapFilter.ui" line="223"/>
+        <source>Bus Tracks</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>TSDWindow</name>
     <message>
-        <location filename="TSDWindow.cpp" line="761"/>
+        <location filename="TSDWindow.cpp" line="1038"/>
         <source>Angle: %1, Dist: %2</source>
         <translation type="unfinished">Angle: %1, Dist: %2</translation>
     </message>
@@ -80,10 +95,45 @@
 <context>
     <name>hmiios2014</name>
     <message>
-        <location filename="hmiios2014.cpp" line="167"/>
-        <location filename="hmiios2014.cpp" line="175"/>
+        <location filename="hmiios2014.cpp" line="206"/>
+        <location filename="hmiios2014.cpp" line="213"/>
         <source>Current Language changed to %1</source>
         <translation type="unfinished">Current Language changed to %1</translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.cpp" line="236"/>
+        <source>LTA DataMall Account Key</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.cpp" line="239"/>
+        <source>Get your free access key:&lt;br&gt;&lt;a href=&quot;https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html&quot;&gt;LTA DataMall API request&lt;/a&gt;&lt;br&gt;Enter LTA DataMall Account Key:&lt;br&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.cpp" line="274"/>
+        <source>Bus route</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.cpp" line="275"/>
+        <source>Enter bus number:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.cpp" line="290"/>
+        <source>Bus track</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.cpp" line="291"/>
+        <source>Enter bus stop number:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.cpp" line="309"/>
+        <source>Cleared all bus routes and tracks</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -100,115 +150,165 @@
     </message>
     <message>
         <location filename="hmiios2014.ui" line="54"/>
+        <source>Bus</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="63"/>
         <source>Gfx Effect</source>
         <translation type="unfinished">Gfx Effect</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="62"/>
+        <location filename="hmiios2014.ui" line="71"/>
         <source>Language</source>
         <translation type="unfinished">Language</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="74"/>
+        <location filename="hmiios2014.ui" line="79"/>
+        <source>Debug</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="91"/>
         <source>Main Toolbar</source>
         <translation type="unfinished">Main Toolbar</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="77"/>
+        <location filename="hmiios2014.ui" line="94"/>
         <source>A tool bar... does provide tool buttons</source>
         <translation type="unfinished">A tool bar... does provide tool buttons</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="108"/>
+        <location filename="hmiios2014.ui" line="125"/>
         <source>Sub toolbar</source>
         <translation type="unfinished">Sub toolba</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="136"/>
+        <location filename="hmiios2014.ui" line="153"/>
         <source>Map Filter</source>
         <translation type="unfinished">Map Filter</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="170"/>
+        <location filename="hmiios2014.ui" line="187"/>
         <source>Fullscreen</source>
         <translation type="unfinished">Fullscreen</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="179"/>
-        <location filename="hmiios2014.ui" line="182"/>
+        <location filename="hmiios2014.ui" line="196"/>
+        <location filename="hmiios2014.ui" line="199"/>
         <source>Normal Screen</source>
         <translation type="unfinished">Normal Screen</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="194"/>
+        <location filename="hmiios2014.ui" line="211"/>
         <source>Select</source>
         <translation type="unfinished">Select</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="197"/>
+        <location filename="hmiios2014.ui" line="214"/>
         <source>Select Object</source>
         <translation type="unfinished">Select Object</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="209"/>
+        <location filename="hmiios2014.ui" line="226"/>
         <source>EBL</source>
         <translation type="unfinished">EBL</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="212"/>
+        <location filename="hmiios2014.ui" line="229"/>
         <source>Elastic Bearer Line</source>
         <translation type="unfinished">Elastic Bearer Line</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="221"/>
+        <location filename="hmiios2014.ui" line="238"/>
         <source>Exit</source>
         <translation type="unfinished">Exit</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="230"/>
+        <location filename="hmiios2014.ui" line="247"/>
         <source>Center Map</source>
         <translation type="unfinished">Center Map</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="239"/>
+        <location filename="hmiios2014.ui" line="256"/>
         <source>Map Layer Filter</source>
         <translation type="unfinished">Map Layer Filter</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="242"/>
+        <location filename="hmiios2014.ui" line="259"/>
         <source>Declutter map layers</source>
         <translation type="unfinished">Declutter map layers</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="251"/>
+        <location filename="hmiios2014.ui" line="268"/>
         <source>Zoom!</source>
         <translation type="unfinished">Zoom!</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="260"/>
-        <location filename="hmiios2014.ui" line="263"/>
+        <location filename="hmiios2014.ui" line="277"/>
+        <location filename="hmiios2014.ui" line="280"/>
         <source>Swing!</source>
         <translation type="unfinished">Swing!</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="272"/>
+        <location filename="hmiios2014.ui" line="289"/>
         <source>Shader Toys!</source>
         <translation type="unfinished">Shader Toys!</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="275"/>
+        <location filename="hmiios2014.ui" line="292"/>
         <source>Toggle Shader Toys</source>
         <translation type="unfinished">Toggle Shader Toys</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="280"/>
+        <location filename="hmiios2014.ui" line="297"/>
         <source>Chinese</source>
         <translation type="unfinished">Chinese</translation>
     </message>
     <message>
-        <location filename="hmiios2014.ui" line="285"/>
+        <location filename="hmiios2014.ui" line="302"/>
         <source>Default</source>
         <translation type="unfinished">Default</translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="313"/>
+        <source>Vsync</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="316"/>
+        <source>Toggle vertical sync (off = benchmark mode, unlimited FPS)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="321"/>
+        <source>Bus route</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="324"/>
+        <source>Get route information of a bus number</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="329"/>
+        <source>Bus track</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="332"/>
+        <source>Retrieve arriving buses for a bus stop number</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="337"/>
+        <source>Clear bus info</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.ui" line="340"/>
+        <source>Clear all bus routes and tracks from map</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>
