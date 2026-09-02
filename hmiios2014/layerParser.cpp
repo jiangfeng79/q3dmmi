@@ -27,6 +27,11 @@ void ShapefileLayerParser::freeMemory()
 
 LayerGeometry ShapefileLayerParser::parse(const Options& a_options)
 {
+    return parseImpl(a_options, false);
+}
+
+LayerGeometry ShapefileLayerParser::parseImpl(const Options& a_options, bool deriveBaseProperty)
+{
     LayerGeometry geo;
     geo.property = a_options.baseProperty;
 
@@ -47,13 +52,12 @@ LayerGeometry ShapefileLayerParser::parse(const Options& a_options)
     ShpReader::ShpEntity* l_shapeEntity = m_shapeFileReader.getEntity();
     DBFReader::DBFEntity* l_dbfEntity = m_dbfFileReader.getEntity();
 
-    // Base layer: derive the map center/extent/scale from the data itself.
-    if (a_options.isBaseLayer)
+    if (deriveBaseProperty)
     {
-        geo.property.centerX = 103.84810;
-        geo.property.centerY = (float)WGS84_TO_WGS84WEBMERCATOR(1.35059);
-        geo.property.width = (float)(m_shapeFileReader.getShpMaxX() - m_shapeFileReader.getShpMinX());
-        geo.property.height = (float)(m_shapeFileReader.getShpMaxY() - m_shapeFileReader.getShpMinY());
+        geo.property.centerX = 103.84810f;
+        geo.property.centerY = static_cast<float>(WGS84_TO_WGS84WEBMERCATOR(1.35059));
+        geo.property.width = static_cast<float>(m_shapeFileReader.getShpMaxX() - m_shapeFileReader.getShpMinX());
+        geo.property.height = static_cast<float>(m_shapeFileReader.getShpMaxY() - m_shapeFileReader.getShpMinY());
         geo.property.scale = 0.02f;
         geo.property.totalNumberOfVertex = 0;
     }
@@ -151,4 +155,10 @@ LayerGeometry ShapefileLayerParser::parse(const Options& a_options)
     freeMemory();
 
     return geo;
+}
+
+LayerGeometry ShapefileLayerParser::parseBase()
+{
+    Options options;
+    return parseImpl(options, true);
 }

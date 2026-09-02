@@ -35,6 +35,10 @@
 class TSDWindow : public OpenglWindow
 {
     Q_OBJECT
+    friend class MapLayer;
+    friend class BaseMapLayer;
+    friend class StaticMapLayer;
+    friend class LiveMapLayer;
 
 public:
     enum DisplayMaskBits : std::uint64_t
@@ -103,24 +107,9 @@ public:
 
     inline int getFps() { return m_fps; }
 
-    // void drawLayer(MapLayer & a_layer, bool a_bFillPolygon = false, int a_iColorId = 0);
-    void drawLayerAndFill(MapLayer& a_layer);
-    void drawLayer(MapLayer& a_layer);
-    // Draw only the line (SHPT_ARC) rings of a layer using the dedicated line
-    // shader (m_lineProgram). The caller binds m_lineProgram and sets color_id.
-    void drawLayerLines(MapLayer& a_layer);
-    // Stencil-fill helpers (shared by drawLayerAndFill)
-    void drawPolygonRing(MapLayer& a_layer, int i);
-    void drawRingsToStencil(MapLayer& a_layer);
-    void drawRingsToColor(MapLayer& a_layer);
-    void drawRingFilled(MapLayer& a_layer);
-    void drawText(MapLayer& a_layer);
-    void drawTextWithAngle(MapLayer& a_layer);
-    // Draw the live airflight labels: callsign + altitude on two lines,
-    // positioned to the right of each airplane marker.
-    void drawFlightText(MapLayer& a_layer);
     void drawEBL(float x, float y, float r);
     void drawMRTStation();
+
     void centerMap();
     void setDisplayMask(DisplayMaskBits layer, bool b);
     inline void setAutoZoom(bool value) { m_bAutoZoom = value; }
@@ -188,40 +177,41 @@ private:
     GLuint m_lineResolution;
     GLuint m_lineTime;
 
-    MapLayer m_sgCoastal;
-    MapLayer m_sgAmenities;
-    MapLayer m_sgPlaces;
-    MapLayer m_sgLandUsages;
-    MapLayer m_sgMRT;
-    MapLayer m_sgWaterArea;
-    MapLayer m_sgBuilding;
-    MapLayer m_sgMainRoads;
-    MapLayer m_sgMotorWays;
-    MapLayer m_sgMinorRoads;
-    MapLayer m_sgAirWays;
-    MapLayer m_sgManMade;
+    std::uint64_t m_displayMask;
+
+    BaseMapLayer m_sgCoastal;
+    BaseMapLayer m_sgWaterArea;
+    BaseMapLayer m_sgManMade;
+
+    StaticMapLayer m_sgAmenities;
+    StaticMapLayer m_sgPlaces;
+    StaticMapLayer m_sgLandUsages;
+    StaticMapLayer m_sgMRT;
+    StaticMapLayer m_sgBuilding;
+    StaticMapLayer m_sgMainRoads;
+    StaticMapLayer m_sgMotorWays;
+    StaticMapLayer m_sgMinorRoads;
+    StaticMapLayer m_sgAirWays;
     // Live airflight layers. Rendered through the normal map-layer passes
     // (trails as SHPT_ARC lines, markers as SHPT_POLYGON silhouettes) instead
     // of the old QPainter overlay. Their geometry is rebuilt through the
     // common live-layer loop.
-    MapLayer m_sgFlightTrails;
-    MapLayer m_sgFlightMarkers;
+    LiveMapLayer m_sgFlightTrails;
+    LiveMapLayer m_sgFlightMarkers;
 
-    // Live bus route and vehicle tracking layers. Like the flight layers,
-    // these are rebuilt through m_listOfLayers whenever their data changes.
-    MapLayer m_sgBusRouteLines;
-    MapLayer m_sgBusRouteLines2;
-    MapLayer m_sgBusStops;
-    MapLayer m_sgBusStops2;
-    MapLayer m_sgBusVehicles;
-    MapLayer m_sgBusWindshields;
+    // Live bus route and vehicle tracking layers.
+    LiveMapLayer m_sgBusRouteLines;
+    LiveMapLayer m_sgBusRouteLines2;
+    LiveMapLayer m_sgBusStops;
+    LiveMapLayer m_sgBusStops2;
+    LiveMapLayer m_sgBusVehicles;
+    LiveMapLayer m_sgBusWindshields;
 
-    QVector<MapLayer*> m_listOfLayers;
-
+    QVector<BaseMapLayer*> m_baseLayers;
+    QVector<StaticMapLayer*> m_staticLayers;
+    QVector<LiveMapLayer*> m_liveLayers;
+    
     GLfloat* m_mrt;
-
-    std::uint64_t m_displayMask;
-
     bool m_bAutoZoom;
     bool m_bAutoSwing;
     bool m_bShaderToys;
@@ -238,7 +228,6 @@ private:
     // Bus Tracker snapshot, VBO, and vehicle infos.
     BusStopSnapshot m_currentBusStopSnapshot;
     void rebuildBusRouteLayers();
-    void rebuildBusTrackerLayers();
     void rebuildLiveLayers();
 };
 

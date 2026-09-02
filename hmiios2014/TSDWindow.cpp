@@ -62,51 +62,6 @@
 // scale
 #define SCALE (m_sgCoastal.m_property.scale * m_fScaleFactor)
 
-/*
-template<int N> void TSDWindow::printMrtStringToScreen()
-{
-    printMrtStringToScreen<N-1>();
-    renderText( X_WGS84_COORD_TO_SCREEN_COORD(mrt[N*2])+7, Y_WGS84_COORD_TO_SCREEN_COORD(mrt[N*2+1])+5,
-QString(mrt_name[N]), QString("Tahoma"));
-}
-
-template<> void TSDWindow::printMrtStringToScreen<0>()
-{
-    renderText(X_WGS84_COORD_TO_SCREEN_COORD(mrt[0])+7, Y_WGS84_COORD_TO_SCREEN_COORD(mrt[1])+5, QString(mrt_name[0]),
-QString("Tahoma"));
-}
-
-template<int N> void TSDWindow::printStringToScreen(MapLayer & a_layer)
-{
-    printStringToScreen<N-1>(a_layer);
-
-    int x = X_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[N].coordinate[0]);
-    int y =  Y_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[N].coordinate[1]);
-    char * lable = (a_layer.m_dbfFileReader.getEntity())[N].stringValue;
-
-    if(x>0&&x<width() &&y>0&&y<height() &&lable!=NULL)
-    {
-        //qDebug() << "data:" << i << "x:" << (m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[0] <<"y:"
-<<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[1] << "value:"
-<<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].stringValue; renderText(x,y, QString(lable), QString("Tahoma"));
-    }
-}
-
-template<> void TSDWindow::printStringToScreen<0>(MapLayer & a_layer)
-{
-    int x = X_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[0].coordinate[0]);
-    int y =  Y_WGS84_COORD_TO_SCREEN_COORD((a_layer.m_dbfFileReader.getEntity())[0].coordinate[1]);
-    char * lable = (a_layer.m_dbfFileReader.getEntity())[0].stringValue;
-
-    if(x>0&&x<width() &&y>0&&y<height() &&lable!=NULL)
-    {
-        //qDebug() << "data:" << i << "x:" << (m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[0] <<"y:"
-<<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].coordinate[1] << "value:"
-<<(m_sgWaterArea.m_dbfFileReader.getEntity())[i].stringValue; renderText(x,y, QString(lable), QString("Tahoma"));
-    }
-}
-*/
-
 TSDWindow::TSDWindow()
     : m_program(0),
       m_bgProgram(0),
@@ -116,70 +71,60 @@ TSDWindow::TSDWindow()
       m_bgResolution(0),
       m_bgTime(0),
       m_bgShaderId(1),
-      m_sgCoastal("./sgMap/singapore", COASTAL, COASTAL_TEXT, true),
-      m_sgAmenities("./sgMap/singapore.osm-amenities", AMENITIES, AMENITIES_TEXT),
-      m_sgLandUsages("./sgMap/singapore.osm-landusages", LAND_USAGE, LAND_USAGE_TEXT),
-      m_sgPlaces("./sgMap/singapore.osm-places", PLACES, PLACES_TEXT),
-      m_sgMRT("./sgMap/railways", MRT, MRT_TEXT),
-      m_sgWaterArea("./sgMap/singapore.osm-waterareas", WATER_AREA, WATER_AREA_TEXT, true),
-      m_sgBuilding("./sgMap/singapore.osm-buildings", BUILDING, BUILDING_TEXT),
-      m_sgMainRoads("./sgMap/singapore.osm-mainroads", MAIN_ROADS, MAIN_ROADS_TEXT),
-      m_sgMotorWays("./sgMap/singapore.osm-motorways", MOTOR_WAYS, MOTOR_WAYS_TEXT),
-      m_sgMinorRoads("./sgMap/singapore.osm-minorroads", MINOR_ROADS, MINOR_ROADS_TEXT),
-      m_sgAirWays("./sgMap/singapore.osm-aeroways", AIR_WAYS, AIR_WAYS_TEXT),
-      m_sgManMade("./sgMap/singapore.osm-polygon", "man_made", MAN_MADE, MAN_MADE_TEXT, true),
-      m_sgFlightTrails(FLIGHT_TRAILS, FLIGHTS_TEXT, false, true),
-      m_sgFlightMarkers(FLIGHTS, FLIGHTS_TEXT, true, true),
-      m_sgBusRouteLines(BUS_ROUTES, BUS_ROUTES_TEXT, false, true),
-      m_sgBusRouteLines2(BUS_ROUTES2, BUS_ROUTES_TEXT, false, true),
-      m_sgBusStops(BUS_STOPS, BUS_STOPS_TEXT, false, true),
-      m_sgBusStops2(BUS_STOPS2, BUS_STOPS_TEXT, false, true),
-      m_sgBusVehicles(BUS_TRACKS, BUS_TRACKS_TEXT, true, true),
-      m_sgBusWindshields(BUS_TRACKS_WINDSHIELD, BUS_STOPS_TEXT, true, true),
+      m_displayMask(0x3DFF5C032B),
+      m_sgCoastal("./sgMap/singapore", COASTAL, COASTAL_TEXT, new ShapefileLayerParser("./sgMap/singapore"),
+                  m_displayMask, *this, BaseMapLayer::FillMode::Coastal),
+      m_sgAmenities("./sgMap/singapore.osm-amenities", AMENITIES, AMENITIES_TEXT,
+                    new ShapefileLayerParser("./sgMap/singapore.osm-amenities"), m_displayMask, *this),
+      m_sgLandUsages("./sgMap/singapore.osm-landusages", LAND_USAGE, LAND_USAGE_TEXT,
+                     new ShapefileLayerParser("./sgMap/singapore.osm-landusages"), m_displayMask, *this),
+      m_sgPlaces("./sgMap/singapore.osm-places", PLACES, PLACES_TEXT,
+                 new ShapefileLayerParser("./sgMap/singapore.osm-places"), m_displayMask, *this),
+      m_sgMRT("./sgMap/railways", MRT, MRT_TEXT, new ShapefileLayerParser("./sgMap/railways"), m_displayMask, *this),
+      m_sgWaterArea("./sgMap/singapore.osm-waterareas", WATER_AREA, WATER_AREA_TEXT,
+                    new ShapefileLayerParser("./sgMap/singapore.osm-waterareas"), m_displayMask, *this,
+                    BaseMapLayer::FillMode::WaterArea),
+      m_sgBuilding("./sgMap/singapore.osm-buildings", BUILDING, BUILDING_TEXT,
+                   new ShapefileLayerParser("./sgMap/singapore.osm-buildings"), m_displayMask, *this),
+      m_sgMainRoads("./sgMap/singapore.osm-mainroads", MAIN_ROADS, MAIN_ROADS_TEXT,
+                    new ShapefileLayerParser("./sgMap/singapore.osm-mainroads"), m_displayMask, *this),
+      m_sgMotorWays("./sgMap/singapore.osm-motorways", MOTOR_WAYS, MOTOR_WAYS_TEXT,
+                    new ShapefileLayerParser("./sgMap/singapore.osm-motorways"), m_displayMask, *this),
+      m_sgMinorRoads("./sgMap/singapore.osm-minorroads", MINOR_ROADS, MINOR_ROADS_TEXT,
+                     new ShapefileLayerParser("./sgMap/singapore.osm-minorroads"), m_displayMask, *this),
+      m_sgAirWays("./sgMap/singapore.osm-aeroways", AIR_WAYS, AIR_WAYS_TEXT,
+                  new ShapefileLayerParser("./sgMap/singapore.osm-aeroways"), m_displayMask, *this),
+      m_sgManMade("./sgMap/singapore.osm-polygon", "man_made", MAN_MADE, MAN_MADE_TEXT,
+                  new ShapefileLayerParser("./sgMap/singapore.osm-polygon", "man_made"), m_displayMask, *this,
+                  BaseMapLayer::FillMode::Independent),
+      m_sgFlightTrails(FLIGHT_TRAILS, FLIGHTS_TEXT, new FlightLayerParser(FlightLayerParser::Trails), m_displayMask,
+                       *this),
+      m_sgFlightMarkers(FLIGHTS, FLIGHTS_TEXT, new FlightLayerParser(FlightLayerParser::Markers), m_displayMask, *this,
+                        LiveMapLayer::LabelStyle::Flight),
+      m_sgBusRouteLines(BUS_ROUTES, BUS_ROUTES_TEXT, new BusLayerParser(BusLayerParser::RouteLines), m_displayMask,
+                        *this),
+      m_sgBusRouteLines2(BUS_ROUTES2, BUS_ROUTES_TEXT, new BusLayerParser(BusLayerParser::RouteLines), m_displayMask,
+                         *this),
+      m_sgBusStops(BUS_STOPS, BUS_STOPS_TEXT, new BusLayerParser(BusLayerParser::RouteStops), m_displayMask, *this),
+      m_sgBusStops2(BUS_STOPS2, BUS_STOPS_TEXT, new BusLayerParser(BusLayerParser::RouteStops), m_displayMask, *this),
+      m_sgBusVehicles(BUS_TRACKS, BUS_TRACKS_TEXT, new BusLayerParser(BusLayerParser::Vehicles), m_displayMask, *this),
+      m_sgBusWindshields(BUS_TRACKS_WINDSHIELD, BUS_STOPS_TEXT, new BusLayerParser(BusLayerParser::VehicleWindshields),
+                         m_displayMask, *this),
       m_mrt(nullptr),
       m_mrtVBO(0),
       m_eblVBO(0),
       m_shader(0),
-      m_displayMask(0x3DFF5C032B),
       m_bAutoZoom(false),
       m_bAutoSwing(false),
       m_bShaderToys(false)
 {
     m_programSlots = {&m_program, &m_bgProgram, &m_lineProgram};
 
-    // Inject the parser coupled to each layer's input data. Each layer is now
-    // paired with an independent parser that turns its raw input into
-    // renderable geometry.
-    m_sgCoastal.setParser(new ShapefileLayerParser(m_sgCoastal.m_fileName));
-    m_sgAmenities.setParser(new ShapefileLayerParser(m_sgAmenities.m_fileName));
-    m_sgPlaces.setParser(new ShapefileLayerParser(m_sgPlaces.m_fileName));
-    m_sgLandUsages.setParser(new ShapefileLayerParser(m_sgLandUsages.m_fileName));
-    m_sgMRT.setParser(new ShapefileLayerParser(m_sgMRT.m_fileName));
-    m_sgWaterArea.setParser(new ShapefileLayerParser(m_sgWaterArea.m_fileName));
-    m_sgBuilding.setParser(new ShapefileLayerParser(m_sgBuilding.m_fileName));
-    m_sgMainRoads.setParser(new ShapefileLayerParser(m_sgMainRoads.m_fileName));
-    m_sgMotorWays.setParser(new ShapefileLayerParser(m_sgMotorWays.m_fileName));
-    m_sgMinorRoads.setParser(new ShapefileLayerParser(m_sgMinorRoads.m_fileName));
-    m_sgAirWays.setParser(new ShapefileLayerParser(m_sgAirWays.m_fileName));
-    m_sgManMade.setParser(new ShapefileLayerParser(m_sgManMade.m_fileName, m_sgManMade.m_layerName));
-
-    // Live airflight layers: the parser is fed the tracking table each poll
-    // (see onTrackingTableUpdated) and rebuilt into geometry on the GUI thread.
-    m_sgFlightTrails.setParser(new FlightLayerParser(FlightLayerParser::Trails));
-    m_sgFlightMarkers.setParser(new FlightLayerParser(FlightLayerParser::Markers));
-
-    // Live bus layers: the parser is fed bus routes or bus arrival snapshots.
-    m_sgBusRouteLines.setParser(new BusLayerParser(BusLayerParser::RouteLines));
-    m_sgBusRouteLines2.setParser(new BusLayerParser(BusLayerParser::RouteLines));
-    m_sgBusStops.setParser(new BusLayerParser(BusLayerParser::RouteStops));
-    m_sgBusStops2.setParser(new BusLayerParser(BusLayerParser::RouteStops));
-    m_sgBusVehicles.setParser(new BusLayerParser(BusLayerParser::Vehicles));
-    m_sgBusWindshields.setParser(new BusLayerParser(BusLayerParser::VehicleWindshields));
-
-    m_listOfLayers << &m_sgCoastal << &m_sgWaterArea << &m_sgMRT << &m_sgAmenities << &m_sgLandUsages << &m_sgPlaces
-                   << &m_sgBuilding << &m_sgMainRoads << &m_sgMotorWays << &m_sgMinorRoads << &m_sgAirWays
-                   << &m_sgManMade << &m_sgFlightTrails << &m_sgFlightMarkers << &m_sgBusRouteLines
-                   << &m_sgBusRouteLines2 << &m_sgBusStops << &m_sgBusStops2 << &m_sgBusVehicles << &m_sgBusWindshields;
+    m_baseLayers = {&m_sgCoastal, &m_sgWaterArea, &m_sgManMade};
+    m_staticLayers = {&m_sgMRT,       &m_sgAmenities, &m_sgLandUsages, &m_sgPlaces, &m_sgBuilding,
+                      &m_sgMainRoads, &m_sgMotorWays, &m_sgMinorRoads, &m_sgAirWays};
+    m_liveLayers = {&m_sgFlightTrails, &m_sgFlightMarkers, &m_sgBusRouteLines, &m_sgBusRouteLines2,
+                    &m_sgBusStops,     &m_sgBusStops2,     &m_sgBusVehicles,   &m_sgBusWindshields};
 
     // Live airflight tracking near Changi. The worker runs on a dedicated
     // thread and polls the adsb.lol API; its tracking table is queued onto the
@@ -234,115 +179,7 @@ TSDWindow::~TSDWindow()
         }
     }
     m_workers.clear();
-
     free(m_mrt);
-}
-
-void MapLayer::buildLayer(MapProperty& a_property, int a_iLayerDepth)
-{
-    if (!m_parser)
-    {
-        return;
-    }
-
-    LayerParser::Options options;
-    options.baseProperty = a_property;
-    options.layerDepth = a_iLayerDepth;
-    options.isBaseLayer = false;
-    options.useWgs84BuildTransform = (m_id == TSDWindow::MAN_MADE || m_id == TSDWindow::MRT);
-
-    m_geometry = m_parser->parse(options);
-    m_property = m_geometry.property;
-}
-
-void MapLayer::buildLayer()
-{
-    if (!m_parser)
-    {
-        return;
-    }
-
-    LayerParser::Options options;
-    options.layerDepth = 0;
-    options.isBaseLayer = true;
-    options.useWgs84BuildTransform = false;
-
-    m_geometry = m_parser->parse(options);
-    m_property = m_geometry.property;
-}
-
-void TSDWindow::drawTextWithAngle(MapLayer& a_layer)
-{
-    const qreal retinaScale = devicePixelRatio();
-    if (a_layer.m_text_id & m_displayMask)
-    {
-        const std::vector<Label>& labels = a_layer.m_geometry.labels;
-        for (size_t i = 0; i < labels.size(); ++i)
-        {
-            int x = X_WGS84_COORD_TO_SCREEN_COORD(labels[i].longitude) * retinaScale;
-            int y = Y_WGS84_COORD_TO_SCREEN_COORD(labels[i].latitude) * retinaScale;
-            if (x > 0 && x < width() * retinaScale && y > 0 && y < height() * retinaScale && !labels[i].text.empty())
-            {
-                renderText(x, y, QString::fromStdString(labels[i].text), QString("Tahoma"), labels[i].angle);
-            }
-        }
-    }
-}
-
-void TSDWindow::drawText(MapLayer& a_layer)
-{
-    const qreal retinaScale = devicePixelRatio();
-    if (a_layer.m_text_id & m_displayMask)
-    {
-        const std::vector<Label>& labels = a_layer.m_geometry.labels;
-        for (size_t i = 0; i < labels.size(); ++i)
-        {
-            int x = X_WGS84_COORD_TO_SCREEN_COORD(labels[i].longitude) * retinaScale;
-            int y = Y_WGS84_COORD_TO_SCREEN_COORD(labels[i].latitude) * retinaScale;
-            if (x > 0 && x < width() * retinaScale && y > 0 && y < height() * retinaScale && !labels[i].text.empty())
-            {
-                renderText(x, y, QString::fromStdString(labels[i].text), QString("Tahoma"));
-            }
-        }
-    }
-}
-
-// Draw the live airflight labels: the callsign and the barometric altitude
-// on two lines, positioned to the right of each airplane marker.
-void TSDWindow::drawFlightText(MapLayer& a_layer)
-{
-    const qreal retinaScale = devicePixelRatio();
-    if (a_layer.m_text_id & m_displayMask)
-    {
-        const std::vector<Label>& labels = a_layer.m_geometry.labels;
-        for (size_t i = 0; i < labels.size(); ++i)
-        {
-            int x = X_WGS84_COORD_TO_SCREEN_COORD(labels[i].longitude) * retinaScale;
-            int y = Y_WGS84_COORD_TO_SCREEN_COORD(labels[i].latitude) * retinaScale;
-            if (x > 0 && x < width() * retinaScale && y > 0 && y < height() * retinaScale && !labels[i].text.empty())
-            {
-                // Split "CALLSIGN ALT" into two lines, drawn to the right of
-                // the marker (fixed screen size, so a fixed pixel offset works).
-                const QString full = QString::fromStdString(labels[i].text);
-                const int sp = full.indexOf(' ');
-                const QString line1 = (sp >= 0) ? full.left(sp) : full;
-                const QString line2 = (sp >= 0) ? full.mid(sp + 1) : QString();
-
-                // renderText() centers on its x, so to left-align both lines on
-                // the same edge, offset each by half of its own advance.
-                const int px = 12 * devicePixelRatio();
-                FontEntry* fe = getCachedFont(QStringLiteral("Tahoma"), px, false);
-                const QFontMetricsF& metrics = fe->metrics;
-                const int left = x + 10 * retinaScale;
-                renderText(left + (int)(metrics.horizontalAdvance(line1) / 2), y - 30, line1, QString("Tahoma"));
-                if (!line2.isEmpty())
-                {
-                    renderText(left + (int)(metrics.horizontalAdvance(line2) / 2), y - 30 + px, line2,
-                               QString("Tahoma"));
-                }
-            }
-        }
-    }
 }
 
 static bool checkGL(const char* stage)
@@ -445,42 +282,14 @@ void TSDWindow::initialize()
     glGenBuffers(1, &m_mrtVBO);
     glGenBuffers(1, &m_eblVBO);
 
-    for (int i = 0; i < m_listOfLayers.size(); ++i)
+    for (BaseMapLayer* layer : m_baseLayers)
     {
-        MapLayer* l_layer = m_listOfLayers[i];
-        if (i == 0)
-        {
-            l_layer->buildLayer();  // sg coastal; base layer
-        }
-        else
-        {
-            l_layer->buildLayer(m_sgCoastal.m_property, 0);
-        }
-
-        if (!l_layer->m_geometry.vertices.empty())
-        {
-            glGenBuffers(2, l_layer->m_VBO_ID);
-            glBindBuffer(GL_ARRAY_BUFFER, l_layer->m_VBO_ID[0]);
-            glBufferData(GL_ARRAY_BUFFER, l_layer->m_geometry.vertices.size() * 3 * sizeof(float),
-                         l_layer->m_geometry.vertices.data(), GL_STATIC_DRAW);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-            // if(l_layer->m_geometry.renderType[0] == SHPT_ARC)
-            {
-                // Create and upload to Element Array Buffer (EBO)
-                if (!l_layer->m_VBO_ID[1])
-                {
-                    glGenBuffers(1, &l_layer->m_VBO_ID[1]);
-                }
-
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, l_layer->m_VBO_ID[1]);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, l_layer->m_geometry.lineIndices.size() * sizeof(GLuint),
-                             l_layer->m_geometry.lineIndices.data(), GL_STATIC_DRAW);
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-            }
-        }
+        layer->buildLayer(m_sgCoastal.m_property, 0);
     }
-
+    for (StaticMapLayer* layer : m_staticLayers)
+    {
+        layer->buildLayer(m_sgCoastal.m_property, 0);
+    }
     m_mrt = (GLfloat*)malloc(sizeof(mrt));
     for (int i = 0; i < sizeof(mrt) / sizeof(GLfloat) / 2; ++i)
     {
@@ -496,167 +305,6 @@ void TSDWindow::initialize()
     }
 }
 
-//! [4]
-
-// Draw a single polygon ring as a triangle fan. Assumes the VBO is bound and
-// the vertex attribute pointer is set up by the caller's surrounding state.
-void TSDWindow::drawPolygonRing(MapLayer& a_layer, int i)
-{
-    const int vertCount = a_layer.m_geometry.rings[i + 1] - a_layer.m_geometry.rings[i];
-    if (vertCount < 3)
-    {
-        return;  // a triangle fan needs at least 3 vertices
-    }
-    glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, (void*)(intptr_t)(a_layer.m_geometry.rings[i] * 3 * 4));
-    glEnableVertexAttribArray(m_posAttr);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, vertCount);
-    glDisableVertexAttribArray(m_posAttr);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-// PASS 1: write every polygon ring into the stencil buffer (color writes off).
-// GL_INVERT toggles the bit, so overlapping rings cancel out (even-odd rule).
-void TSDWindow::drawRingsToStencil(MapLayer& a_layer)
-{
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);  // disable writing to color buffer
-    glStencilFunc(GL_ALWAYS, 0x1, 0x1);
-    glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
-
-    for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
-    {
-        if (a_layer.m_geometry.renderType[i] == SHPT_POLYGON)
-        {
-            drawPolygonRing(a_layer, i);
-        }
-    }
-}
-
-// PASS 2: color the pixels whose stencil bit ended up set (odd coverage).
-void TSDWindow::drawRingsToColor(MapLayer& a_layer)
-{
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);  // enable writing to color buffer
-    glStencilFunc(GL_EQUAL, 0x1, 0x1);                // test if it is odd(1)
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-    for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
-    {
-        if (a_layer.m_geometry.renderType[i] == SHPT_POLYGON)
-        {
-            drawPolygonRing(a_layer, i);
-        }
-    }
-}
-
-// Fill a single ring: stencil pass then color pass, resolved immediately.
-void TSDWindow::drawRingFilled(MapLayer& a_layer)
-{
-    for (int i = 0; i < (int)a_layer.m_geometry.rings.size() - 1; ++i)
-    {
-        if (a_layer.m_geometry.renderType[i] == SHPT_POLYGON)
-        {
-            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);  // disable writing to color buffer
-            glStencilFunc(GL_ALWAYS, 0x1, 0x1);
-            glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
-            drawPolygonRing(a_layer, i);
-
-            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);  // enable writing to color buffer
-            glStencilFunc(GL_EQUAL, 0x1, 0x1);                // test if it is odd(1)
-            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-            drawPolygonRing(a_layer, i);
-        }
-    }
-}
-
-void TSDWindow::drawLayerAndFill(MapLayer& a_layer)
-{
-    // polygon
-    glClear(GL_STENCIL_BUFFER_BIT);
-    glClearStencil(0x0);
-
-    // enable stencil test
-    glEnable(GL_STENCIL_TEST);
-
-    if (a_layer.m_id == WATER_AREA)
-    {
-        // Batched two-pass: all rings write to the stencil buffer first, then
-        // all are colored. This lets the even-odd GL_INVERT cancellation
-        // accumulate across the whole layer, so overlapping water polygons and
-        // holes resolve correctly.
-        drawRingsToStencil(a_layer);
-        drawRingsToColor(a_layer);
-    }
-    else
-    {
-        // Per-ring: each ring resolves its own stencil->color immediately, so
-        // there is no cross-ring cancellation.
-        drawRingFilled(a_layer);
-    }
-
-    glDisable(GL_STENCIL_TEST);
-}
-
-void TSDWindow::drawLayer(MapLayer& a_layer)
-{
-    if (!a_layer.m_VBO_ID[0] || !a_layer.m_VBO_ID[1])
-    {
-        return;
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glEnableVertexAttribArray(m_posAttr);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_VBO_ID[1]);
-
-    glEnable(GL_PRIMITIVE_RESTART);
-    glPrimitiveRestartIndex(0xFFFFFFFF);
-    // ONE SINGLE DRAW CALL FOR HUNDREDS OF THOUSANDS OF LINES:
-    if (a_layer.m_geometry.renderType.size() > 0 && a_layer.m_geometry.renderType[0] == SHPT_POLYGON)
-    {
-        glDrawElements(GL_LINE_STRIP, a_layer.m_geometry.lineIndices.size(), GL_UNSIGNED_INT, 0);
-    }
-    else if (a_layer.m_geometry.renderType.size() > 0 && a_layer.m_geometry.renderType[0] == SHPT_POINT)
-    {
-        glPointSize(a_layer.m_id == BUS_STOPS ? 7.0f : 6.0f);
-        glDrawElements(GL_POINTS, a_layer.m_geometry.lineIndices.size(), GL_UNSIGNED_INT, 0);
-    }
-
-    glDisable(GL_PRIMITIVE_RESTART);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glDisableVertexAttribArray(m_posAttr);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-// Draw only the line (SHPT_ARC) rings of a layer using the dedicated line
-// shader (m_lineProgram). The caller must have bound m_lineProgram and set its
-// color_id uniform. The geometry shader expands each segment into a filled
-// quad, so lines are thickened beyond the driver's 1px glLineWidth limit.
-void TSDWindow::drawLayerLines(MapLayer& a_layer)
-{
-    if (!a_layer.m_VBO_ID[0] || !a_layer.m_VBO_ID[1]
-        || (a_layer.m_geometry.renderType.size() > 0 && a_layer.m_geometry.renderType[0] != SHPT_ARC))
-    {
-        return;
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glEnableVertexAttribArray(m_posAttr);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_VBO_ID[1]);
-
-    glEnable(GL_PRIMITIVE_RESTART);
-    glPrimitiveRestartIndex(0xFFFFFFFF);
-    // ONE SINGLE DRAW CALL FOR HUNDREDS OF THOUSANDS OF LINES:
-    glDrawElements(GL_LINE_STRIP, a_layer.m_geometry.lineIndices.size(), GL_UNSIGNED_INT, 0);
-
-    glDisable(GL_PRIMITIVE_RESTART);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glDisableVertexAttribArray(m_posAttr);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
 //! [5]
 void TSDWindow::render()
 {
@@ -666,13 +314,7 @@ void TSDWindow::render()
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
     glEnable(GL_BLEND);
-    // glEnable( GL_DEPTH_TEST);
-    // glEnable(GL_POINT_SMOOTH);
-    // glEnable( GL_POLYGON_SMOOTH);
-    // glEnable( GL_LINE_SMOOTH );
-    // glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_MULTISAMPLE);
 
@@ -685,12 +327,8 @@ void TSDWindow::render()
 
     QMatrix4x4 matrix;
     matrix.ortho(-w / 2, w / 2, -h / 2, h / 2, -500.0, 500.0);
-
-    // matrix.rotate(-m_dRotationAngle/M_PI*180.0, 0, 0, 1);
-
     matrix.translate((m_fMapCenterDeltaX * m_fScaleFactor), -(m_fMapCenterDeltaY * m_fScaleFactor), 0);
 
-    // l_fScaleFactor =  (abs(sin(time*0.1)));
     if (m_bAutoZoom)
     {
         matrix.scale((abs(sin(time * 0.1))) * m_sgCoastal.m_property.scale * m_fScaleFactor);
@@ -699,25 +337,33 @@ void TSDWindow::render()
     {
         matrix.scale(m_sgCoastal.m_property.scale * m_fScaleFactor);
     }
-    // matrix.scale( (abs(sin(time*0.1)))*m_sgCoastal.m_property.scale*m_fScaleFactor);
 
-    // center on the new center postion
-    // matrix.rotate(1000.0f * time / screen()->refreshRate(), 0, 0, 1);
     if (m_bAutoSwing)
     {
         matrix.rotate(sin(time) * 10, 0, 0, 1);
     }
 
-    QVector<int> shaderRenderLayers = {0, 11};  // COASTAL and MAN_MADE layers are drawn by shaders
-    // Precompute which layers are drawn by the shader pass so the main loop
-    // below can skip them with an O(1) lookup instead of scanning the list.
-    QVector<bool> shaderRendered(m_listOfLayers.size(), false);
-    for (int idx : shaderRenderLayers)
-    {
-        shaderRendered[idx] = true;
-    }
+    const MapLayerRenderContext layerContext = {m_posAttr,
+                                                retinaScale,
+                                                w,
+                                                h,
+                                                [this, retinaScale](double longitude, double latitude) {
+                                                    return QPointF(
+                                                        X_WGS84_COORD_TO_SCREEN_COORD(longitude) * retinaScale,
+                                                        Y_WGS84_COORD_TO_SCREEN_COORD(latitude) * retinaScale);
+                                                },
+                                                [this](int x, int y, const QString& text) {
+                                                    renderText(x, y, text, QStringLiteral("Tahoma"));
+                                                },
+                                                [this](int x, int y, const QString& text, float angle) {
+                                                    renderText(x, y, text, QStringLiteral("Tahoma"), angle);
+                                                },
+                                                [this, retinaScale](const QString& text) {
+                                                    return getCachedFont(QStringLiteral("Tahoma"), 12 * retinaScale, false)
+                                                        ->metrics.horizontalAdvance(text);
+                                                }};
 
-    // PASS 0: m_listOfLayers[0], COASTAL shader, drawn before rest of the layers.
+    // PASS 0: coastal and man-made shader layers, drawn before all other layers.
     if (m_bShaderToys && m_bgProgram && m_bgProgram->isLinked())
     {
         m_bgProgram->bind();
@@ -729,46 +375,41 @@ void TSDWindow::render()
         m_bgProgram->setUniformValue(m_bgShaderId, m_shader);
         this->glBindVertexArray(m_vao);
 
-        foreach (int layerIndex, shaderRenderLayers)
+        for (MapLayer* layer : m_baseLayers)
         {
-            auto* l_layer = m_listOfLayers[layerIndex];
-            if (m_displayMask & l_layer->m_id)
-            {
-                drawLayerAndFill(*l_layer);
-            }
+            layer->draw(layerContext);
         }
 
         m_bgProgram->release();
     }
 
     m_program->bind();
-    checkGL("after program bind");
     m_program->setUniformValue(m_matrixUniform, matrix);
-    checkGL("after uniform set");
 
     // Draw layers directly, without legacy display lists.
     this->glBindVertexArray(m_vao);
 
-    for (int i = 0; i < m_listOfLayers.size(); ++i)
-    {
-        MapLayer* l_layer = m_listOfLayers[i];
-
-        // When ShaderToys is on, the layers in shaderRenderLayers are already
-        // drawn with the ShaderToy background shader in the pass above, so skip
-        // them here to avoid overdrawn solid color hiding the pattern.
-        if ((m_bShaderToys ? !shaderRendered[i] : true) && (m_displayMask & l_layer->m_id))
+    const auto drawLayers = [this, &layerContext](const auto& layers) {
+        for (MapLayer* layer : layers)
         {
-            m_program->setUniformValue(m_colorId, myLog2(l_layer->m_id));
-            if (l_layer->m_bToFill)
+            m_program->setUniformValue(m_colorId, myLog2(layer->id()));
+            layer->draw(layerContext);
+        }
+    };
+    const auto drawBaseLayers = [this, &layerContext](const auto& layers) {
+        for (MapLayer* layer : layers)
+        {
+            if (!m_bShaderToys)
             {
-                drawLayerAndFill(*l_layer);
-            }
-            else
-            {
-                drawLayer(*l_layer);
+                m_program->setUniformValue(m_colorId, myLog2(layer->id()));
+                layer->draw(layerContext);
             }
         }
-    }
+    };
+
+    drawBaseLayers(m_baseLayers);
+    drawLayers(m_staticLayers);
+    drawLayers(m_liveLayers);
 
     // LINE PASS: draw all line (SHPT_ARC) rings with the dedicated line shader
     // (m_lineProgram). The geometry shader expands each segment into a filled
@@ -783,28 +424,29 @@ void TSDWindow::render()
         m_lineProgram->setUniformValue(m_lineTime, time);
         this->glBindVertexArray(m_vao);
 
-        for (int i = 0; i < m_listOfLayers.size(); ++i)
-        {
-            MapLayer* l_layer = m_listOfLayers[i];
-            if ((m_bShaderToys ? !shaderRendered[i] : true) && (m_displayMask & l_layer->m_id))
+        const auto drawLines = [this, &layerContext](const auto& layers) {
+            for (MapLayer* layer : layers)
             {
-                m_lineProgram->setUniformValue(m_lineColorId, myLog2(l_layer->m_id));
-                drawLayerLines(*l_layer);
+                m_lineProgram->setUniformValue(m_lineColorId, myLog2(layer->id()));
+                layer->draw(layerContext, true);
             }
-        }
+        };
+        drawLines(m_baseLayers);
+        drawLines(m_staticLayers);
+        drawLines(m_liveLayers);
 
         m_lineProgram->release();
     }
 
     m_program->bind();
 
-    // checkGL("before drawMRTStation");
+    //checkGL("before drawMRTStation");
     drawMRTStation();
-    // checkGL("after drawMRTStation");
+    //checkGL("after drawMRTStation");
 
     drawEBL(X_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitX), Y_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitY),
             sqrt(m_iMouseDeltaX * m_iMouseDeltaX + m_iMouseDeltaY * m_iMouseDeltaY) / SCALE);
-    // checkGL("after drawEBL");
+    //checkGL("after drawEBL");
 
     m_program->release();
 
@@ -812,18 +454,10 @@ void TSDWindow::render()
     float mapX = X_SCREEN_COORD_TO_WGS84(m_iMousePosX);
     float mapY = Y_SCREEN_COORD_TO_WGS84(m_iMousePosY);
 
-    // QString X = QString("%1'%2").arg((int)mapX).arg((mapX-(int)mapX)*60.0,6,'f', 3, QChar('0'));
-    // QString Y = QString("%1'%2").arg((int)mapY).arg((mapY-(int)mapY)*60.0,6,'f', 3, QChar('0'));
     QString X = QString("%1").arg((mapX), 6, 'f', 6, QChar('0'));
     QString Y = QString("%1").arg((mapY), 6, 'f', 6, QChar('0'));
     QString qScale = QString("%1").arg((SCALE), 6, 'f', 6, QChar('0'));
 
-    // QString X1 = QString("%1'%2").arg((int)mapX).arg((mapX-(int)mapX));
-    // QString Y1 = QString("%1'%2").arg((int)mapY).arg((mapY-(int)mapY));
-
-    // Begin a single batched 2D text pass: the underlying QOpenGLPaintDevice/
-    // QPainter is created once and shared by every HUD/label draw below
-    // beginTextFrame();
     m_inTextFrame = true;
 
     renderShape(QRect(0, 0, 300 * retinaScale, 80 * retinaScale));
@@ -848,7 +482,6 @@ void TSDWindow::render()
                 renderText(x + 7, y + 5, QString(mrt_name[i]), QString("Tahoma"));
             }
         }
-        // printMrtStringToScreen<sizeof(mrt)/sizeof(GLfloat)/2-1>();
     }
 
     if ((m_displayMask & BUS_ROUTES) && !m_activeBusRoutes.isEmpty())
@@ -939,30 +572,27 @@ void TSDWindow::render()
 
     if (SCALE > 0.6)
     {
-        drawText(m_sgBuilding);
-        // printBuildingStringToScreen<34696-1>();
-        // printBuildingStringToScreen<2000-1>();
-        drawText(m_sgLandUsages);
-        drawTextWithAngle(m_sgMotorWays);
-        drawTextWithAngle(m_sgMainRoads);
-        drawTextWithAngle(m_sgMinorRoads);
-        drawTextWithAngle(m_sgMRT);
+        m_sgBuilding.drawText(layerContext);
+        m_sgLandUsages.drawText(layerContext);
+        m_sgMotorWays.drawText(layerContext);
+        m_sgMainRoads.drawText(layerContext);
+        m_sgMinorRoads.drawText(layerContext);
+        m_sgMRT.drawText(layerContext);
     }
 
     if (SCALE > 0.1)
     {
-        drawText(m_sgWaterArea);
-        drawText(m_sgAmenities);
-        drawText(m_sgPlaces);
-        drawText(m_sgManMade);
+        m_sgWaterArea.drawText(layerContext);
+        m_sgAmenities.drawText(layerContext);
+        m_sgPlaces.drawText(layerContext);
+        m_sgManMade.drawText(layerContext);
     }
 
     // Live airflight callsign labels (callsign + altitude on two lines, to
     // the right of each marker). The trails and markers are drawn in the
     // polygon/line passes above.
-    drawFlightText(m_sgFlightMarkers);
+    m_sgFlightMarkers.drawText(layerContext);
 
-    // endTextFrame();
     m_inTextFrame = false;
 
     ++m_fpsCounter;
@@ -978,6 +608,7 @@ void TSDWindow::render()
     }
 }
 //! [5]
+
 
 //! [6]
 void TSDWindow::drawEBL(float x, float y, float r)
@@ -1091,8 +722,8 @@ void TSDWindow::onTrackingTableUpdated(const QHash<QString, TrackedAircraft>& ta
     {
         static_cast<FlightLayerParser*>(m_sgFlightMarkers.m_parser)->setTable(table);
     }
-    m_sgFlightTrails.m_dirty = true;
-    m_sgFlightMarkers.m_dirty = true;
+    m_sgFlightTrails.markDirty();
+    m_sgFlightMarkers.markDirty();
 }
 
 // Rebuild the live flight layers (trails + markers) from the latest tracking
@@ -1102,78 +733,25 @@ void TSDWindow::onTrackingTableUpdated(const QHash<QString, TrackedAircraft>& ta
 // rest of the map.
 void TSDWindow::rebuildLiveLayers()
 {
-    if (m_sgBusRouteLines.m_dirty || m_sgBusRouteLines2.m_dirty || m_sgBusStops.m_dirty || m_sgBusStops2.m_dirty)
+    if (m_sgBusRouteLines.isDirty() || m_sgBusRouteLines2.isDirty() || m_sgBusStops.isDirty()
+        || m_sgBusStops2.isDirty())
     {
         rebuildBusRouteLayers();
     }
-    if (m_sgBusVehicles.m_dirty || m_sgBusWindshields.m_dirty)
+    if (m_sgBusVehicles.isDirty() || m_sgBusWindshields.isDirty())
     {
-        rebuildBusTrackerLayers();
+        const std::array<LiveMapLayer*, 2> vehicleLayers = {&m_sgBusVehicles, &m_sgBusWindshields};
+        for (LiveMapLayer* layer : vehicleLayers)
+        {
+            auto* parser = static_cast<BusLayerParser*>(layer->parser());
+            parser->setRoutes(m_activeBusRoutes);
+            parser->setSnapshot(m_currentBusStopSnapshot);
+        }
     }
 
-    // Parse a flight layer's (already updated) parser and (re)upload its
-    // geometry to the GPU. The flight layers are small and change every poll,
-    // so GL_DYNAMIC_DRAW is appropriate.
-    auto rebuildOne = [this](MapLayer& a_layer) {
-        if (!a_layer.m_parser)
-        {
-            return;
-        }
-
-        LayerParser::Options options;
-        options.baseProperty = m_sgCoastal.m_property;
-        options.layerDepth = 0;
-        options.isBaseLayer = false;
-        options.useWgs84BuildTransform = true;  // flight input is WGS84
-
-        a_layer.m_geometry = a_layer.m_parser->parse(options);
-        a_layer.m_property = a_layer.m_geometry.property;
-
-        if (!a_layer.m_geometry.vertices.empty())
-        {
-            if (!a_layer.m_VBO_ID[0])
-            {
-                glGenBuffers(1, &a_layer.m_VBO_ID[0]);
-            }
-            glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glBufferData(GL_ARRAY_BUFFER, a_layer.m_geometry.vertices.size() * 3 * sizeof(float),
-                         a_layer.m_geometry.vertices.data(), GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-            // Trails (SHPT_ARC) need the element array buffer for the line pass.
-            if (a_layer.m_geometry.renderType[0] == SHPT_ARC)
-            {
-                if (!a_layer.m_VBO_ID[1])
-                {
-                    glGenBuffers(1, &a_layer.m_VBO_ID[1]);
-                }
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_VBO_ID[1]);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_geometry.lineIndices.size() * sizeof(GLuint),
-                             a_layer.m_geometry.lineIndices.data(), GL_DYNAMIC_DRAW);
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-            }
-        }
-    };
-
-    for (MapLayer* layer : m_listOfLayers)
+    for (LiveMapLayer* layer : m_liveLayers)
     {
-        if (!layer->m_isLive)
-        {
-            continue;
-        }
-
-        if (layer->m_lastScale != m_fScaleFactor)
-        {
-            layer->m_lastScale = m_fScaleFactor;
-            layer->m_parser->setScale(m_fScaleFactor);
-            layer->m_dirty = true;
-        }
-
-        if (layer->m_dirty)
-        {
-            rebuildOne(*layer);
-            layer->m_dirty = false;
-        }
+        layer->rebuild(m_sgCoastal.m_property, m_fScaleFactor);
     }
 }
 
@@ -1242,25 +820,12 @@ void TSDWindow::resetGpuResources()
     free(m_mrt);
     m_mrt = nullptr;
 
-    // Per-layer CPU data + VBOs, so initialize() can rebuild everything
-    // cleanly (buildLayer() re-parses the input layer from disk).
-    auto clearLayer = [this](MapLayer* l_layer) {
-        if (l_layer->m_VBO_ID[0] || l_layer->m_VBO_ID[1])
-        {
-            glDeleteBuffers(2, l_layer->m_VBO_ID);
-            l_layer->m_VBO_ID[0] = l_layer->m_VBO_ID[1] = 0;
-        }
-        if (l_layer->m_parser)
-        {
-            l_layer->m_parser->freeMemory();
-        }
-        l_layer->m_geometry.clear();
-    };
-
-    for (int i = 0; i < m_listOfLayers.size(); ++i)
-    {
-        clearLayer(m_listOfLayers[i]);
-    }
+    for (BaseMapLayer* layer : m_baseLayers)
+        layer->releaseGpuResources();
+    for (StaticMapLayer* layer : m_staticLayers)
+        layer->releaseGpuResources();
+    for (LiveMapLayer* layer : m_liveLayers)
+        layer->releaseGpuResources();
 }
 
 void TSDWindow::fetchBusRoute(const QString& busNo, const QString& accountKey)
@@ -1305,103 +870,32 @@ void TSDWindow::onBusRouteReady(const QString& busNo, const QList<BusRoute>& rou
     }
     m_activeBusRoutes.append(routes);
 
-    m_sgBusRouteLines.m_dirty = true;
-    m_sgBusRouteLines2.m_dirty = true;
-    m_sgBusStops.m_dirty = true;
-    m_sgBusStops2.m_dirty = true;
+    m_sgBusRouteLines.markDirty();
+    m_sgBusRouteLines2.markDirty();
+    m_sgBusStops.markDirty();
+    m_sgBusStops2.markDirty();
     renderLater();
 }
 
 void TSDWindow::rebuildBusRouteLayers()
 {
-    // Build the vertex VBO, and
-    // additionally the index VBO for primitive types that need it (ARC line
-    // strips and POINT sprites both use primitive-restart indices; POLYGON
-    // fills only need the vertex buffer).
-    auto rebuildOne = [this](MapLayer& a_layer) {
-        if (!a_layer.m_parser)
-        {
-            return;
-        }
-
-        LayerParser::Options options;
-        options.baseProperty = m_sgCoastal.m_property;
-        options.layerDepth = 0;
-        options.isBaseLayer = false;
-        options.useWgs84BuildTransform = true;
-
-        a_layer.m_geometry = a_layer.m_parser->parse(options);
-        a_layer.m_property = a_layer.m_geometry.property;
-
-        if (!a_layer.m_geometry.vertices.empty())
-        {
-            if (!a_layer.m_VBO_ID[0])
-            {
-                glGenBuffers(1, &a_layer.m_VBO_ID[0]);
-            }
-            glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glBufferData(GL_ARRAY_BUFFER, a_layer.m_geometry.vertices.size() * 3 * sizeof(float),
-                         a_layer.m_geometry.vertices.data(), GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-            if (!a_layer.m_geometry.renderType.empty()
-                && (a_layer.m_geometry.renderType[0] == SHPT_ARC || a_layer.m_geometry.renderType[0] == SHPT_POINT))
-            {
-                if (!a_layer.m_VBO_ID[1])
-                {
-                    glGenBuffers(1, &a_layer.m_VBO_ID[1]);
-                }
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_VBO_ID[1]);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, a_layer.m_geometry.lineIndices.size() * sizeof(GLuint),
-                             a_layer.m_geometry.lineIndices.data(), GL_DYNAMIC_DRAW);
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-            }
-        }
-    };
-
-    QList<BusRoute> outboundRoutes;
-    QList<BusRoute> returnRoutes;
+    std::array<QList<BusRoute>, 2> routesByDirection;
     for (const BusRoute& route : m_activeBusRoutes)
     {
-        if (route.direction == 1)
+        if (route.direction == 1 || route.direction == 2)
         {
-            outboundRoutes.append(route);
-        }
-        else if (route.direction == 2)
-        {
-            returnRoutes.append(route);
+            routesByDirection[route.direction - 1].append(route);
         }
     }
 
-    if (m_sgBusRouteLines.m_parser)
+    const std::array<LiveMapLayer*, 4> routeLayers = {&m_sgBusRouteLines, &m_sgBusRouteLines2, &m_sgBusStops,
+                                                      &m_sgBusStops2};
+    for (size_t index = 0; index < routeLayers.size(); ++index)
     {
-        static_cast<BusLayerParser*>(m_sgBusRouteLines.m_parser)->setRoutes(outboundRoutes);
+        auto* parser = static_cast<BusLayerParser*>(routeLayers[index]->parser());
+        parser->setRoutes(routesByDirection[index % 2]);
+        routeLayers[index]->markDirty();
     }
-    if (m_sgBusRouteLines2.m_parser)
-    {
-        static_cast<BusLayerParser*>(m_sgBusRouteLines2.m_parser)->setRoutes(returnRoutes);
-    }
-    if (m_sgBusStops.m_parser)
-    {
-        static_cast<BusLayerParser*>(m_sgBusStops.m_parser)->setRoutes(outboundRoutes);
-    }
-    if (m_sgBusStops2.m_parser)
-    {
-        static_cast<BusLayerParser*>(m_sgBusStops2.m_parser)->setRoutes(returnRoutes);
-    }
-    rebuildOne(m_sgBusRouteLines);
-    rebuildOne(m_sgBusRouteLines2);
-    rebuildOne(m_sgBusStops);
-    rebuildOne(m_sgBusStops2);
-    qWarning() << "Bus route geometry:" << "direction 1 routes" << outboundRoutes.size() << "vertices"
-               << m_sgBusRouteLines.m_geometry.vertices.size() << "indices"
-               << m_sgBusRouteLines.m_geometry.lineIndices.size() << "direction 2 routes" << returnRoutes.size()
-               << "vertices" << m_sgBusRouteLines2.m_geometry.vertices.size() << "indices"
-               << m_sgBusRouteLines2.m_geometry.lineIndices.size();
-    m_sgBusRouteLines.m_dirty = false;
-    m_sgBusRouteLines2.m_dirty = false;
-    m_sgBusStops.m_dirty = false;
-    m_sgBusStops2.m_dirty = false;
 }
 
 void TSDWindow::clearBusInfo()
@@ -1417,34 +911,21 @@ void TSDWindow::clearBusInfo()
 
     m_currentBusNo.clear();
     m_activeBusRoutes.clear();
-    if (m_sgBusRouteLines.m_parser)
+    const std::array<LiveMapLayer*, 4> routeLayers = {&m_sgBusRouteLines, &m_sgBusRouteLines2, &m_sgBusStops,
+                                                      &m_sgBusStops2};
+    for (LiveMapLayer* layer : routeLayers)
     {
-        static_cast<BusLayerParser*>(m_sgBusRouteLines.m_parser)->setRoutes(QList<BusRoute>());
+        static_cast<BusLayerParser*>(layer->parser())->setRoutes({});
+        layer->markDirty();
     }
-    if (m_sgBusRouteLines2.m_parser)
-    {
-        static_cast<BusLayerParser*>(m_sgBusRouteLines2.m_parser)->setRoutes(QList<BusRoute>());
-    }
-    if (m_sgBusStops.m_parser)
-    {
-        static_cast<BusLayerParser*>(m_sgBusStops.m_parser)->setRoutes(QList<BusRoute>());
-    }
-    if (m_sgBusStops2.m_parser)
-    {
-        static_cast<BusLayerParser*>(m_sgBusStops2.m_parser)->setRoutes(QList<BusRoute>());
-    }
-    m_sgBusRouteLines.m_dirty = true;
-    m_sgBusRouteLines2.m_dirty = true;
-    m_sgBusStops.m_dirty = true;
-    m_sgBusStops2.m_dirty = true;
 
     m_currentBusStopSnapshot = BusStopSnapshot();
-    if (m_sgBusVehicles.m_parser)
+    const std::array<LiveMapLayer*, 2> vehicleLayers = {&m_sgBusVehicles, &m_sgBusWindshields};
+    for (LiveMapLayer* layer : vehicleLayers)
     {
-        static_cast<BusLayerParser*>(m_sgBusVehicles.m_parser)->setSnapshot(BusStopSnapshot());
+        static_cast<BusLayerParser*>(layer->parser())->setSnapshot(m_currentBusStopSnapshot);
+        layer->markDirty();
     }
-    m_sgBusVehicles.m_dirty = true;
-    m_sgBusWindshields.m_dirty = true;
 
     renderLater();
 }
@@ -1452,9 +933,9 @@ void TSDWindow::clearBusInfo()
 void TSDWindow::trackBusStop(const QString& stopCode, const QString& accountKey)
 {
     BusTrackerWorker* busWorker = workerAt<BusTrackerWorker>(m_workers, BusWorkerIndex);
-    QThread* busThread = m_workers[BusWorkerIndex]->thread();
-    QThread* busRouteThread = m_workers[BusRouteWorkerIndex]->thread();
-    if (stopCode.isEmpty() || !busWorker || !busThread)
+    const std::array<QThread*, 2> busThreads = {m_workers[BusWorkerIndex]->thread(),
+                                                m_workers[BusRouteWorkerIndex]->thread()};
+    if (stopCode.isEmpty() || !busWorker || !busThreads[0])
     {
         return;
     }
@@ -1464,22 +945,21 @@ void TSDWindow::trackBusStop(const QString& stopCode, const QString& accountKey)
         m_accountKey = accountKey.trimmed();
     }
 
-    if (!busThread->isRunning())
+    for (QThread* thread : busThreads)
     {
-        busThread->start();
+        if (thread && !thread->isRunning())
+        {
+            thread->start();
+        }
     }
 
-    if (busRouteThread && !busRouteThread->isRunning())
-    {
-        busRouteThread->start();
-    }
-
-    // Reset active bus routes when tracking a new bus stop
     m_activeBusRoutes.clear();
-    m_sgBusRouteLines.m_dirty = true;
-    m_sgBusRouteLines2.m_dirty = true;
-    m_sgBusStops.m_dirty = true;
-    m_sgBusStops2.m_dirty = true;
+    const std::array<LiveMapLayer*, 4> routeLayers = {&m_sgBusRouteLines, &m_sgBusRouteLines2, &m_sgBusStops,
+                                                      &m_sgBusStops2};
+    for (LiveMapLayer* layer : routeLayers)
+    {
+        layer->markDirty();
+    }
 
     const QString targetStop = stopCode.trimmed();
     const QString key = m_accountKey;
@@ -1493,8 +973,8 @@ void TSDWindow::trackBusStop(const QString& stopCode, const QString& accountKey)
 void TSDWindow::onBusArrivalUpdated(const BusStopSnapshot& snapshot)
 {
     m_currentBusStopSnapshot = snapshot;
-    m_sgBusVehicles.m_dirty = true;
-    m_sgBusWindshields.m_dirty = true;
+    m_sgBusVehicles.markDirty();
+    m_sgBusWindshields.markDirty();
 
     // Automatically fetch and draw routes for all bus services arriving at this bus stop
     for (const BusService& service : snapshot.services)
@@ -1506,54 +986,4 @@ void TSDWindow::onBusArrivalUpdated(const BusStopSnapshot& snapshot)
     }
 
     renderLater();
-}
-
-void TSDWindow::rebuildBusTrackerLayers()
-{
-    auto rebuildOne = [this](MapLayer& a_layer) {
-        if (!a_layer.m_parser)
-        {
-            return;
-        }
-
-        LayerParser::Options options;
-        options.baseProperty = m_sgCoastal.m_property;
-        options.layerDepth = 0;
-        options.isBaseLayer = false;
-        options.useWgs84BuildTransform = true;
-
-        a_layer.m_geometry = a_layer.m_parser->parse(options);
-        a_layer.m_property = a_layer.m_geometry.property;
-
-        if (!a_layer.m_geometry.vertices.empty())
-        {
-            if (!a_layer.m_VBO_ID[0])
-            {
-                glGenBuffers(1, &a_layer.m_VBO_ID[0]);
-            }
-            glBindBuffer(GL_ARRAY_BUFFER, a_layer.m_VBO_ID[0]);
-            glBufferData(GL_ARRAY_BUFFER, a_layer.m_geometry.vertices.size() * 3 * sizeof(float),
-                         a_layer.m_geometry.vertices.data(), GL_DYNAMIC_DRAW);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
-    };
-
-    if (m_sgBusVehicles.m_parser)
-    {
-        auto* busParser = static_cast<BusLayerParser*>(m_sgBusVehicles.m_parser);
-        busParser->setRoutes(m_activeBusRoutes);
-        busParser->setSnapshot(m_currentBusStopSnapshot);
-    }
-
-    if (m_sgBusWindshields.m_parser)
-    {
-        auto* windshieldParser = static_cast<BusLayerParser*>(m_sgBusWindshields.m_parser);
-        windshieldParser->setRoutes(m_activeBusRoutes);
-        windshieldParser->setSnapshot(m_currentBusStopSnapshot);
-    }
-
-    rebuildOne(m_sgBusVehicles);
-    rebuildOne(m_sgBusWindshields);
-    m_sgBusVehicles.m_dirty = false;
-    m_sgBusWindshields.m_dirty = false;
 }

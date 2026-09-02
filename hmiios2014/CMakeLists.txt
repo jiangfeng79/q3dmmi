@@ -1,5 +1,5 @@
 
-file(GLOB PROJECT_SOURCES *.cpp *.h *ui *.rc *.qrc)
+file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS *.cpp *.h *ui *.rc *.qrc)
 
 hmiios_add_app_executable(NAME HMIIOS WIN32
     SRC ${PROJECT_SOURCES}

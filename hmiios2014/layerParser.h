@@ -24,12 +24,16 @@ public:
     {
         MapProperty baseProperty;             // base (coastal) layer property, used for coordinate transforms
         int layerDepth = 0;                   // z depth assigned to every vertex
-        bool isBaseLayer = false;             // if true, derive center/scale from the data itself
         bool useWgs84BuildTransform = false;  // MAN_MADE / MRT style transform
     };
 
     // Parse the source layer and return renderable geometry.
     virtual LayerGeometry parse(const Options& a_options) = 0;
+    virtual LayerGeometry parseBase()
+    {
+        Options options;
+        return parse(options);
+    }
 
     // Release any cached raw data (e.g. after the GL context is destroyed).
     virtual void freeMemory() = 0;
@@ -45,9 +49,12 @@ public:
     ~ShapefileLayerParser() override;
 
     LayerGeometry parse(const Options& a_options) override;
+    LayerGeometry parseBase() override;
     void freeMemory() override;
 
 private:
+    LayerGeometry parseImpl(const Options& options, bool deriveBaseProperty);
+
     QString m_fileName;
     QString m_layerName;
     // The raw file readers are an implementation detail of this parser.

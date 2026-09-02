@@ -1,50 +1,53 @@
 #ifndef MAPLAYER_H
 #define MAPLAYER_H
 
+#include <QPointF>
 #include <QOpenGLBuffer>
 #include <QString>
 
 #include <cstdint>
+#include <functional>
 
 #include "layerGeometry.h"
 #include "layerParser.h"
 
+class TSDWindow;
+
+struct MapLayerRenderContext
+{
+    GLuint positionAttribute;
+    qreal retinaScale;
+    int width;
+    int height;
+    std::function<QPointF(double, double)> wgs84ToScreen;
+    std::function<void(int, int, const QString&)> renderText;
+    std::function<void(int, int, const QString&, float)> renderTextWithAngle;
+    std::function<qreal(const QString&)> textWidth;
+};
+
 class MapLayer
 {
 public:
-    MapLayer() : m_bToFill(false), m_parser(nullptr)
-    {
-        m_VBO_ID[0] = m_VBO_ID[1] = 0;
-        m_property.scale = 0.1;
-    }
-
-    MapLayer(std::uint64_t id, std::uint64_t textId, bool toFill = false, bool isLive = false)
-        : m_id(id), m_text_id(textId), m_bToFill(toFill), m_isLive(isLive), m_parser(nullptr)
-    {
-        m_VBO_ID[0] = m_VBO_ID[1] = 0;
-        m_property.scale = 0.1;
-    }
-
-    MapLayer(const char* fileName, std::uint64_t id, std::uint64_t textId, bool toFill = false)
-        : m_id(id), m_text_id(textId), m_bToFill(toFill), m_parser(nullptr), m_fileName(fileName)
-    {
-        m_VBO_ID[0] = m_VBO_ID[1] = 0;
-        m_property.scale = 0.1;
-    }
-
+    MapLayer(std::uint64_t id, std::uint64_t textId, LayerParser* parser, const std::uint64_t& displayMask,
+             TSDWindow& window);
+    MapLayer(const char* fileName, std::uint64_t id, std::uint64_t textId, LayerParser* parser,
+             const std::uint64_t& displayMask, TSDWindow& window);
     MapLayer(const char* fileName, const char* layerName, std::uint64_t id, std::uint64_t textId,
-             bool toFill = false)
-        : m_id(id), m_text_id(textId), m_bToFill(toFill), m_parser(nullptr), m_fileName(fileName),
-          m_layerName(layerName)
-    {
-        m_VBO_ID[0] = m_VBO_ID[1] = 0;
-        m_property.scale = 0.1;
-    }
+             LayerParser* parser, const std::uint64_t& displayMask, TSDWindow& window);
+    virtual ~MapLayer();
 
-    ~MapLayer() { delete m_parser; }
+    MapLayer(const MapLayer&) = delete;
+    MapLayer& operator=(const MapLayer&) = delete;
 
-    void setParser(LayerParser* parser) { m_parser = parser; }
+    virtual void buildLayer(const MapProperty& baseProperty, int layerDepth = 0);
+    virtual void draw(const MapLayerRenderContext& context, bool linePass = false) const;
+    virtual void drawText(const MapLayerRenderContext& context) const;
+    void releaseGpuResources();
+
     LayerParser* parser() const { return m_parser; }
+    std::uint64_t id() const { return m_id; }
+    std::uint64_t textId() const { return m_textId; }
+    bool isVisible() const { return m_id & m_displayMask; }
 
     MapProperty m_property;
     QString m_fileName;
@@ -52,15 +55,77 @@ public:
     LayerParser* m_parser;
     LayerGeometry m_geometry;
     GLuint m_VBO_ID[2];
-    std::uint64_t m_id = 0;
-    std::uint64_t m_text_id = 0;
-    bool m_bToFill;
-    bool m_isLive = false;
+
+protected:
+    void uploadGeometry(GLenum usage);
+    void drawPrimitive(const MapLayerRenderContext& context) const;
+    void drawLines(const MapLayerRenderContext& context) const;
+
+    void drawPolygonRing(const MapLayerRenderContext& context, int index) const;
+    void drawRingsToStencil(const MapLayerRenderContext& context) const;
+    void drawRingsToColor(const MapLayerRenderContext& context) const;
+    void drawRingFilled(const MapLayerRenderContext& context) const;
+
+    std::uint64_t m_id;
+    std::uint64_t m_textId;
+    const std::uint64_t& m_displayMask;
+    TSDWindow& m_window;
+};
+
+class BaseMapLayer : public MapLayer
+{
+public:
+    enum class FillMode
+    {
+        Coastal,
+        Independent,
+        WaterArea
+    };
+
+    BaseMapLayer(const char* fileName, std::uint64_t id, std::uint64_t textId, LayerParser* parser,
+                 const std::uint64_t& displayMask, TSDWindow& window, FillMode fillMode);
+    BaseMapLayer(const char* fileName, const char* layerName, std::uint64_t id, std::uint64_t textId,
+                 LayerParser* parser, const std::uint64_t& displayMask, TSDWindow& window, FillMode fillMode);
+
+    void buildLayer(const MapProperty& baseProperty, int layerDepth = 0) override;
+    void draw(const MapLayerRenderContext& context, bool linePass = false) const override;
+
+private:
+    void drawFilled(const MapLayerRenderContext& context) const;
+    FillMode m_fillMode;
+};
+
+class StaticMapLayer : public MapLayer
+{
+public:
+    using MapLayer::MapLayer;
+
+    void setGeometry(LayerGeometry geometry);
+    void uploadStaticGeometry();
+};
+
+class LiveMapLayer : public MapLayer
+{
+public:
+    enum class LabelStyle
+    {
+        Default,
+        Flight
+    };
+
+    LiveMapLayer(std::uint64_t id, std::uint64_t textId, LayerParser* parser, const std::uint64_t& displayMask,
+                 TSDWindow& window, LabelStyle labelStyle = LabelStyle::Default);
+
+    void rebuild(const MapProperty& baseProperty, float scale);
+    void drawText(const MapLayerRenderContext& context) const override;
+    void markDirty() { m_dirty = true; }
+    bool isDirty() const { return m_dirty; }
+
+private:
+    void drawFilled(const MapLayerRenderContext& context) const;
     bool m_dirty = false;
     float m_lastScale = 0.0f;
-
-    void buildLayer();
-    void buildLayer(MapProperty& property, int layerDepth);
+    LabelStyle m_labelStyle;
 };
 
 #endif  // MAPLAYER_H
