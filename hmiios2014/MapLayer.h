@@ -104,7 +104,8 @@ public:
     enum class LabelStyle
     {
         Default,
-        Flight
+        Flight,
+        Bus
     };
 
     LiveMapLayer(std::uint64_t id, std::uint64_t textId, LayerParser* parser, const std::uint64_t& displayMask,

@@ -25,6 +25,7 @@ struct ArrivalBus
     QString load;
     QString feature;
     QString type;
+    double heading = 0.0;
 };
 
 // Represents a bus service at the stop.
@@ -264,7 +265,9 @@ private slots:
             return;
         }
 
+        getHeadings(snapshot, m_snapshot);
         m_snapshot = snapshot;
+
         emit busArrivalUpdated(m_snapshot);
     }
 
@@ -277,4 +280,50 @@ private:
     QString m_busStopCode;
 
     BusStopSnapshot m_snapshot;
+    // Derive each bus's heading (radians, clockwise from north) by comparing
+    // its position in the new snapshot against the previous one. Buses are
+    // matched across polls by visit number so a bus that shifts between the
+    // Next/2nd/3rd slots is still tracked. When a bus has not moved, its last
+    // known heading is carried forward.
+    void getHeadings(BusStopSnapshot& newSnapshot, const BusStopSnapshot& previousSnapshot)
+    {
+        if (previousSnapshot.services.size() != newSnapshot.services.size())
+        {
+            return;
+        }
+
+        auto headingBetween = [](const ArrivalBus& prev, const ArrivalBus& next) -> double {
+            const double dLat = next.latitude - prev.latitude;
+            const double dLon = (next.longitude - prev.longitude) * std::cos(prev.latitude * M_PI / 180.0);
+            if (std::fabs(dLat) > 1e-9 || std::fabs(dLon) > 1e-9)
+            {
+                return std::atan2(dLon, dLat);
+            }
+            return prev.heading;  // no movement: keep last known heading
+        };
+
+        auto updateBus = [&headingBetween](const ArrivalBus& prevBus, ArrivalBus& nextBus) {
+            if (nextBus.visitNumber.isEmpty())
+            {
+                return;
+            }
+
+            if (prevBus.visitNumber == nextBus.visitNumber)
+            {
+                nextBus.heading = headingBetween(prevBus, nextBus);
+                return;
+            }
+            // No matching previous bus: keep the default heading.
+        };
+
+        for (int i = 0; i < newSnapshot.services.size(); ++i)
+        {
+            BusService& service = newSnapshot.services[i];
+            const BusService& prevService = previousSnapshot.services.value(i);
+
+            updateBus(prevService.nextBus, service.nextBus);
+            updateBus(prevService.nextBus2, service.nextBus2);
+            updateBus(prevService.nextBus3, service.nextBus3);
+        }
+    }
 };

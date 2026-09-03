@@ -23,102 +23,6 @@ static Vertex makeVertex(double lon, double lat, int depth, const MapProperty& p
     return v;
 }
 
-// Nearest-segment heading lookup: finds the route segment (preferring the
-// bus's own service number) closest to (busMx, busMy) and returns its unit
-// direction, used to orient the vehicle polygon along the road.
-static void findBusHeading(const QList<BusRoute>& routes, const MapProperty& property, const QString& serviceNo,
-                           const QString& originCode, const QString& destinationCode, float busMx, float busMy,
-                           float& outDirX, float& outDirY)
-{
-    outDirX = 0.0f;
-    outDirY = 1.0f;
-
-    float minDistSq = 1e30f;
-    bool foundSegment = false;
-
-    auto searchRoutes = [&](bool matchService, bool matchOrigin, bool matchDestination) {
-        for (const BusRoute& route : routes)
-        {
-            if (matchService && !serviceNo.isEmpty() && route.serviceNo.compare(serviceNo, Qt::CaseInsensitive) != 0)
-            {
-                continue;
-            }
-
-            const auto& stops = route.stops;
-            if (stops.isEmpty() ||
-                (matchOrigin && (!originCode.isEmpty() && stops.first().stop.busStopCode != originCode)) ||
-                (matchDestination &&
-                 (!destinationCode.isEmpty() && stops.last().stop.busStopCode != destinationCode)))
-            {
-                continue;
-            }
-            for (int i = 0; i < stops.size() - 1; ++i)
-            {
-                const auto& s1 = stops[i].stop;
-                const auto& s2 = stops[i + 1].stop;
-                if ((s1.latitude == 0.0 && s1.longitude == 0.0) || (s2.latitude == 0.0 && s2.longitude == 0.0))
-                {
-                    continue;
-                }
-
-                float x1 = X_WGS84_BUILD_COORD_TO_MAP_COORD(s1.longitude, property);
-                float y1 = Y_WGS84_BUILD_COORD_TO_MAP_COORD(s1.latitude, property);
-                float x2 = X_WGS84_BUILD_COORD_TO_MAP_COORD(s2.longitude, property);
-                float y2 = Y_WGS84_BUILD_COORD_TO_MAP_COORD(s2.latitude, property);
-
-                float vx = x2 - x1;
-                float vy = y2 - y1;
-                float wx = busMx - x1;
-                float wy = busMy - y1;
-
-                float c1 = wx * vx + wy * vy;
-                float c2 = vx * vx + vy * vy;
-                if (c2 < 1e-12f)
-                {
-                    continue;
-                }
-
-                float t = qBound(0.0f, c1 / c2, 1.0f);
-                float projX = x1 + t * vx;
-                float projY = y1 + t * vy;
-                float dx = busMx - projX;
-                float dy = busMy - projY;
-                float distSq = dx * dx + dy * dy;
-
-                if (distSq < minDistSq)
-                {
-                    minDistSq = distSq;
-                    float segLen = sqrtf(c2);
-                    if (segLen > 1e-6f)
-                    {
-                        outDirX = vx / segLen;
-                        outDirY = vy / segLen;
-                        foundSegment = true;
-                    }
-                }
-            }
-        }
-    };
-
-    searchRoutes(true, true, true);
-    if (!foundSegment)
-    {
-        searchRoutes(true, false, true);
-    }
-    if (!foundSegment)
-    {
-        searchRoutes(true, true, false);
-    }
-    if (!foundSegment)
-    {
-        searchRoutes(true, false, false);
-    }
-    if (!foundSegment)
-    {
-        searchRoutes(false, false, false);
-    }
-}
-
 LayerGeometry BusLayerParser::parse(const Options& a_options)
 {
     LayerGeometry geo;
@@ -146,6 +50,17 @@ LayerGeometry BusLayerParser::parse(const Options& a_options)
                     makeVertex(rstop.stop.longitude, rstop.stop.latitude, a_options.layerDepth, geo.property));
                 geo.lineIndices.push_back(static_cast<unsigned int>(idx));
                 ++idx;
+
+                // Label: direction, stop description and bus stop code.
+                Label label;
+                label.longitude = rstop.stop.longitude;
+                label.latitude = rstop.stop.latitude;
+                label.angle = 0.0f;
+                const QString desc =
+                    rstop.stop.description.isEmpty() ? rstop.stop.busStopCode : rstop.stop.description;
+                label.text =
+                    QString("D%1: %2 (%3)").arg(route.direction).arg(desc, rstop.stop.busStopCode).toStdString();
+                geo.labels.push_back(label);
             }
 
             if (idx - start >= 2)
@@ -251,15 +166,18 @@ LayerGeometry BusLayerParser::parse(const Options& a_options)
             float cx = X_WGS84_BUILD_COORD_TO_MAP_COORD(info.bus.longitude, geo.property);
             float cy = Y_WGS84_BUILD_COORD_TO_MAP_COORD(info.bus.latitude, geo.property);
 
-            float dirX = 0.0f, dirY = 1.0f;
-            findBusHeading(m_routes, geo.property, info.serviceNo, info.bus.originCode, info.bus.destinationCode, cx, cy,
-                           dirX, dirY);
+            // Heading (radians, clockwise from north) from the tracker's
+            // snapshot-to-snapshot comparison.
+            const double heading = info.bus.heading;
+            const double cosH = cos(heading);
+            const double sinH = sin(heading);
 
-            auto transformPoint = [cx, cy, busW, busH, dirX, dirY](float localX, float localY) {
+            auto transformPoint = [cx, cy, busW, busH, cosH, sinH](float localX, float localY) {
                 float scaledVx = localX * busW;
                 float scaledVy = localY * busH;
-                return Vertex{cx + (scaledVx * dirY + scaledVy * dirX), cy + (-scaledVx * dirX + scaledVy * dirY),
-                              0.0f};
+                // Rotate clockwise by heading (map space: X east, Y north).
+                return Vertex{cx + (float)(scaledVx * cosH + scaledVy * sinH),
+                              cy + (float)(-scaledVx * sinH + scaledVy * cosH), 0.0f};
             };
 
             const float (*shape)[2] = m_kind == VehicleWindshields ? kWindshield : kOutline;
@@ -283,6 +201,39 @@ LayerGeometry BusLayerParser::parse(const Options& a_options)
 
             geo.rings.push_back(idx);
             geo.renderType.push_back(SHPT_POLYGON);
+
+            // Label: service number, position in queue, ETA, load and type.
+            // Only the main vehicle layer emits labels (the windshield layer
+            // reuses the same geometry pass and would otherwise duplicate them).
+            if (m_kind == Vehicles)
+            {
+                Label label;
+                label.longitude = info.bus.longitude;
+                label.latitude = info.bus.latitude;
+                label.angle = 0.0f;
+
+                int mins = -1;
+                if (!info.bus.estimatedArrival.isEmpty())
+                {
+                    const QDateTime dt = QDateTime::fromString(info.bus.estimatedArrival, Qt::ISODate);
+                    if (dt.isValid())
+                    {
+                        const qint64 secs = QDateTime::currentDateTime().secsTo(dt);
+                        mins = secs > 0 ? static_cast<int>(secs / 60) : 0;
+                    }
+                }
+                const QString eta = (mins >= 0) ? QString("%1m").arg(mins) : QStringLiteral("Arr");
+                const QString loadStr = info.bus.load.isEmpty() ? QStringLiteral("SEA") : info.bus.load;
+                const QString typeStr = info.bus.type.isEmpty() ? QStringLiteral("SD") : info.bus.type;
+                label.text = QString("Svc %1 (%2): %3 [%4,%5]")
+                                 .arg(info.serviceNo)
+                                 .arg(info.labelPrefix)
+                                 .arg(eta)
+                                 .arg(loadStr)
+                                 .arg(typeStr)
+                                 .toStdString();
+                geo.labels.push_back(label);
+            }
         }
 
         geo.property.totalNumberOfVertex = static_cast<int>(geo.vertices.size());

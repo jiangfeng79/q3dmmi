@@ -334,7 +334,7 @@ void LiveMapLayer::rebuild(const MapProperty& baseProperty, float scale)
 
 void LiveMapLayer::drawText(const MapLayerRenderContext& context) const
 {
-    if (m_labelStyle != LabelStyle::Flight)
+    if (m_labelStyle == LabelStyle::Default)
     {
         MapLayer::drawText(context);
         return;
@@ -351,15 +351,31 @@ void LiveMapLayer::drawText(const MapLayerRenderContext& context) const
             continue;
 
         const QString full = QString::fromStdString(label.text);
-        const int separator = full.indexOf(' ');
-        const QString callsign = separator >= 0 ? full.left(separator) : full;
-        const QString altitude = separator >= 0 ? full.mid(separator + 1) : QString();
         const int lineHeight = 12 * context.retinaScale;
         const int left = static_cast<int>(point.x()) + 10 * context.retinaScale;
         const int top = static_cast<int>(point.y()) - 30;
 
-        context.renderText(left + static_cast<int>(context.textWidth(callsign) / 2), top, callsign);
-        if (!altitude.isEmpty())
-            context.renderText(left + static_cast<int>(context.textWidth(altitude) / 2), top + lineHeight, altitude);
+        if (m_labelStyle == LabelStyle::Flight)
+        {
+            // Two rows: callsign on top, barometric altitude below.
+            const int separator = full.indexOf(' ');
+            const QString callsign = separator >= 0 ? full.left(separator) : full;
+            const QString altitude = separator >= 0 ? full.mid(separator + 1) : QString();
+
+            context.renderText(left + static_cast<int>(context.textWidth(callsign) / 2), top, callsign);
+            if (!altitude.isEmpty())
+                context.renderText(left + static_cast<int>(context.textWidth(altitude) / 2), top + lineHeight, altitude);
+        }
+        else  // Bus
+        {
+            // Two rows: service/queue on top, ETA + load/type below.
+            const int separator = full.indexOf(QStringLiteral(": "));
+            const QString service = separator >= 0 ? full.left(separator) : full;
+            const QString detail = separator >= 0 ? full.mid(separator + 2) : QString();
+
+            context.renderText(left + static_cast<int>(context.textWidth(service) / 2), top, service);
+            if (!detail.isEmpty())
+                context.renderText(left + static_cast<int>(context.textWidth(detail) / 2), top + lineHeight, detail);
+        }
     }
 }
