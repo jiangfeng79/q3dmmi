@@ -102,7 +102,7 @@ void MapLayer::drawPrimitive(const MapLayerRenderContext& context) const
         m_window.glClearStencil(0);
         m_window.glEnable(GL_STENCIL_TEST);
 
-        if (m_id == TSDWindow::DisplayMaskBits::WATER_AREA)
+        if (m_fillMode == MapLayer::FillMode::Substract) //*m_id == TSDWindow::DisplayMaskBits::WATER_AREA
         {
             drawRingsToStencil(context);
             drawRingsToColor(context);
@@ -235,8 +235,8 @@ void MapLayer::drawRingFilled(const MapLayerRenderContext& context) const
 }
 
 BaseMapLayer::BaseMapLayer(const char* fileName, std::uint64_t id, std::uint64_t textId, LayerParser* parser,
-                           const std::uint64_t& displayMask, TSDWindow& window)
-    : MapLayer(fileName, id, textId, parser, displayMask, window, MapLayer::FillMode::Fill)
+                           const std::uint64_t& displayMask, TSDWindow& window, FillMode fillMode)
+    : MapLayer(fileName, id, textId, parser, displayMask, window, fillMode)
 {
 }
 
@@ -248,7 +248,15 @@ void BaseMapLayer::drawFilled(const MapLayerRenderContext& context) const
     m_window.glClear(GL_STENCIL_BUFFER_BIT);
     m_window.glClearStencil(0);
     m_window.glEnable(GL_STENCIL_TEST);
-    drawRingFilled(context);
+    if (m_fillMode == MapLayer::FillMode::Substract)  //*m_id == TSDWindow::DisplayMaskBits::WATER_AREA
+    {
+        drawRingsToStencil(context);
+        drawRingsToColor(context);
+    }
+    else
+    {
+        drawRingFilled(context);
+    }
     m_window.glDisable(GL_STENCIL_TEST);
 }
 

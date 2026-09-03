@@ -28,7 +28,7 @@ const vec4 kColorTable[38] = vec4[38](
 	vec4(.0, .4, .0, .7),         // 5  EW MRT line / Expo & Changi stations
 	vec4(0.35, 0.35, 0.35, .5),   // 6  LAND_USAGE (1<<6)
 	vec4(.8, .4, .2, .7),         // 7  Circle & Marina Bay MRT stations
-	vec4(.0, .0, .0, 1.0),        // 8  WATER_AREA (1<<8)
+	vec4(0.05, 0.12, 0.25, 1.0),  // 8  WATER_AREA (1<<8) // same as glclearcolor
 	vec4(.8, .1, .4, .7),         // 9  NE MRT line
 	vec4(.1, .1, .1, .5),         // 10 BUILDING (1<<10)
 	vec4(.0, .0, .0, .0),         // 11 (BUILDING_TEXT bit; unused)

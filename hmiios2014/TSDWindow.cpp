@@ -312,7 +312,7 @@ void TSDWindow::render()
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
     int w = width(), h = height();
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.05, 0.12, 0.25, 1.0);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);

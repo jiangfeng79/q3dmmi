@@ -82,7 +82,7 @@ class BaseMapLayer : public MapLayer
 {
 public:
     BaseMapLayer(const char* fileName, std::uint64_t id, std::uint64_t textId,
-             LayerParser* parser, const std::uint64_t& displayMask, TSDWindow& window);
+             LayerParser* parser, const std::uint64_t& displayMask, TSDWindow& window, FillMode fillMode = FillMode::Fill);
     void buildLayer(const MapProperty& baseProperty, int layerDepth = 0) override;
     void draw(const MapLayerRenderContext& context, bool linePass = false) const override;
 
