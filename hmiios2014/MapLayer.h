@@ -28,12 +28,17 @@ struct MapLayerRenderContext
 class MapLayer
 {
 public:
+    enum class FillMode
+    {
+        None,
+        Fill,
+        Substract
+    };
+
     MapLayer(std::uint64_t id, std::uint64_t textId, LayerParser* parser, const std::uint64_t& displayMask,
-             TSDWindow& window);
+             TSDWindow& window, FillMode fillMode = FillMode::None);
     MapLayer(const char* fileName, std::uint64_t id, std::uint64_t textId, LayerParser* parser,
-             const std::uint64_t& displayMask, TSDWindow& window);
-    MapLayer(const char* fileName, const char* layerName, std::uint64_t id, std::uint64_t textId,
-             LayerParser* parser, const std::uint64_t& displayMask, TSDWindow& window);
+             const std::uint64_t& displayMask, TSDWindow& window, FillMode fillMode = FillMode::None);
     virtual ~MapLayer();
 
     MapLayer(const MapLayer&) = delete;
@@ -70,29 +75,19 @@ protected:
     std::uint64_t m_textId;
     const std::uint64_t& m_displayMask;
     TSDWindow& m_window;
+    FillMode m_fillMode;
 };
 
 class BaseMapLayer : public MapLayer
 {
 public:
-    enum class FillMode
-    {
-        Coastal,
-        Independent,
-        WaterArea
-    };
-
-    BaseMapLayer(const char* fileName, std::uint64_t id, std::uint64_t textId, LayerParser* parser,
-                 const std::uint64_t& displayMask, TSDWindow& window, FillMode fillMode);
-    BaseMapLayer(const char* fileName, const char* layerName, std::uint64_t id, std::uint64_t textId,
-                 LayerParser* parser, const std::uint64_t& displayMask, TSDWindow& window, FillMode fillMode);
-
+    BaseMapLayer(const char* fileName, std::uint64_t id, std::uint64_t textId,
+             LayerParser* parser, const std::uint64_t& displayMask, TSDWindow& window);
     void buildLayer(const MapProperty& baseProperty, int layerDepth = 0) override;
     void draw(const MapLayerRenderContext& context, bool linePass = false) const override;
 
 private:
     void drawFilled(const MapLayerRenderContext& context) const;
-    FillMode m_fillMode;
 };
 
 class StaticMapLayer : public MapLayer
@@ -101,7 +96,6 @@ public:
     using MapLayer::MapLayer;
 
     void setGeometry(LayerGeometry geometry);
-    void uploadStaticGeometry();
 };
 
 class LiveMapLayer : public MapLayer
@@ -114,7 +108,7 @@ public:
     };
 
     LiveMapLayer(std::uint64_t id, std::uint64_t textId, LayerParser* parser, const std::uint64_t& displayMask,
-                 TSDWindow& window, LabelStyle labelStyle = LabelStyle::Default);
+                 TSDWindow& window, LabelStyle labelStyle = LabelStyle::Default, FillMode fillMode = FillMode::None);
 
     void rebuild(const MapProperty& baseProperty, float scale);
     void drawText(const MapLayerRenderContext& context) const override;

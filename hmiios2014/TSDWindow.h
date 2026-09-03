@@ -180,9 +180,9 @@ private:
     std::uint64_t m_displayMask;
 
     BaseMapLayer m_sgCoastal;
-    BaseMapLayer m_sgWaterArea;
     BaseMapLayer m_sgManMade;
 
+    StaticMapLayer m_sgWaterArea;
     StaticMapLayer m_sgAmenities;
     StaticMapLayer m_sgPlaces;
     StaticMapLayer m_sgLandUsages;

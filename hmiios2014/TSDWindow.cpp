@@ -73,7 +73,7 @@ TSDWindow::TSDWindow()
       m_bgShaderId(1),
       m_displayMask(0x3DFF5C032B),
       m_sgCoastal("./sgMap/singapore", COASTAL, COASTAL_TEXT, new ShapefileLayerParser("./sgMap/singapore"),
-                  m_displayMask, *this, BaseMapLayer::FillMode::Coastal),
+                  m_displayMask, *this),
       m_sgAmenities("./sgMap/singapore.osm-amenities", AMENITIES, AMENITIES_TEXT,
                     new ShapefileLayerParser("./sgMap/singapore.osm-amenities"), m_displayMask, *this),
       m_sgLandUsages("./sgMap/singapore.osm-landusages", LAND_USAGE, LAND_USAGE_TEXT,
@@ -83,7 +83,7 @@ TSDWindow::TSDWindow()
       m_sgMRT("./sgMap/railways", MRT, MRT_TEXT, new ShapefileLayerParser("./sgMap/railways"), m_displayMask, *this),
       m_sgWaterArea("./sgMap/singapore.osm-waterareas", WATER_AREA, WATER_AREA_TEXT,
                     new ShapefileLayerParser("./sgMap/singapore.osm-waterareas"), m_displayMask, *this,
-                    BaseMapLayer::FillMode::WaterArea),
+                    MapLayer::FillMode::Substract),
       m_sgBuilding("./sgMap/singapore.osm-buildings", BUILDING, BUILDING_TEXT,
                    new ShapefileLayerParser("./sgMap/singapore.osm-buildings"), m_displayMask, *this),
       m_sgMainRoads("./sgMap/singapore.osm-mainroads", MAIN_ROADS, MAIN_ROADS_TEXT,
@@ -94,22 +94,22 @@ TSDWindow::TSDWindow()
                      new ShapefileLayerParser("./sgMap/singapore.osm-minorroads"), m_displayMask, *this),
       m_sgAirWays("./sgMap/singapore.osm-aeroways", AIR_WAYS, AIR_WAYS_TEXT,
                   new ShapefileLayerParser("./sgMap/singapore.osm-aeroways"), m_displayMask, *this),
-      m_sgManMade("./sgMap/singapore.osm-polygon", "man_made", MAN_MADE, MAN_MADE_TEXT,
-                  new ShapefileLayerParser("./sgMap/singapore.osm-polygon", "man_made"), m_displayMask, *this,
-                  BaseMapLayer::FillMode::Independent),
+      m_sgManMade("./sgMap/singapore.osm-polygon", MAN_MADE, MAN_MADE_TEXT,
+                  new ShapefileLayerParser("./sgMap/singapore.osm-polygon", "man_made"), m_displayMask, *this),
       m_sgFlightTrails(FLIGHT_TRAILS, FLIGHTS_TEXT, new FlightLayerParser(FlightLayerParser::Trails), m_displayMask,
                        *this),
       m_sgFlightMarkers(FLIGHTS, FLIGHTS_TEXT, new FlightLayerParser(FlightLayerParser::Markers), m_displayMask, *this,
-                        LiveMapLayer::LabelStyle::Flight),
+                        LiveMapLayer::LabelStyle::Flight, MapLayer::FillMode::Fill),
       m_sgBusRouteLines(BUS_ROUTES, BUS_ROUTES_TEXT, new BusLayerParser(BusLayerParser::RouteLines), m_displayMask,
                         *this),
       m_sgBusRouteLines2(BUS_ROUTES2, BUS_ROUTES_TEXT, new BusLayerParser(BusLayerParser::RouteLines), m_displayMask,
                          *this),
       m_sgBusStops(BUS_STOPS, BUS_STOPS_TEXT, new BusLayerParser(BusLayerParser::RouteStops), m_displayMask, *this),
       m_sgBusStops2(BUS_STOPS2, BUS_STOPS_TEXT, new BusLayerParser(BusLayerParser::RouteStops), m_displayMask, *this),
-      m_sgBusVehicles(BUS_TRACKS, BUS_TRACKS_TEXT, new BusLayerParser(BusLayerParser::Vehicles), m_displayMask, *this),
+      m_sgBusVehicles(BUS_TRACKS, BUS_TRACKS_TEXT, new BusLayerParser(BusLayerParser::Vehicles), m_displayMask, *this,
+                      LiveMapLayer::LabelStyle::Default, MapLayer::FillMode::Fill),
       m_sgBusWindshields(BUS_TRACKS_WINDSHIELD, BUS_STOPS_TEXT, new BusLayerParser(BusLayerParser::VehicleWindshields),
-                         m_displayMask, *this),
+                         m_displayMask, *this, LiveMapLayer::LabelStyle::Default, MapLayer::FillMode::Fill),
       m_mrt(nullptr),
       m_mrtVBO(0),
       m_eblVBO(0),
@@ -120,9 +120,9 @@ TSDWindow::TSDWindow()
 {
     m_programSlots = {&m_program, &m_bgProgram, &m_lineProgram};
 
-    m_baseLayers = {&m_sgCoastal, &m_sgWaterArea, &m_sgManMade};
-    m_staticLayers = {&m_sgMRT,       &m_sgAmenities, &m_sgLandUsages, &m_sgPlaces, &m_sgBuilding,
-                      &m_sgMainRoads, &m_sgMotorWays, &m_sgMinorRoads, &m_sgAirWays};
+    m_baseLayers = {&m_sgCoastal, &m_sgManMade};
+    m_staticLayers = {&m_sgMRT,       &m_sgAmenities, &m_sgLandUsages, &m_sgPlaces,  &m_sgBuilding,
+                      &m_sgMainRoads, &m_sgMotorWays, &m_sgMinorRoads, &m_sgAirWays, &m_sgWaterArea};
     m_liveLayers = {&m_sgFlightTrails, &m_sgFlightMarkers, &m_sgBusRouteLines, &m_sgBusRouteLines2,
                     &m_sgBusStops,     &m_sgBusStops2,     &m_sgBusVehicles,   &m_sgBusWindshields};
 
@@ -343,25 +343,22 @@ void TSDWindow::render()
         matrix.rotate(sin(time) * 10, 0, 0, 1);
     }
 
-    const MapLayerRenderContext layerContext = {m_posAttr,
-                                                retinaScale,
-                                                w,
-                                                h,
-                                                [this, retinaScale](double longitude, double latitude) {
-                                                    return QPointF(
-                                                        X_WGS84_COORD_TO_SCREEN_COORD(longitude) * retinaScale,
-                                                        Y_WGS84_COORD_TO_SCREEN_COORD(latitude) * retinaScale);
-                                                },
-                                                [this](int x, int y, const QString& text) {
-                                                    renderText(x, y, text, QStringLiteral("Tahoma"));
-                                                },
-                                                [this](int x, int y, const QString& text, float angle) {
-                                                    renderText(x, y, text, QStringLiteral("Tahoma"), angle);
-                                                },
-                                                [this, retinaScale](const QString& text) {
-                                                    return getCachedFont(QStringLiteral("Tahoma"), 12 * retinaScale, false)
-                                                        ->metrics.horizontalAdvance(text);
-                                                }};
+    const MapLayerRenderContext layerContext = {
+        m_posAttr,
+        retinaScale,
+        w,
+        h,
+        [this, retinaScale](double longitude, double latitude) {
+            return QPointF(X_WGS84_COORD_TO_SCREEN_COORD(longitude) * retinaScale,
+                           Y_WGS84_COORD_TO_SCREEN_COORD(latitude) * retinaScale);
+        },
+        [this](int x, int y, const QString& text) { renderText(x, y, text, QStringLiteral("Tahoma")); },
+        [this](int x, int y, const QString& text, float angle) {
+            renderText(x, y, text, QStringLiteral("Tahoma"), angle);
+        },
+        [this, retinaScale](const QString& text) {
+            return getCachedFont(QStringLiteral("Tahoma"), 12 * retinaScale, false)->metrics.horizontalAdvance(text);
+        }};
 
     // PASS 0: coastal and man-made shader layers, drawn before all other layers.
     if (m_bShaderToys && m_bgProgram && m_bgProgram->isLinked())
@@ -440,13 +437,13 @@ void TSDWindow::render()
 
     m_program->bind();
 
-    //checkGL("before drawMRTStation");
+    // checkGL("before drawMRTStation");
     drawMRTStation();
-    //checkGL("after drawMRTStation");
+    // checkGL("after drawMRTStation");
 
     drawEBL(X_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitX), Y_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitY),
             sqrt(m_iMouseDeltaX * m_iMouseDeltaX + m_iMouseDeltaY * m_iMouseDeltaY) / SCALE);
-    //checkGL("after drawEBL");
+    // checkGL("after drawEBL");
 
     m_program->release();
 
@@ -738,6 +735,7 @@ void TSDWindow::rebuildLiveLayers()
     {
         rebuildBusRouteLayers();
     }
+
     if (m_sgBusVehicles.isDirty() || m_sgBusWindshields.isDirty())
     {
         const std::array<LiveMapLayer*, 2> vehicleLayers = {&m_sgBusVehicles, &m_sgBusWindshields};
