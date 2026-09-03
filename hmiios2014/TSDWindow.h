@@ -210,6 +210,8 @@ private:
     QVector<BaseMapLayer*> m_baseLayers;
     QVector<StaticMapLayer*> m_staticLayers;
     QVector<LiveMapLayer*> m_liveLayers;
+    QVector<LiveMapLayer*> m_busRouteLayers;
+    QVector<LiveMapLayer*> m_busArrivalTimeLayers;
     
     GLfloat* m_mrt;
     bool m_bAutoZoom;
@@ -228,6 +230,7 @@ private:
     // Bus Tracker snapshot, VBO, and vehicle infos.
     BusStopSnapshot m_currentBusStopSnapshot;
     void rebuildBusRouteLayers();
+    void rebuildBusArrivalInfoLayers();
     void rebuildLiveLayers();
 };
 

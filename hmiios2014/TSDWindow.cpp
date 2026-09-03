@@ -125,6 +125,8 @@ TSDWindow::TSDWindow()
                       &m_sgMainRoads, &m_sgMotorWays, &m_sgMinorRoads, &m_sgAirWays, &m_sgWaterArea};
     m_liveLayers = {&m_sgFlightTrails, &m_sgFlightMarkers, &m_sgBusRouteLines, &m_sgBusRouteLines2,
                     &m_sgBusStops,     &m_sgBusStops2,     &m_sgBusVehicles,   &m_sgBusWindshields};
+    m_busRouteLayers = {&m_sgBusRouteLines, &m_sgBusRouteLines2, &m_sgBusStops, &m_sgBusStops2}; // order is important for rendering
+    m_busArrivalTimeLayers = {&m_sgBusVehicles, &m_sgBusWindshields};
 
     // Live airflight tracking near Changi. The worker runs on a dedicated
     // thread and polls the adsb.lol API; its tracking table is queued onto the
@@ -730,23 +732,6 @@ void TSDWindow::onTrackingTableUpdated(const QHash<QString, TrackedAircraft>& ta
 // rest of the map.
 void TSDWindow::rebuildLiveLayers()
 {
-    if (m_sgBusRouteLines.isDirty() || m_sgBusRouteLines2.isDirty() || m_sgBusStops.isDirty()
-        || m_sgBusStops2.isDirty())
-    {
-        rebuildBusRouteLayers();
-    }
-
-    if (m_sgBusVehicles.isDirty() || m_sgBusWindshields.isDirty())
-    {
-        const std::array<LiveMapLayer*, 2> vehicleLayers = {&m_sgBusVehicles, &m_sgBusWindshields};
-        for (LiveMapLayer* layer : vehicleLayers)
-        {
-            auto* parser = static_cast<BusLayerParser*>(layer->parser());
-            parser->setRoutes(m_activeBusRoutes);
-            parser->setSnapshot(m_currentBusStopSnapshot);
-        }
-    }
-
     for (LiveMapLayer* layer : m_liveLayers)
     {
         layer->rebuild(m_sgCoastal.m_property, m_fScaleFactor);
@@ -868,10 +853,7 @@ void TSDWindow::onBusRouteReady(const QString& busNo, const QList<BusRoute>& rou
     }
     m_activeBusRoutes.append(routes);
 
-    m_sgBusRouteLines.markDirty();
-    m_sgBusRouteLines2.markDirty();
-    m_sgBusStops.markDirty();
-    m_sgBusStops2.markDirty();
+    rebuildBusRouteLayers();
     renderLater();
 }
 
@@ -886,13 +868,22 @@ void TSDWindow::rebuildBusRouteLayers()
         }
     }
 
-    const std::array<LiveMapLayer*, 4> routeLayers = {&m_sgBusRouteLines, &m_sgBusRouteLines2, &m_sgBusStops,
-                                                      &m_sgBusStops2};
-    for (size_t index = 0; index < routeLayers.size(); ++index)
+    for (size_t index = 0; index < m_busRouteLayers.size(); ++index)
     {
-        auto* parser = static_cast<BusLayerParser*>(routeLayers[index]->parser());
+        auto* parser = static_cast<BusLayerParser*>(m_busRouteLayers[index]->parser());
         parser->setRoutes(routesByDirection[index % 2]);
-        routeLayers[index]->markDirty();
+        m_busRouteLayers[index]->markDirty();
+    }
+}
+
+void TSDWindow::rebuildBusArrivalInfoLayers()
+{
+    for (LiveMapLayer* layer : m_busArrivalTimeLayers)
+    {
+        auto* parser = static_cast<BusLayerParser*>(layer->parser());
+        parser->setRoutes(m_activeBusRoutes);
+        parser->setSnapshot(m_currentBusStopSnapshot);
+        layer->markDirty();
     }
 }
 
@@ -918,12 +909,7 @@ void TSDWindow::clearBusInfo()
     }
 
     m_currentBusStopSnapshot = BusStopSnapshot();
-    const std::array<LiveMapLayer*, 2> vehicleLayers = {&m_sgBusVehicles, &m_sgBusWindshields};
-    for (LiveMapLayer* layer : vehicleLayers)
-    {
-        static_cast<BusLayerParser*>(layer->parser())->setSnapshot(m_currentBusStopSnapshot);
-        layer->markDirty();
-    }
+    rebuildBusArrivalInfoLayers();
 
     renderLater();
 }
@@ -952,9 +938,7 @@ void TSDWindow::trackBusStop(const QString& stopCode, const QString& accountKey)
     }
 
     m_activeBusRoutes.clear();
-    const std::array<LiveMapLayer*, 4> routeLayers = {&m_sgBusRouteLines, &m_sgBusRouteLines2, &m_sgBusStops,
-                                                      &m_sgBusStops2};
-    for (LiveMapLayer* layer : routeLayers)
+    for (LiveMapLayer* layer : m_busRouteLayers)
     {
         layer->markDirty();
     }
@@ -971,8 +955,7 @@ void TSDWindow::trackBusStop(const QString& stopCode, const QString& accountKey)
 void TSDWindow::onBusArrivalUpdated(const BusStopSnapshot& snapshot)
 {
     m_currentBusStopSnapshot = snapshot;
-    m_sgBusVehicles.markDirty();
-    m_sgBusWindshields.markDirty();
+    rebuildBusArrivalInfoLayers();
 
     // Automatically fetch and draw routes for all bus services arriving at this bus stop
     for (const BusService& service : snapshot.services)
