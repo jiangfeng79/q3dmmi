@@ -53,15 +53,15 @@ FORMS += \
 TRANSLATIONS = hmiios2014_en.ts \
                hmiios2014_zh.ts
 
-INCLUDEPATH += $$PWD/../../shapelib-1.5.0/
+INCLUDEPATH += $$PWD/../../shapelib-1.6.3/
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../shapelib-1.5.0/ -lshapelib opengl32.lib
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../shapelib-1.5.0/ -lshapelib opengl32.lib
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../shapelib-1.6.3/ -lshapelib opengl32.lib
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../shapelib-1.6.3/ -lshapelib opengl32.lib
 else:unix: LIBS += -L/usr/local/lib -lshp
 
 DISTFILES += \

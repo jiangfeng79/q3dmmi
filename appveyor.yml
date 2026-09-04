@@ -19,9 +19,9 @@ install:
 before_build:
 - cmd: >-
     cd c:\projects
-    curl -fsS -o shapelib-1.5.0.zip http://download.osgeo.org/shapelib/shapelib-1.5.0.zip
-    7z x shapelib-1.5.0.zip
-    cd shapelib-1.5.0
+    curl -fsS -o shapelib-1.6.3.zip http://download.osgeo.org/shapelib/shapelib-1.6.3.zip
+    7z x shapelib-1.6.3.zip
+    cd shapelib-1.6.3
     nmake /f makefile.vc
 build:
   verbosity: minimal
