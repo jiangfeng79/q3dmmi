@@ -73,15 +73,16 @@ public:
         FLIGHTS = 1 << 26,             // live airflight markers (SHPT_POLYGON)
         FLIGHTS_TEXT = 1 << 27,        // live airflight callsign labels
         FLIGHT_TRAILS = 1 << 28,       // live airflight trails (SHPT_ARC)
-        BUS_ROUTES = 1 << 29,          // bus route lines
-        BUS_ROUTES2 = 1 << 30,         // bus route lines2
-        BUS_ROUTES_TEXT = 1ULL << 31,  // bus route stop labels
-        BUS_STOPS = 1ULL << 32,        // bus stop nodes
-        BUS_STOPS_TEXT = 1ULL << 33,   // bus stop labels
-        BUS_TRACKS = 1ULL << 34,       // bus tracking symbols
-        BUS_TRACKS_TEXT = 1ULL << 35,  // bus tracking vehicle labels
-        BUS_TRACKS_WINDSHIELD = 1ULL << 36,
-        BUS_STOPS2 = 1ULL << 37  // return-direction bus stop nodes
+        FLIGHT_TRAILS_TEXT = 1 << 29,
+        BUS_ROUTES = 1 << 30,          // bus route lines
+        BUS_ROUTES2 = 1ULL << 31,         // bus route lines2
+        BUS_ROUTES_TEXT = 1ULL << 32,  // bus route stop labels
+        BUS_STOPS = 1ULL << 33,        // bus stop nodes
+        BUS_STOPS_TEXT = 1ULL << 34,   // bus stop labels
+        BUS_TRACKS = 1ULL << 35,       // bus tracking symbols
+        BUS_TRACKS_TEXT = 1ULL << 36,  // bus tracking vehicle labels
+        BUS_TRACKS_WINDSHIELD = 1ULL << 37,
+        BUS_STOPS2 = 1ULL << 38  // return-direction bus stop nodes
     };
 
     unsigned int myLog2(uint64_t value)

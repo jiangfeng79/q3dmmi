@@ -20,7 +20,7 @@ void main() {
 	// Thicken the MRT layer (color_id 20), flight trails (color_id 27),
     // and bus route lines (color_id 28 & 29).
    
-    float width = (color_id == 20) ? 1.2 : (color_id == 28) ? 0.3 : (color_id == 29 || color_id == 30) ? 0.4 : 0.6;
+    float width = (color_id == 20) ? 1.2 : (color_id == 28) ? 0.3 : (color_id == 30 || color_id == 31) ? 0.4 : 0.6;
 
     // Segment endpoints in NDC.
     vec2 a = gl_in[0].gl_Position.xy / gl_in[0].gl_Position.w;

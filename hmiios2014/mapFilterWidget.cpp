@@ -91,6 +91,8 @@ void MapFilterWidget::on_checkBoxBusRoutes_stateChanged(int state)
     qDebug() << "on_checkBoxBusRoutes_stateChanged" << state;
     emit signal_checkBox_state(TSDWindow::BUS_ROUTES, state);
     emit signal_checkBox_state(TSDWindow::BUS_ROUTES2, state);
+    emit signal_checkBox_state(TSDWindow::BUS_STOPS, state);
+    emit signal_checkBox_state(TSDWindow::BUS_STOPS2, state);
 }
 
 void MapFilterWidget::on_checkBoxBusTracks_stateChanged(int state)
