@@ -2,19 +2,19 @@ version: 1.0.{build}
 branches:
   only:
   - master
-image: Visual Studio 2017
+image: Visual Studio 2022
 configuration: Release
 platform: x64
 clone_folder: c:\projects\q3dmmi
 init:
 - cmd: >-
-    set QTDIR=C:\Qt\5.12.6\msvc2017_64
+    set QTDIR=C:\Qt\6.9.3\msvc2022_64
     set PATH=%QTDIR%\bin;%PATH%
     set ORIGPATH=%PATH%
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
+    call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 install:
 - cmd: >-
-    set QTDIR=C:\Qt\5.12.6\msvc2017_64
+    set QTDIR=C:\Qt\6.9.3\msvc2022_64
     set PATH=%QTDIR%\bin;%PATH%
 before_build:
 - cmd: >-
