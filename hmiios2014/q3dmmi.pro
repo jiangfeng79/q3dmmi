@@ -27,7 +27,8 @@ SOURCES += \
     layerParser.cpp \
     main.cpp \
     mapFilterWidget.cpp \
-    shpReader.cpp
+    shpReader.cpp \
+    MapLayer.cpp
 
 HEADERS += \
     OpenglWindow.h \
@@ -44,7 +45,9 @@ HEADERS += \
     layerParser.h \
     mapFilterWidget.h \
     mrt.h \
-    shpReader.h
+    shpReader.h \
+    MapLayer.h \
+    WorkerEntry.h
 
 FORMS += \
     hmiios2014.ui \
@@ -75,7 +78,9 @@ DISTFILES += \
     hmiios2014_zh.qm \
     hmiios2014_zh.ts \
     q3dmmi.pro.user \
-    vshader.glsl
+    vshader.glsl \
+    bgfshader.glsl \
+    gshader.glsl
 
 RESOURCES += \
     hmiios2014.qrc
