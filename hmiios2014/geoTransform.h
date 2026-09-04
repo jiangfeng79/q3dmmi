@@ -1,6 +1,7 @@
 #ifndef GEOTRANSFORM_H
 #define GEOTRANSFORM_H
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 #include "layerGeometry.h"
