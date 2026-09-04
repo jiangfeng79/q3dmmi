@@ -303,17 +303,7 @@ private:
         };
 
         auto updateBus = [&headingBetween](const ArrivalBus& prevBus, ArrivalBus& nextBus) {
-            if (nextBus.visitNumber.isEmpty())
-            {
-                return;
-            }
-
-            if (prevBus.visitNumber == nextBus.visitNumber)
-            {
-                nextBus.heading = headingBetween(prevBus, nextBus);
-                return;
-            }
-            // No matching previous bus: keep the default heading.
+            nextBus.heading = headingBetween(prevBus, nextBus);
         };
 
         for (int i = 0; i < newSnapshot.services.size(); ++i)
@@ -321,9 +311,20 @@ private:
             BusService& service = newSnapshot.services[i];
             const BusService& prevService = previousSnapshot.services.value(i);
 
-            updateBus(prevService.nextBus, service.nextBus);
-            updateBus(prevService.nextBus2, service.nextBus2);
-            updateBus(prevService.nextBus3, service.nextBus3);
+            const QDateTime dtNext = QDateTime::fromString(service.nextBus.estimatedArrival, Qt::ISODate);
+            const QDateTime dtPrev = QDateTime::fromString(prevService.nextBus.estimatedArrival, Qt::ISODate);
+            if (dtNext.isValid() && dtPrev.isValid() && dtNext > dtPrev)
+            {
+                // previous bus has passed the stop
+                updateBus(prevService.nextBus2, service.nextBus);
+                updateBus(prevService.nextBus3, service.nextBus2);
+            }
+            else
+            {
+                updateBus(prevService.nextBus, service.nextBus);
+                updateBus(prevService.nextBus2, service.nextBus2);
+                updateBus(prevService.nextBus3, service.nextBus3);
+            }
         }
     }
 };
