@@ -31,6 +31,7 @@
 #include "busTracker.h"
 #include "flightLayerParser.h"
 #include "flightTracker.h"
+#include "roadGraph.h"
 
 class TSDWindow : public OpenglWindow
 {
@@ -227,6 +228,11 @@ private:
     QString m_accountKey;
     QList<BusRoute> m_activeBusRoutes;
     QString m_currentBusNo;
+
+    // Road network used to route bus lines between stops along real roads.
+    // Built once from the OSM road shapefiles and shared with the bus route
+    // line parsers.
+    RoadGraph m_roadGraph;
 
     // Bus Tracker snapshot, VBO, and vehicle infos.
     BusStopSnapshot m_currentBusStopSnapshot;

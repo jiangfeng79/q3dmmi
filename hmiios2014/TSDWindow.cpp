@@ -128,6 +128,17 @@ TSDWindow::TSDWindow()
     m_busRouteLayers = {&m_sgBusRouteLines, &m_sgBusRouteLines2, &m_sgBusStops, &m_sgBusStops2}; // order is important for rendering
     m_busArrivalTimeLayers = {&m_sgBusVehicles, &m_sgBusWindshields};
 
+    // Build the road network once so the bus route line parsers can route
+    // between consecutive stops along real roads instead of straight lines.
+    // The shapefiles are read relative to the working directory (the build
+    // bin folder), matching how the other map layers are loaded.
+    if (m_roadGraph.build("./sgMap/singapore.osm-mainroads", "./sgMap/singapore.osm-minorroads",
+                          "./sgMap/singapore.osm-motorways"))
+    {
+        static_cast<BusLayerParser*>(m_sgBusRouteLines.parser())->setRoadGraph(&m_roadGraph);
+        static_cast<BusLayerParser*>(m_sgBusRouteLines2.parser())->setRoadGraph(&m_roadGraph);
+    }
+
     // Live airflight tracking near Changi. The worker runs on a dedicated
     // thread and polls the adsb.lol API; its tracking table is queued onto the
     // GUI thread, turned into flight MapLayers, and drawn through the normal
