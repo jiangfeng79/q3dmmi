@@ -27,9 +27,6 @@ static Vertex makeVertex(double lon, double lat, int depth, const MapProperty& p
 
 LayerGeometry BusLayerParser::parse(const Options& a_options)
 {
-    static QMutex mutex;
-    QMutexLocker locker(&mutex);
-
     LayerGeometry geo;
     geo.property = a_options.baseProperty;
 
