@@ -101,6 +101,39 @@ void MapFilterWidget::on_checkBoxBusTracks_stateChanged(int state)
     emit signal_checkBox_state(TSDWindow::BUS_TRACKS, state);
 }
 
+void MapFilterWidget::syncFromMask(std::uint64_t mask)
+{
+    // The .ui file hard-codes every checkbox as checked, but the real initial
+    // display mask has several layers turned off. Sync the checkbox states
+    // from the actual mask so the GUI reflects what is really being drawn.
+    // Signals are blocked so this does not re-emit the (already correct) mask
+    // back through signal_checkBox_state.
+    auto setChecked = [this, mask](QCheckBox* box, TSDWindow::DisplayMaskBits bit) {
+        if (box)
+        {
+            box->blockSignals(true);
+            box->setChecked(mask & static_cast<std::uint64_t>(bit));
+            box->blockSignals(false);
+        }
+    };
+
+    setChecked(checkBoxLand, TSDWindow::COASTAL);
+    setChecked(checkBoxWaterArea, TSDWindow::WATER_AREA);
+    setChecked(checkBoxLandUsage, TSDWindow::LAND_USAGE);
+    setChecked(checkBoxBuildings, TSDWindow::BUILDING);
+    setChecked(checkBoxPlaces, TSDWindow::PLACES);
+    setChecked(checkBoxMotorWays, TSDWindow::MOTOR_WAYS);
+    setChecked(checkBoxRailways, TSDWindow::MRT);
+    setChecked(checkBoxMainRoads, TSDWindow::MAIN_ROADS);
+    setChecked(checkBoxMinorRoads, TSDWindow::MINOR_ROADS);
+    setChecked(checkBoxAeroWays, TSDWindow::AIR_WAYS);
+    setChecked(checkBoxAmenities, TSDWindow::AMENITIES);
+    setChecked(checkBoxManMade, TSDWindow::MAN_MADE);
+    setChecked(checkBoxFlights, TSDWindow::FLIGHTS);
+    setChecked(checkBoxBusRoutes, TSDWindow::BUS_ROUTES);
+    setChecked(checkBoxBusTracks, TSDWindow::BUS_TRACKS);
+}
+
 void MapFilterWidget::retranslate()
 {
     retranslateUi(this);

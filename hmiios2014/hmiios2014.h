@@ -33,6 +33,7 @@ private:
     QTranslator m_translatorDefault;  // contains the translations for qt
 
     QString getOrPromptAccountKey();
+    void syncMapFilterCheckboxes();
 
 signals:
     void signal_widget_resize(QRect rect);

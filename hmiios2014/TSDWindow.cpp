@@ -71,7 +71,7 @@ TSDWindow::TSDWindow()
       m_bgResolution(0),
       m_bgTime(0),
       m_bgShaderId(1),
-      m_displayMask(0x3DFF5C032B),
+      m_displayMask(0x7fff5c032bULL),  // all layers on except for the flight trails
       m_sgCoastal("./sgMap/singapore", COASTAL, COASTAL_TEXT, new ShapefileLayerParser("./sgMap/singapore"),
                   m_displayMask, *this),
       m_sgAmenities("./sgMap/singapore.osm-amenities", AMENITIES, AMENITIES_TEXT,

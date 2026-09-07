@@ -114,6 +114,7 @@ public:
 
     void centerMap();
     void setDisplayMask(DisplayMaskBits layer, bool b);
+    std::uint64_t getDisplayMask() const { return m_displayMask; }
     inline void setAutoZoom(bool value) { m_bAutoZoom = value; }
     inline bool getAutoZoom() { return m_bAutoZoom; }
 

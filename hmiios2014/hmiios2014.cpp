@@ -140,10 +140,26 @@ void hmiios2014::setTsdWindow(TSDWindow* a_tsd)
     }
 
     connect(ui.widgetMapFilter, &MapFilterWidget::signal_checkBox_state, this, &hmiios2014::slot_setMapFilter);
+    syncMapFilterCheckboxes();
+}
+
+void hmiios2014::syncMapFilterCheckboxes()
+{
+    // The .ui file hard-codes every checkbox as checked, but the real initial
+    // display mask (TSDWindow::m_displayMask) has several layers turned off.
+    // Sync the checkbox states from the actual mask so the GUI reflects what
+    // is really being drawn.
+    if (!m_tsd)
+    {
+        return;
+    }
+
+    ui.widgetMapFilter->syncFromMask(m_tsd->getDisplayMask());
 }
 
 void hmiios2014::slot_setMapFilter(TSDWindow::DisplayMaskBits layer, int state)
 {
+    // qWarning() << "slot_setMapFilter" << Qt::hex << m_tsd->getDisplayMask();
     const std::uint64_t layerText = static_cast<std::uint64_t>(layer) << 1;
     if (state == Qt::Unchecked)
     {

@@ -16,6 +16,11 @@ public:
     ~MapFilterWidget();
     void retranslate();
 
+    // Set each checkbox's checked state to match the given display mask, so
+    // the GUI reflects the layers that are actually being drawn. Signals are
+    // blocked so this does not re-emit the mask back to the window.
+    void syncFromMask(std::uint64_t mask);
+
 private:
 signals:
     void signal_checkBox_state(TSDWindow::DisplayMaskBits layer, int state);
