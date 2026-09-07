@@ -4,6 +4,7 @@
 #include <QPointF>
 #include <QOpenGLBuffer>
 #include <QString>
+#include <QObject>
 
 #include <cstdint>
 #include <functional>
@@ -25,8 +26,10 @@ struct MapLayerRenderContext
     std::function<qreal(const QString&)> textWidth;
 };
 
-class MapLayer
+class MapLayer : public QObject
 {
+    Q_OBJECT
+
 public:
     enum class FillMode
     {

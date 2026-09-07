@@ -1,6 +1,7 @@
 #include "MapLayer.h"
 
 #include <shapefil.h>
+#include <QThread>
 
 #include "TSDWindow.h"
 
@@ -35,13 +36,29 @@ void MapLayer::buildLayer(const MapProperty& baseProperty, int layerDepth)
 {
     if (!m_parser)
         return;
+
     LayerParser::Options options;
     options.baseProperty = baseProperty;
     options.layerDepth = layerDepth;
     options.useWgs84BuildTransform = (m_id == TSDWindow::MAN_MADE || m_id == TSDWindow::MRT);
-    m_geometry = m_parser->parse(options);
-    m_property = m_geometry.property;
-    uploadGeometry(GL_STATIC_DRAW);
+
+    QThread* thread = QThread::create([this, options] {
+        LayerGeometry geometry = m_parser->parse(options);
+
+        QMetaObject::invokeMethod(
+            this,
+            [this, geometry = std::move(geometry)]() mutable {
+                m_geometry = std::move(geometry);
+                m_property = m_geometry.property;
+
+                // Must remain on the render/UI thread
+                uploadGeometry(GL_STATIC_DRAW);
+            },
+            Qt::QueuedConnection);
+    });
+
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    thread->start();
 }
 
 void MapLayer::uploadGeometry(GLenum usage)
