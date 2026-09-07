@@ -67,7 +67,7 @@ private:
     // Emit the vertices of a Web-Mercator polyline into map space, skipping
     // the first point (which the caller has already emitted). Each vertex gets
     // a sequential line index so the renderer draws it as a continuous strip.
-    void appendPolylineVertices(LayerGeometry& geo, const RoadGraph::Polyline& path,
+    int appendPolylineVertices(LayerGeometry& geo, const RoadGraph::Polyline& path,
                                 int layerDepth, const MapProperty& property) const;
 
     Kind m_kind;

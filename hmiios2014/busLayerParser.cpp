@@ -199,9 +199,10 @@ LayerGeometry BusLayerParser::parse(const Options& a_options)
 // RouteLines: route between consecutive bus stops along the road network.
 // ---------------------------------------------------------------------------
 
-void BusLayerParser::appendPolylineVertices(LayerGeometry& geo, const RoadGraph::Polyline& path,
+int BusLayerParser::appendPolylineVertices(LayerGeometry& geo, const RoadGraph::Polyline& path,
                                             int layerDepth, const MapProperty& property) const
 {
+    int added = 0;
     // Convert the Web Mercator points into map-space vertices. The first point
     // is the previous stop, which the caller has already emitted, so it is
     // skipped to avoid a duplicate (zero-length) segment.
@@ -214,7 +215,11 @@ void BusLayerParser::appendPolylineVertices(LayerGeometry& geo, const RoadGraph:
         v.z = static_cast<float>(layerDepth);
         geo.vertices.push_back(v);
         geo.lineIndices.push_back(static_cast<unsigned int>(geo.vertices.size() - 1));
+
+        ++added;
     }
+
+    return added;
 }
 
 LayerGeometry BusLayerParser::buildRouteLines(const Options& a_options) const
@@ -346,7 +351,8 @@ LayerGeometry BusLayerParser::buildRouteLines(const Options& a_options) const
                 {
                     path = {p0, p1};
                 }
-                appendPolylineVertices(geo, path, a_options.layerDepth, geo.property);
+
+                idx += appendPolylineVertices(geo, path, a_options.layerDepth, geo.property);
             }
 
             // Label: direction, stop description and bus stop code.
