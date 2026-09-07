@@ -28,7 +28,8 @@ SOURCES += \
     main.cpp \
     mapFilterWidget.cpp \
     shpReader.cpp \
-    MapLayer.cpp
+    MapLayer.cpp \
+    roadGraph.cpp
 
 HEADERS += \
     OpenglWindow.h \
@@ -47,7 +48,8 @@ HEADERS += \
     mrt.h \
     shpReader.h \
     MapLayer.h \
-    WorkerEntry.h
+    WorkerEntry.h \
+    roadGraph.h
 
 FORMS += \
     hmiios2014.ui \
