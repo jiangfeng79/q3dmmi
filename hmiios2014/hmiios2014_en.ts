@@ -71,17 +71,17 @@
     <message>
         <location filename="mapFilter.ui" line="197"/>
         <source>Flights</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Flights</translation>
     </message>
     <message>
         <location filename="mapFilter.ui" line="210"/>
         <source>Bus Routes</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Bus Routes</translation>
     </message>
     <message>
         <location filename="mapFilter.ui" line="223"/>
         <source>Bus Tracks</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Bus Arrival Time</translation>
     </message>
 </context>
 <context>
@@ -103,37 +103,37 @@
     <message>
         <location filename="hmiios2014.cpp" line="236"/>
         <source>LTA DataMall Account Key</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">LTA DataMall Account Key</translation>
     </message>
     <message>
         <location filename="hmiios2014.cpp" line="239"/>
         <source>Get your free access key:&lt;br&gt;&lt;a href=&quot;https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html&quot;&gt;LTA DataMall API request&lt;/a&gt;&lt;br&gt;Enter LTA DataMall Account Key:&lt;br&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Get your free access key:&lt;br&gt;&lt;a href=&quot;https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html&quot;&gt;LTA DataMall API request&lt;/a&gt;&lt;br&gt;Enter LTA DataMall Account Key:&lt;br&gt;</translation>
     </message>
     <message>
         <location filename="hmiios2014.cpp" line="274"/>
         <source>Bus route</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Bus route</translation>
     </message>
     <message>
         <location filename="hmiios2014.cpp" line="275"/>
         <source>Enter bus number:</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Enter bus number:</translation>
     </message>
     <message>
         <location filename="hmiios2014.cpp" line="290"/>
         <source>Bus track</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Bus Arrival Time</translation>
     </message>
     <message>
         <location filename="hmiios2014.cpp" line="291"/>
         <source>Enter bus stop number:</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Enter bus stop number:</translation>
     </message>
     <message>
         <location filename="hmiios2014.cpp" line="309"/>
         <source>Cleared all bus routes and tracks</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Cleared all bus routes and tracks</translation>
     </message>
 </context>
 <context>
@@ -141,7 +141,7 @@
     <message>
         <location filename="hmiios2014.ui" line="14"/>
         <source>hmiios2014</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Hmiios2014</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="46"/>
@@ -151,7 +151,7 @@
     <message>
         <location filename="hmiios2014.ui" line="54"/>
         <source>Bus</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Bus</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="63"/>
@@ -166,7 +166,7 @@
     <message>
         <location filename="hmiios2014.ui" line="79"/>
         <source>Debug</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Debug</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="91"/>
@@ -273,42 +273,42 @@
     <message>
         <location filename="hmiios2014.ui" line="313"/>
         <source>Vsync</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Vsync</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="316"/>
         <source>Toggle vertical sync (off = benchmark mode, unlimited FPS)</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Toggle vertical sync (off = benchmark mode, unlimited FPS)</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="321"/>
         <source>Bus route</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Bus route</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="324"/>
         <source>Get route information of a bus number</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Get route information of a bus number</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="329"/>
         <source>Bus track</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Bus Arrival Time</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="332"/>
         <source>Retrieve arriving buses for a bus stop number</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Retrieve arriving buses for a bus stop number</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="337"/>
         <source>Clear bus info</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Clear bus info</translation>
     </message>
     <message>
         <location filename="hmiios2014.ui" line="340"/>
         <source>Clear all bus routes and tracks from map</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Clear all bus routes and tracks from map</translation>
     </message>
 </context>
 </TS>
