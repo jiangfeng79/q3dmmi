@@ -124,6 +124,14 @@ public:
     inline void setShaderToys(bool value) { m_bShaderToys = value; }
     inline bool getShaderToys() { return m_bShaderToys; }
 
+signals:
+    // Emitted whenever a fresh bus arrival snapshot is received for a stop,
+    // so the floating BusArrivalWidget can update and pop up.
+    void busArrivalSnapshotUpdated(const BusStopSnapshot& snapshot);
+
+    // Emitted when all bus info is cleared, so the widget can hide itself.
+    void busInfoCleared();
+
 public slots:
     // Receives the live airflight tracking table from the TrackerWorker
     // (emitted from the worker thread, queued to the GUI thread).

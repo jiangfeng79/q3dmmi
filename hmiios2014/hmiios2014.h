@@ -7,6 +7,7 @@
 #include <QTranslator>
 
 #include "TSDWindow.h"
+#include "busArrivalWidget.h"
 #include "mapFilterWidget.h"
 #include "ui_hmiios2014.h"
 
@@ -62,6 +63,10 @@ private slots:
     void on_actionBusTrack_triggered();
     void on_actionClearBus_triggered();
     void slot_setMapFilter(TSDWindow::DisplayMaskBits layer_id, int state);
+
+    // Floating bus arrival times widget.
+    void slot_busArrivalSnapshotUpdated(const BusStopSnapshot& snapshot);
+    void slot_busInfoCleared();
 };
 
 #endif  // HMIIOS2014_H

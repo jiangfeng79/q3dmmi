@@ -20,6 +20,7 @@ TEMPLATE = app
 SOURCES += \
     OpenglWindow.cpp \
     TSDWindow.cpp \
+    busArrivalWidget.cpp \
     busLayerParser.cpp \
     dbfReader.cpp \
     flightLayerParser.cpp \
@@ -34,6 +35,7 @@ SOURCES += \
 HEADERS += \
     OpenglWindow.h \
     TSDWindow.h \
+    busArrivalWidget.h \
     busLayerParser.h \
     busRoute.h \
     busTracker.h \
@@ -53,7 +55,8 @@ HEADERS += \
 
 FORMS += \
     hmiios2014.ui \
-    mapFilter.ui
+    mapFilter.ui \
+    busArrival.ui
 
 TRANSLATIONS = hmiios2014_en.ts \
                hmiios2014_zh.ts

@@ -874,6 +874,9 @@ void TSDWindow::clearBusInfo()
     m_currentBusStopSnapshot = BusStopSnapshot();
     rebuildBusArrivalInfoLayers();
 
+    // Hide the floating arrival-times widget.
+    emit busInfoCleared();
+
     renderLater();
 }
 
@@ -919,6 +922,9 @@ void TSDWindow::onBusArrivalUpdated(const BusStopSnapshot& snapshot)
 {
     m_currentBusStopSnapshot = snapshot;
     rebuildBusArrivalInfoLayers();
+
+    // Notify the floating arrival-times widget so it can update and pop up.
+    emit busArrivalSnapshotUpdated(snapshot);
 
     // Automatically fetch and draw routes for all bus services arriving at this bus stop
     for (const BusService& service : snapshot.services)

@@ -42,6 +42,13 @@ hmiios2014::hmiios2014(QWidget* parent) : QMainWindow(parent), m_tsd(nullptr)
     setCentralWidget(centralWidget);
 
     connect(m_tsd, &TSDWindow::signal_setFps, this, &hmiios2014::slot_setFps);
+
+    // Bus arrival times dock (bottom of the main window by default). It pops
+    // up whenever a new stop is queried and hides when there is no arrival
+    // data. The dock and its widget come from the .ui file.
+    ui.dockBusArrival->hide();
+    connect(m_tsd, &TSDWindow::busArrivalSnapshotUpdated, this, &hmiios2014::slot_busArrivalSnapshotUpdated);
+    connect(m_tsd, &TSDWindow::busInfoCleared, this, &hmiios2014::slot_busInfoCleared);
 }
 
 hmiios2014::~hmiios2014() {}
@@ -325,6 +332,25 @@ void hmiios2014::on_actionClearBus_triggered()
     ui.statusBar->showMessage(tr("Cleared all bus routes and tracks"));
 }
 
+void hmiios2014::slot_busArrivalSnapshotUpdated(const BusStopSnapshot& snapshot)
+{
+    // Populate the table; show the dock only when there is data to display.
+    const bool hasData = ui.widgetBusArrival->setSnapshot(snapshot);
+    ui.dockBusArrival->setVisible(hasData);
+    if (hasData)
+    {
+        ui.dockBusArrival->setWindowTitle(tr("Bus Arrival Times - Stop %1").arg(snapshot.busStopCode));
+        ui.dockBusArrival->raise();
+    }
+}
+
+void hmiios2014::slot_busInfoCleared()
+{
+    ui.widgetBusArrival->clear();
+    ui.dockBusArrival->setWindowTitle(tr("Bus Arrival Times"));
+    ui.dockBusArrival->hide();
+}
+
 void hmiios2014::switchTranslator(QTranslator& translator, const QString& filename)
 {
     // remove the old translator
@@ -343,6 +369,7 @@ void hmiios2014::changeEvent(QEvent* event)
     {
         ui.retranslateUi(this);
         ui.widgetMapFilter->retranslate();
+        ui.widgetBusArrival->retranslate();
     }
 
     QMainWindow::changeEvent(event);
