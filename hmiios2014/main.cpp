@@ -19,6 +19,14 @@ int main(int argc, char* argv[])
     QSurfaceFormat::setDefaultFormat(format);
 
     QApplication a(argc, argv);
+    // Set a modern CJK font stack
+    QFont font("Microsoft YaHei UI", 10);
+    
+    // Disable hinting so DirectWrite uses subpixel antialiasing/grayscale instead of pixel snapping
+    font.setHintingPreference(QFont::PreferNoHinting);
+    font.setStyleStrategy(QFont::PreferAntialias);
+    a.setFont(font);
+
     hmiios2014 w;
     w.resize(1280, 800);
     w.show();
