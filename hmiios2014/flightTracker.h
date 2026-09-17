@@ -113,7 +113,11 @@ public:
         }
         if (m_nam)
         {
-            delete m_nam;
+            // Defer destruction so any in-flight QNetworkReply objects (and the
+            // onNetworkReply events already queued for them) are processed while
+            // the replies are still alive. Deleting immediately would destroy the
+            // replies and leave a dangling pointer in a queued onNetworkReply call.
+            m_nam->deleteLater();
             m_nam = nullptr;
         }
     }

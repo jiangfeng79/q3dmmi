@@ -43,13 +43,15 @@ void MapLayer::buildLayer(const MapProperty& baseProperty, int layerDepth)
     options.useWgs84BuildTransform = (m_id == TSDWindow::MAN_MADE || m_id == TSDWindow::MRT);
 
     QThread* thread = QThread::create([this, options] {
-        LayerGeometry geometry = m_parser->parse(options);
+        LayerGeometry parsed = m_parser->parse(options);
 
         QMetaObject::invokeMethod(
             this,
-            [this, geometry = std::move(geometry)]() mutable {
-                m_geometry = std::move(geometry);
-                m_property = m_geometry.property;
+            [this, parsed = std::move(parsed)]() mutable {
+                // Publish atomically so the draw path (which may be running
+                // concurrently) always sees a complete geometry.
+                publishGeometry(std::move(parsed));
+                m_property = geometry()->property;
 
                 // Must remain on the render/UI thread
                 uploadGeometry(GL_STATIC_DRAW);
@@ -61,23 +63,30 @@ void MapLayer::buildLayer(const MapProperty& baseProperty, int layerDepth)
     thread->start();
 }
 
+void MapLayer::publishGeometry(LayerGeometry geometry)
+{
+    auto next = std::make_shared<const LayerGeometry>(std::move(geometry));
+    m_geometry.store(std::move(next), std::memory_order_release);
+}
+
 void MapLayer::uploadGeometry(GLenum usage)
 {
-    if (m_geometry.vertices.empty())
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
+    if (geo.vertices.empty())
         return;
     if (!m_VBO_ID[0])
         m_window.glGenBuffers(1, &m_VBO_ID[0]);
     m_window.glBindBuffer(GL_ARRAY_BUFFER, m_VBO_ID[0]);
-    m_window.glBufferData(GL_ARRAY_BUFFER, m_geometry.vertices.size() * sizeof(Vertex), m_geometry.vertices.data(),
-                          usage);
+    m_window.glBufferData(GL_ARRAY_BUFFER, geo.vertices.size() * sizeof(Vertex), geo.vertices.data(), usage);
     m_window.glBindBuffer(GL_ARRAY_BUFFER, 0);
-    if (!m_geometry.lineIndices.empty())
+    if (!geo.lineIndices.empty())
     {
         if (!m_VBO_ID[1])
             m_window.glGenBuffers(1, &m_VBO_ID[1]);
         m_window.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_VBO_ID[1]);
-        m_window.glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_geometry.lineIndices.size() * sizeof(GLuint),
-                              m_geometry.lineIndices.data(), usage);
+        m_window.glBufferData(GL_ELEMENT_ARRAY_BUFFER, geo.lineIndices.size() * sizeof(GLuint), geo.lineIndices.data(),
+                              usage);
         m_window.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 }
@@ -89,7 +98,7 @@ void MapLayer::releaseGpuResources()
     m_VBO_ID[0] = m_VBO_ID[1] = 0;
     if (m_parser)
         m_parser->freeMemory();
-    m_geometry.clear();
+    publishGeometry(LayerGeometry());
 }
 
 void MapLayer::draw(const MapLayerRenderContext& context, bool linePass) const
@@ -106,10 +115,12 @@ void MapLayer::draw(const MapLayerRenderContext& context, bool linePass) const
 
 void MapLayer::drawPrimitive(const MapLayerRenderContext& context) const
 {
-    if (!m_VBO_ID[0] || m_geometry.renderType.empty())
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
+    if (!m_VBO_ID[0] || geo.renderType.empty())
         return;
 
-    const int type = m_geometry.renderType.front();
+    const int type = geo.renderType.front();
     if (type != SHPT_POINT && type != SHPT_POLYGON)
         return;
 
@@ -143,11 +154,11 @@ void MapLayer::drawPrimitive(const MapLayerRenderContext& context) const
         if (type == SHPT_POINT)
         {
             m_window.glPointSize(7.0f);  // Set the point size, adjust as needed
-            m_window.glDrawElements(GL_POINTS, m_geometry.lineIndices.size(), GL_UNSIGNED_INT, nullptr);
+            m_window.glDrawElements(GL_POINTS, geo.lineIndices.size(), GL_UNSIGNED_INT, nullptr);
         }
         else
         {
-            m_window.glDrawElements(GL_LINE_STRIP, m_geometry.lineIndices.size(), GL_UNSIGNED_INT, nullptr);
+            m_window.glDrawElements(GL_LINE_STRIP, geo.lineIndices.size(), GL_UNSIGNED_INT, nullptr);
         }
         m_window.glDisable(GL_PRIMITIVE_RESTART);
         m_window.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -158,7 +169,9 @@ void MapLayer::drawPrimitive(const MapLayerRenderContext& context) const
 
 void MapLayer::drawLines(const MapLayerRenderContext& context) const
 {
-    if (!m_VBO_ID[0] || !m_VBO_ID[1] || m_geometry.renderType.empty() || m_geometry.renderType.front() != SHPT_ARC)
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
+    if (!m_VBO_ID[0] || !m_VBO_ID[1] || geo.renderType.empty() || geo.renderType.front() != SHPT_ARC)
         return;
 
     m_window.glBindBuffer(GL_ARRAY_BUFFER, m_VBO_ID[0]);
@@ -167,7 +180,7 @@ void MapLayer::drawLines(const MapLayerRenderContext& context) const
     m_window.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_VBO_ID[1]);
     m_window.glEnable(GL_PRIMITIVE_RESTART);
     m_window.glPrimitiveRestartIndex(0xFFFFFFFF);
-    m_window.glDrawElements(GL_LINE_STRIP, m_geometry.lineIndices.size(), GL_UNSIGNED_INT, nullptr);
+    m_window.glDrawElements(GL_LINE_STRIP, geo.lineIndices.size(), GL_UNSIGNED_INT, nullptr);
     m_window.glDisable(GL_PRIMITIVE_RESTART);
     m_window.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     m_window.glDisableVertexAttribArray(context.positionAttribute);
@@ -178,7 +191,9 @@ void MapLayer::drawText(const MapLayerRenderContext& context) const
 {
     if (!(m_textId & m_displayMask))
         return;
-    for (const Label& label : m_geometry.labels)
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
+    for (const Label& label : geo.labels)
     {
         const QPointF point = context.wgs84ToScreen(label.longitude, label.latitude);
         if (point.x() > 0 && point.x() < context.width * context.retinaScale && point.y() > 0
@@ -196,14 +211,16 @@ void MapLayer::drawText(const MapLayerRenderContext& context) const
 
 void MapLayer::drawPolygonRing(const MapLayerRenderContext& context, int index) const
 {
-    const int vertexCount = m_geometry.rings[index + 1] - m_geometry.rings[index];
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
+    const int vertexCount = geo.rings[index + 1] - geo.rings[index];
     if (vertexCount < 3)
         return;
 
     m_window.glBindBuffer(GL_ARRAY_BUFFER, m_VBO_ID[0]);
     m_window.glVertexAttribPointer(
         context.positionAttribute, 3, GL_FLOAT, GL_FALSE, 0,
-        reinterpret_cast<void*>(static_cast<intptr_t>(m_geometry.rings[index] * sizeof(Vertex))));
+        reinterpret_cast<void*>(static_cast<intptr_t>(geo.rings[index] * sizeof(Vertex))));
     m_window.glEnableVertexAttribArray(context.positionAttribute);
     m_window.glDrawArrays(GL_TRIANGLE_FAN, 0, vertexCount);
     m_window.glDisableVertexAttribArray(context.positionAttribute);
@@ -212,31 +229,37 @@ void MapLayer::drawPolygonRing(const MapLayerRenderContext& context, int index) 
 
 void MapLayer::drawRingsToStencil(const MapLayerRenderContext& context) const
 {
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
     m_window.glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     m_window.glStencilFunc(GL_ALWAYS, 1, 1);
     m_window.glStencilOp(GL_KEEP, GL_INVERT, GL_INVERT);
 
-    for (int index = 0; index < static_cast<int>(m_geometry.rings.size()) - 1; ++index)
-        if (m_geometry.renderType[index] == SHPT_POLYGON)
+    for (int index = 0; index < static_cast<int>(geo.rings.size()) - 1; ++index)
+        if (geo.renderType[index] == SHPT_POLYGON)
             drawPolygonRing(context, index);
 }
 
 void MapLayer::drawRingsToColor(const MapLayerRenderContext& context) const
 {
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
     m_window.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     m_window.glStencilFunc(GL_EQUAL, 1, 1);
     m_window.glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-    for (int index = 0; index < static_cast<int>(m_geometry.rings.size()) - 1; ++index)
-        if (m_geometry.renderType[index] == SHPT_POLYGON)
+    for (int index = 0; index < static_cast<int>(geo.rings.size()) - 1; ++index)
+        if (geo.renderType[index] == SHPT_POLYGON)
             drawPolygonRing(context, index);
 }
 
 void MapLayer::drawRingFilled(const MapLayerRenderContext& context) const
 {
-    for (int index = 0; index < static_cast<int>(m_geometry.rings.size()) - 1; ++index)
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
+    for (int index = 0; index < static_cast<int>(geo.rings.size()) - 1; ++index)
     {
-        if (m_geometry.renderType[index] != SHPT_POLYGON)
+        if (geo.renderType[index] != SHPT_POLYGON)
             continue;
 
         m_window.glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -259,7 +282,9 @@ BaseMapLayer::BaseMapLayer(const char* fileName, std::uint64_t id, std::uint64_t
 
 void BaseMapLayer::drawFilled(const MapLayerRenderContext& context) const
 {
-    if (!m_VBO_ID[0] || m_geometry.rings.size() < 2 || m_geometry.renderType.empty())
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
+    if (!m_VBO_ID[0] || geo.rings.size() < 2 || geo.renderType.empty())
         return;
 
     m_window.glClear(GL_STENCIL_BUFFER_BIT);
@@ -283,8 +308,8 @@ void BaseMapLayer::buildLayer(const MapProperty& baseProperty, int layerDepth)
         return;
     if (m_id == TSDWindow::DisplayMaskBits::COASTAL)
     {
-        m_geometry = m_parser->parseBase();
-        m_property = m_geometry.property;
+        publishGeometry(m_parser->parseBase());
+        m_property = geometry()->property;
         uploadGeometry(GL_STATIC_DRAW);
         return;
     }
@@ -300,10 +325,10 @@ void BaseMapLayer::draw(const MapLayerRenderContext& context, bool linePass) con
     }
 }
 
-void StaticMapLayer::setGeometry(LayerGeometry geometry)
+void StaticMapLayer::setGeometry(LayerGeometry newGeometry)
 {
-    m_geometry = std::move(geometry);
-    m_property = m_geometry.property;
+    publishGeometry(std::move(newGeometry));
+    m_property = geometry()->property;
 }
 
 LiveMapLayer::LiveMapLayer(std::uint64_t id, std::uint64_t textId, LayerParser* parser,
@@ -315,7 +340,9 @@ LiveMapLayer::LiveMapLayer(std::uint64_t id, std::uint64_t textId, LayerParser* 
 
 void LiveMapLayer::drawFilled(const MapLayerRenderContext& context) const
 {
-    if (!m_VBO_ID[0] || m_geometry.rings.size() < 2 || m_geometry.renderType.empty())
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
+    if (!m_VBO_ID[0] || geo.rings.size() < 2 || geo.renderType.empty())
         return;
 
     m_window.glClear(GL_STENCIL_BUFFER_BIT);
@@ -343,8 +370,8 @@ void LiveMapLayer::rebuild(const MapProperty& baseProperty, float scale)
     LayerParser::Options options;
     options.baseProperty = baseProperty;
     options.useWgs84BuildTransform = true;
-    m_geometry = m_parser->parse(options);
-    m_property = m_geometry.property;
+    publishGeometry(m_parser->parse(options));
+    m_property = geometry()->property;
     uploadGeometry(GL_DYNAMIC_DRAW);
     m_dirty = false;
 }
@@ -360,7 +387,9 @@ void LiveMapLayer::drawText(const MapLayerRenderContext& context) const
     if (!(m_textId & m_displayMask))
         return;
 
-    for (const Label& label : m_geometry.labels)
+    const auto geoPtr = geometry();
+    const LayerGeometry& geo = *geoPtr;
+    for (const Label& label : geo.labels)
     {
         const QPointF point = context.wgs84ToScreen(label.longitude, label.latitude);
         if (point.x() <= 0 || point.x() >= context.width * context.retinaScale || point.y() <= 0

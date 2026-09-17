@@ -6,8 +6,10 @@
 #include <QString>
 #include <QObject>
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
+#include <memory>
 
 #include "layerGeometry.h"
 #include "layerParser.h"
@@ -57,11 +59,23 @@ public:
     std::uint64_t textId() const { return m_textId; }
     bool isVisible() const { return m_id & m_displayMask; }
 
+    // The current geometry, published atomically (see the note below). The
+    // draw path reads this on the render thread while a worker thread may be
+    // publishing a new one, so it is an immutable heap object behind a
+    // std::atomic pointer rather than a mutable member.
+    //
+    // Returns the shared_ptr by value so the caller holds a reference for as
+    // long as it uses the geometry; this keeps the object alive even if a
+    // concurrent publish replaces it.
+    std::shared_ptr<const LayerGeometry> geometry() const
+    {
+        return m_geometry.load(std::memory_order_acquire);
+    }
+
     MapProperty m_property;
     QString m_fileName;
     QString m_layerName;
     LayerParser* m_parser;
-    LayerGeometry m_geometry;
     GLuint m_VBO_ID[2];
 
 protected:
@@ -74,11 +88,28 @@ protected:
     void drawRingsToColor(const MapLayerRenderContext& context) const;
     void drawRingFilled(const MapLayerRenderContext& context) const;
 
+    // ------------------------------------------------------------------
+    // Geometry double-buffering (thread-safety)
+    //
+    // buildLayer() parses on a worker thread and then publishes the result
+    // back on the render thread, while draw() reads the geometry every frame.
+    // To avoid a data race we keep the geometry as an immutable heap object
+    // behind a std::atomic pointer: publishGeometry() builds a fresh object
+    // and stores its pointer with a release store; geometry() loads it with
+    // an acquire load. The old object is freed only once no reader holds a
+    // reference (shared_ptr refcount), so a reader never sees a half-built
+    // geometry and never frees memory it is still using.
+    // ------------------------------------------------------------------
+    void publishGeometry(LayerGeometry geometry);
+
     std::uint64_t m_id;
     std::uint64_t m_textId;
     const std::uint64_t& m_displayMask;
     TSDWindow& m_window;
     FillMode m_fillMode;
+
+    std::atomic<std::shared_ptr<const LayerGeometry>> m_geometry{
+        std::make_shared<const LayerGeometry>()};
 };
 
 class BaseMapLayer : public MapLayer

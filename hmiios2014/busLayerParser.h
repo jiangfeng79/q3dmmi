@@ -4,6 +4,9 @@
 #include <QList>
 #include <vector>
 
+#include <atomic>
+#include <memory>
+
 #include "busRoute.h"
 #include "busTracker.h"
 #include "layerParser.h"
@@ -44,9 +47,13 @@ public:
     explicit BusLayerParser(Kind a_kind) : m_kind(a_kind) {}
     ~BusLayerParser() override = default;
 
-    void setRoutes(const QList<BusRoute>& routes) { m_routes = routes; }
-    void setSnapshot(const BusStopSnapshot& snapshot) { m_snapshot = snapshot; }
-    void setScale(float a_scale) override { m_scale = a_scale; }
+    // Thread-safe input setters. The values are published as immutable heap
+    // objects behind a std::atomic pointer (release store), so parse() can
+    // read them from a worker thread without a lock while the UI thread
+    // updates them. See the "Thread-safety" note below.
+    void setRoutes(const QList<BusRoute>& routes) { publishRoutes(routes); }
+    void setSnapshot(const BusStopSnapshot& snapshot) { publishSnapshot(snapshot); }
+    void setScale(float a_scale) { m_scale.store(a_scale, std::memory_order_relaxed); }
 
     // Optional road network used by RouteLines to route between consecutive
     // bus stops along real roads instead of straight lines. When null (or
@@ -57,12 +64,21 @@ public:
     void freeMemory() override {}
 
     // Populated by the Vehicles parse(); used to draw per-bus HUD labels.
-    const std::vector<TrackedBusInfo>& getBusInfos() const { return m_busInfos; }
+    // Published atomically so the UI thread can read it while a worker thread
+    // is rebuilding it. Returns a copy (the list is small and TrackedBusInfo
+    // holds COW QStrings) so the caller is never left with a dangling
+    // reference if a concurrent publish replaces the data.
+    std::vector<TrackedBusInfo> getBusInfos() const
+    {
+        const auto p = m_busInfos.load(std::memory_order_acquire);
+        return p ? *p : std::vector<TrackedBusInfo>{};
+    }
 
 private:
-    // Build the RouteLines geometry for the current routes, routing between
+    // Build the RouteLines geometry for the given routes, routing between
     // consecutive stops along the road network when available.
-    LayerGeometry buildRouteLines(const Options& a_options) const;
+    LayerGeometry buildRouteLines(const Options& a_options,
+                                  const std::shared_ptr<const QList<BusRoute>>& routes) const;
 
     // Emit the vertices of a Web-Mercator polyline into map space, skipping
     // the first point (which the caller has already emitted). Each vertex gets
@@ -70,17 +86,39 @@ private:
     int appendPolylineVertices(LayerGeometry& geo, const RoadGraph::Polyline& path,
                                 int layerDepth, const MapProperty& property) const;
 
-    Kind m_kind;
-    QList<BusRoute> m_routes;
-    BusStopSnapshot m_snapshot;
-    float m_scale = 1.0f;
-    const RoadGraph* m_roadGraph = nullptr;
+    // ------------------------------------------------------------------
+    // Thread-safety
+    //
+    // parse() may run on a worker thread (MapLayer::buildLayer) while the UI
+    // thread calls setRoutes()/setSnapshot()/setScale(). To stay lock-free we
+    // publish each input as an immutable heap object behind a std::atomic
+    // pointer: the writer builds a fresh object and stores its pointer with a
+    // release store; the reader loads the pointer with an acquire load and
+    // copies out what it needs. The old object is deleted only after the
+    // reader has released its reference (refcounted shared_ptr), so a reader
+    // never observes a half-updated value and never frees memory it still
+    // uses.
+    // ------------------------------------------------------------------
+    void publishRoutes(const QList<BusRoute>& routes);
+    void publishSnapshot(const BusStopSnapshot& snapshot);
+    void publishBusInfos(std::vector<TrackedBusInfo> infos);
 
-    std::vector<TrackedBusInfo> m_busInfos;
+    Kind m_kind;
+
+    // Immutable input snapshots, published atomically (see note above).
+    std::atomic<std::shared_ptr<const QList<BusRoute>>> m_routes{std::make_shared<const QList<BusRoute>>()};
+    std::atomic<std::shared_ptr<const BusStopSnapshot>> m_snapshot{std::make_shared<const BusStopSnapshot>()};
+    std::atomic<float> m_scale{1.0f};
+    const RoadGraph* m_roadGraph = nullptr;  // set once before any parse()
+
+    // Populated by the Vehicles parse(); published atomically for the UI.
+    std::atomic<std::shared_ptr<const std::vector<TrackedBusInfo>>> m_busInfos{
+        std::make_shared<const std::vector<TrackedBusInfo>>()};
 
     // Cached road-routed geometry for RouteLines, keyed by the stop sequence.
     // The road graph is static, so a given route's geometry only changes when
     // its stops change; caching avoids re-running Dijkstra on every rebuild.
+    // Only ever touched by a single parse() call at a time (see note above).
     mutable QString m_routeCacheKey;
     mutable LayerGeometry m_routeCache;
 };

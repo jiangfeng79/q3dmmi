@@ -25,25 +25,51 @@ static Vertex makeVertex(double lon, double lat, int depth, const MapProperty& p
     return v;
 }
 
+void BusLayerParser::publishRoutes(const QList<BusRoute>& routes)
+{
+    auto next = std::make_shared<const QList<BusRoute>>(routes);
+    m_routes.store(std::move(next), std::memory_order_release);
+}
+
+void BusLayerParser::publishSnapshot(const BusStopSnapshot& snapshot)
+{
+    auto next = std::make_shared<const BusStopSnapshot>(snapshot);
+    m_snapshot.store(std::move(next), std::memory_order_release);
+}
+
+void BusLayerParser::publishBusInfos(std::vector<TrackedBusInfo> infos)
+{
+    auto next = std::make_shared<const std::vector<TrackedBusInfo>>(std::move(infos));
+    m_busInfos.store(std::move(next), std::memory_order_release);
+}
+
 LayerGeometry BusLayerParser::parse(const Options& a_options)
 {
     LayerGeometry geo;
     geo.property = a_options.baseProperty;
 
+    // Acquire the immutable input snapshots once. These are shared_ptr loads
+    // (acquire) that pair with the release stores in setRoutes()/setSnapshot(),
+    // so the worker thread reads a consistent, fully-constructed value even
+    // while the UI thread publishes a new one.
+    const std::shared_ptr<const QList<BusRoute>> routes = m_routes.load(std::memory_order_acquire);
+    const std::shared_ptr<const BusStopSnapshot> snapshot = m_snapshot.load(std::memory_order_acquire);
+    const float scale = m_scale.load(std::memory_order_relaxed);
+
     if (m_kind == RouteLines)
     {
-        return buildRouteLines(a_options);
+        return buildRouteLines(a_options, routes);
     }
     else if (m_kind == RouteStops)
     {
-        if (m_routes.isEmpty())
+        if (routes->isEmpty())
         {
             return geo;
         }
 
         geo.rings.push_back(0);
         int idx = 0;
-        for (const BusRoute& route : m_routes)
+        for (const BusRoute& route : *routes)
         {
             for (const RouteStop& rstop : route.stops)
             {
@@ -68,11 +94,11 @@ LayerGeometry BusLayerParser::parse(const Options& a_options)
     }
     else  // Vehicles and vehicle windshields
     {
-        m_busInfos.clear();
+        std::vector<TrackedBusInfo> busInfos;
 
-        for (const BusService& service : m_snapshot.services)
+        for (const BusService& service : snapshot->services)
         {
-            auto addBus = [this, &service](const ArrivalBus& bus, const QString& labelPrefix) {
+            auto addBus = [&busInfos, &service](const ArrivalBus& bus, const QString& labelPrefix) {
                 if (bus.latitude == 0.0 && bus.longitude == 0.0)
                 {
                     return;
@@ -81,7 +107,7 @@ LayerGeometry BusLayerParser::parse(const Options& a_options)
                 info.serviceNo = service.serviceNo;
                 info.bus = bus;
                 info.labelPrefix = labelPrefix;
-                m_busInfos.push_back(info);
+                busInfos.push_back(std::move(info));
             };
 
             addBus(service.nextBus, QStringLiteral("Next"));
@@ -89,13 +115,13 @@ LayerGeometry BusLayerParser::parse(const Options& a_options)
             addBus(service.nextBus3, QStringLiteral("3rd"));
         }
 
-        if (m_busInfos.empty())
+        if (busInfos.empty())
         {
             return geo;
         }
 
         // Maintain a crisp ~20px x 36px screen size regardless of zoom.
-        const float currentScale = qMax(geo.property.scale * m_scale, 1e-6f);
+        const float currentScale = qMax(geo.property.scale * scale, 1e-6f);
         const float busW = 6.0f / currentScale;
         const float busH = 10.8f / currentScale;
 
@@ -115,7 +141,7 @@ LayerGeometry BusLayerParser::parse(const Options& a_options)
 
         geo.rings.push_back(0);
         int idx = 0;
-        for (const auto& info : m_busInfos)
+        for (const auto& info : busInfos)
         {
             float cx = X_WGS84_BUILD_COORD_TO_MAP_COORD(info.bus.longitude, geo.property);
             float cy = Y_WGS84_BUILD_COORD_TO_MAP_COORD(info.bus.latitude, geo.property);
@@ -191,6 +217,10 @@ LayerGeometry BusLayerParser::parse(const Options& a_options)
         }
 
         geo.property.totalNumberOfVertex = static_cast<int>(geo.vertices.size());
+
+        // Publish the freshly built bus list atomically so the UI thread can
+        // read it (via getBusInfos()) while this worker thread is running.
+        publishBusInfos(std::move(busInfos));
     }
 
     return geo;
@@ -223,12 +253,13 @@ int BusLayerParser::appendPolylineVertices(LayerGeometry& geo, const RoadGraph::
     return added;
 }
 
-LayerGeometry BusLayerParser::buildRouteLines(const Options& a_options) const
+LayerGeometry BusLayerParser::buildRouteLines(const Options& a_options,
+                                              const std::shared_ptr<const QList<BusRoute>>& routes) const
 {
     LayerGeometry geo;
     geo.property = a_options.baseProperty;
 
-    if (m_routes.isEmpty())
+    if (routes->isEmpty())
     {
         return geo;
     }
@@ -237,7 +268,7 @@ LayerGeometry BusLayerParser::buildRouteLines(const Options& a_options) const
     // set of routes. Cache it and reuse across rebuilds (which happen on every
     // zoom change) to avoid re-running Dijkstra each time.
     QString cacheKey;
-    for (const BusRoute& route : m_routes)
+    for (const BusRoute& route : *routes)
     {
         cacheKey += route.serviceNo;
         cacheKey += QString::number(route.direction);
@@ -266,7 +297,7 @@ LayerGeometry BusLayerParser::buildRouteLines(const Options& a_options) const
 
     geo.rings.push_back(0);
     int idx = 0;
-    for (const BusRoute& route : m_routes)
+    for (const BusRoute& route : *routes)
     {
         // Collect the valid stops (non-zero coordinates) for this route.
         QList<const RouteStop*> valid;
