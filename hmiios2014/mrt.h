@@ -1,6 +1,8 @@
 #ifndef MRT_H
 #define MRT_H
 
+#include <QOpenGLFunctions_3_3_Core>
+#include <QOpenGLShaderProgram>
 #include <QString>
 #include <QVector>
 class WPT
@@ -488,4 +490,50 @@ MRTTPY  TOA PAYOH MRT           N 01.33186     E103.84780      265939201
 MRTYCK  YIO CHU KANG MRT        N 01.38166     E103.84480      265939201
 MRTYSN  YISHUN MRT              N 01.42919     E103.83470      265939201
 */
+
+// ---------------------------------------------------------------------------
+// drawMrtStations
+//
+// Draws the MRT station points (GL_POINTS) from a pre-built vertex buffer,
+// grouped by line colour. The GL state (shader program, attribute locations,
+// VBO and display mask) is passed in so this can live in mrt.h without
+// depending on TSDWindow's internals. `gl` provides the raw OpenGL entry
+// points (QOpenGLFunctions_3_3_Core members). The caller must have the shader
+// program bound and the MRT VBO already uploaded.
+// ---------------------------------------------------------------------------
+inline void drawMrtStations(QOpenGLFunctions_3_3_Core& gl, QOpenGLShaderProgram* program, GLuint posAttr,
+                            GLuint colorIdUniform, GLuint vbo, std::uint64_t displayMask)
+{
+    // MRT_POINT is bit 24 of TSDWindow's display mask (see DisplayMaskBits).
+    constexpr std::uint64_t kMrtPointBit = 1ULL << 24;
+    if (!(displayMask & kMrtPointBit))
+    {
+        return;
+    }
+
+    struct MrtStationGroup
+    {
+        int colorId;
+        int firstVertex;
+        int vertexCount;
+    };
+    static const MrtStationGroup kGroups[] = {
+        {5, 0, 29}, {3, 29, 25}, {5, 54, 3}, {9, 57, 16}, {7, 73, 31}, {7, 104, 3}, {19, 107, 35}, {21, 142, 31},
+    };
+
+    gl.glPointSize(12);
+    gl.glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    gl.glVertexAttribPointer(posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    gl.glEnableVertexAttribArray(posAttr);
+
+    for (const MrtStationGroup& group : kGroups)
+    {
+        program->setUniformValue(colorIdUniform, group.colorId);
+        gl.glDrawArrays(GL_POINTS, group.firstVertex, group.vertexCount);
+    }
+
+    gl.glDisableVertexAttribArray(posAttr);
+    gl.glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 #endif

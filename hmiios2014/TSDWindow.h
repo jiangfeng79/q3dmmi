@@ -109,9 +109,6 @@ public:
 
     inline int getFps() { return m_fps; }
 
-    void drawEBL(float x, float y, float r);
-    void drawMRTStation();
-
     void centerMap();
     void setDisplayMask(DisplayMaskBits layer, bool b);
     std::uint64_t getDisplayMask() const { return m_displayMask; }

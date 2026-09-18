@@ -12,6 +12,7 @@
 #include <stdlib.h>  //or #include<cstdlib> for srand function.
 #include <time.h>    //or #include<ctime> for time function
 
+#include "ebl.h"
 #include "geoTransform.h"
 #include "hmiios2014.h"
 #include "mrt.h"
@@ -125,7 +126,8 @@ TSDWindow::TSDWindow()
                       &m_sgMainRoads, &m_sgMotorWays, &m_sgMinorRoads, &m_sgAirWays, &m_sgWaterArea};
     m_liveLayers = {&m_sgFlightTrails, &m_sgFlightMarkers, &m_sgBusRouteLines, &m_sgBusRouteLines2,
                     &m_sgBusStops,     &m_sgBusStops2,     &m_sgBusVehicles,   &m_sgBusWindshields};
-    m_busRouteLayers = {&m_sgBusRouteLines, &m_sgBusRouteLines2, &m_sgBusStops, &m_sgBusStops2}; // order is important for rendering
+    m_busRouteLayers = {&m_sgBusRouteLines, &m_sgBusRouteLines2, &m_sgBusStops,
+                        &m_sgBusStops2};  // order is important for rendering
     m_busArrivalTimeLayers = {&m_sgBusVehicles, &m_sgBusWindshields};
 
     // Build the road network once so the bus route line parsers can route
@@ -451,10 +453,29 @@ void TSDWindow::render()
     m_program->bind();
 
     // checkGL("before drawMRTStation");
-    drawMRTStation();
+    drawMrtStations(*this, m_program, m_posAttr, m_colorId, m_mrtVBO, m_displayMask);
     // checkGL("after drawMRTStation");
 
-    drawEBL(X_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitX), Y_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitY),
+    EblRenderContext ctx{
+        gl : this,
+        program : m_program,
+        colorIdUniform : m_colorId,
+        posAttr : m_posAttr,
+        vbo : m_eblVBO,
+        active : (m_uiMapOpMask == EBL),
+        mousePosX : m_iMousePosX,
+        mousePosY : m_iMousePosY,
+        mouseInitX : m_iMouseInitX,
+        mouseInitY : m_iMouseInitY,
+        mouseMapX : X_SCREEN_COORD_TO_MAP_COORD(m_iMousePosX),
+        mouseMapY : Y_SCREEN_COORD_TO_MAP_COORD(m_iMousePosY),
+        mousePressing : m_bMouseIsPressing,
+        devicePixelRatio : devicePixelRatio(),
+        renderText :
+            [this](int px, int py, const QString& text, const QString& font) { renderText(px, py, text, font); },
+    };
+
+    drawEbl(ctx, X_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitX), Y_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitY),
             sqrt(m_iMouseDeltaX * m_iMouseDeltaX + m_iMouseDeltaY * m_iMouseDeltaY) / SCALE);
     // checkGL("after drawEBL");
 
@@ -570,104 +591,6 @@ void TSDWindow::render()
     }
 }
 //! [5]
-
-
-//! [6]
-void TSDWindow::drawEBL(float x, float y, float r)
-{
-#define granularity 63
-    m_program->setUniformValue(m_colorId, 16);
-    if (m_uiMapOpMask == EBL)
-    {
-        // EBL
-        std::vector<GLfloat> l_vertexBuffer((granularity + 1) * 2);
-        GLfloat l_vertexBuffer2[4];
-        int i = 0;
-        for (GLdouble angle = 0; angle <= 2 * 3.1416; angle += 0.1, ++i)
-        {
-            l_vertexBuffer[i * 2] = (x + cos(angle) * r);
-            l_vertexBuffer[i * 2 + 1] = (y - sin(angle) * r);
-        }
-
-        l_vertexBuffer[granularity * 2] = l_vertexBuffer[0];
-        l_vertexBuffer[granularity * 2 + 1] = l_vertexBuffer[1];
-
-        l_vertexBuffer2[0] = x;
-        l_vertexBuffer2[1] = y;
-        l_vertexBuffer2[2] = X_SCREEN_COORD_TO_MAP_COORD(m_iMousePosX);
-        l_vertexBuffer2[3] = Y_SCREEN_COORD_TO_MAP_COORD(m_iMousePosY);
-
-        // glBindBuffer(GL_ARRAY_BUFFER, m_eblVBO);
-        glBindBuffer(GL_ARRAY_BUFFER, m_eblVBO);
-        glBufferData(GL_ARRAY_BUFFER, l_vertexBuffer.size() * sizeof(GLfloat), l_vertexBuffer.data(), GL_DYNAMIC_DRAW);
-        glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-        glEnableVertexAttribArray(m_posAttr);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, granularity);
-        m_program->setUniformValue(m_colorId, 3);
-        glDrawArrays(GL_LINE_STRIP, 0, granularity + 1);
-        glDisableVertexAttribArray(m_posAttr);
-
-        float angle = 0;
-        if (m_iMousePosX != m_iMouseInitX)
-        {
-            angle =
-                (m_iMousePosX - m_iMouseInitX) >= 0
-                    ? atan((float)(m_iMousePosY - m_iMouseInitY) / (float)(m_iMousePosX - m_iMouseInitX)) / 3.1416 * 180
-                          + 90
-                    : atan((float)(m_iMousePosY - m_iMouseInitY) / (float)(m_iMousePosX - m_iMouseInitX)) / 3.1416 * 180
-                          + 270;
-        }
-        if (m_bMouseIsPressing)
-        {
-            glBufferData(GL_ARRAY_BUFFER, sizeof(l_vertexBuffer2), l_vertexBuffer2, GL_DYNAMIC_DRAW);
-            m_program->setUniformValue(m_colorId, 3);
-            glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-            glEnableVertexAttribArray(m_posAttr);
-            glDrawArrays(GL_LINES, 0, 2);
-            glDisableVertexAttribArray(m_posAttr);
-
-            renderText(
-                m_iMousePosX * devicePixelRatio() + 15, m_iMousePosY * devicePixelRatio() + 20,
-                QString(tr("Angle: %1, Dist: %2")).arg(angle, 5, 'f', 1, QChar('0')).arg(r, 6, 'f', 1, QChar('0')),
-                QString("Courier"));
-        }
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-}
-//! [6]
-
-void TSDWindow::drawMRTStation()
-{
-    if (!(m_displayMask & MRT_POINT))
-    {
-        return;
-    }
-
-    struct MrtStationGroup
-    {
-        int colorId;
-        int firstVertex;
-        int vertexCount;
-    };
-    static const MrtStationGroup kGroups[] = {
-        {5, 0, 29}, {3, 29, 25}, {5, 54, 3}, {9, 57, 16}, {7, 73, 31}, {7, 104, 3}, {19, 107, 35}, {21, 142, 31},
-    };
-
-    glPointSize(12);
-    glBindBuffer(GL_ARRAY_BUFFER, m_mrtVBO);
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    glEnableVertexAttribArray(m_posAttr);
-
-    for (const MrtStationGroup& group : kGroups)
-    {
-        m_program->setUniformValue(m_colorId, group.colorId);
-        glDrawArrays(GL_POINTS, group.firstVertex, group.vertexCount);
-    }
-
-    glDisableVertexAttribArray(m_posAttr);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
 
 // Receives the live airflight tracking table from the TrackerWorker (emitted
 // from the worker thread, queued to the GUI thread). We copy it into a
