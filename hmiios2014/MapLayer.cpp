@@ -362,18 +362,50 @@ void LiveMapLayer::rebuild(const MapProperty& baseProperty, float scale)
         m_lastScale = scale;
         m_parser->setScale(scale);
         m_dirty = true;
+        ++m_generation;  // inputs changed: invalidate any in-flight parse
     }
 
     if (!m_dirty)
         return;
 
+    // A parse is already running on a worker thread. Don't spawn another (it
+    // would flood threads while zooming). The in-flight parse captured an older
+    // generation, so when it finishes it will discard its result and leave
+    // m_dirty set; the next frame then starts a fresh parse with the new inputs.
+    if (m_rebuildInFlight.load(std::memory_order_acquire))
+        return;
+
     LayerParser::Options options;
     options.baseProperty = baseProperty;
     options.useWgs84BuildTransform = true;
-    publishGeometry(m_parser->parse(options));
-    m_property = geometry()->property;
-    uploadGeometry(GL_DYNAMIC_DRAW);
-    m_dirty = false;
+
+    const std::uint64_t generation = m_generation.load(std::memory_order_relaxed);
+    m_rebuildInFlight.store(true, std::memory_order_release);
+
+    QThread* thread = QThread::create([this, options, generation] {
+        // Heavy work (e.g. road-network routing) runs off the render thread.
+        LayerGeometry parsed = m_parser->parse(options);
+
+        QMetaObject::invokeMethod(
+            this,
+            [this, parsed = std::move(parsed), generation]() mutable {
+                m_rebuildInFlight.store(false, std::memory_order_release);
+
+                // Inputs changed while we were parsing: throw away the stale
+                // result and keep m_dirty set so the next frame re-parses.
+                if (generation != m_generation.load(std::memory_order_relaxed))
+                    return;
+
+                publishGeometry(std::move(parsed));
+                m_property = geometry()->property;
+                uploadGeometry(GL_DYNAMIC_DRAW);
+                m_dirty = false;
+            },
+            Qt::QueuedConnection);
+    });
+
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    thread->start();
 }
 
 void LiveMapLayer::drawText(const MapLayerRenderContext& context) const

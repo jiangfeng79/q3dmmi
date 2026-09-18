@@ -147,13 +147,22 @@ public:
 
     void rebuild(const MapProperty& baseProperty, float scale);
     void drawText(const MapLayerRenderContext& context) const override;
-    void markDirty() { m_dirty = true; }
+    // Bumps the input generation so an in-flight parse can detect that its
+    // inputs (routes / snapshot / scale) changed and discard a stale result.
+    void markDirty() { m_dirty = true; ++m_generation; }
     bool isDirty() const { return m_dirty; }
 
 private:
     void drawFilled(const MapLayerRenderContext& context) const;
     bool m_dirty = false;
+    // True while a worker-thread parse is running. Atomic because the worker
+    // thread clears it and the render thread reads it in rebuild().
+    std::atomic<bool> m_rebuildInFlight{false};
     float m_lastScale = 0.0f;
+    // Monotonic counter bumped by markDirty(). A parse captures the value at
+    // start and discards its result if it has advanced (inputs changed).
+    // Atomic because the render thread bumps it while a worker reads it.
+    std::atomic<std::uint64_t> m_generation{0};
     LabelStyle m_labelStyle;
 };
 
