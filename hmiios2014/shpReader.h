@@ -1,5 +1,6 @@
 #ifndef SHPREAD_H_
 #define SHPREAD_H_
+#include <mutex>
 #include <shapefil.h>
 #include <stdlib.h>
 
@@ -13,6 +14,12 @@ public:
     ~ShpReader(void);
 
     void freeMemory();
+
+    // The raw buffer (`entity`) is shared between a worker thread that parses
+    // the layer and the render thread that releases GPU resources (e.g. on a
+    // vsync toggle). This recursive mutex serializes all access to it; it is
+    // recursive so parse() can hold it while calling read()/freeMemory().
+    std::recursive_mutex& mutex() { return m_mutex; }
 
     typedef struct _ShpEntity
     {
@@ -39,5 +46,6 @@ protected:
     unsigned int numberOfEntity;
     double shpMinX, shpMinY;
     double shpMaxX, shpMaxY;
+    std::recursive_mutex m_mutex;
 };
 #endif /* SHPREAD_H_ */

@@ -3,10 +3,10 @@
 ShpReader::ShpReader(void) : entity(NULL), numberOfEntity(0), shpMinX(0), shpMaxX(0), shpMinY(0), shpMaxY(0) {}
 
 
-ShpReader::~ShpReader(void)
-{
-    // free memory
-    if (entity != NULL && numberOfEntity > 0)
+ShpReader::~ShpReader(void) {
+    std::lock_guard<std::recursive_mutex> lk(m_mutex);
+    // free
+    if(entity != NULL && numberOfEntity >0)
     {
         for (unsigned int i = 0; i < numberOfEntity; ++i)
         {
@@ -17,11 +17,9 @@ ShpReader::~ShpReader(void)
     }
 }
 
-void ShpReader::freeMemory()
-{
-    // free memory
-    if (entity != NULL && numberOfEntity > 0)
-    {
+void ShpReader::freeMemory() {
+    std::lock_guard<std::recursive_mutex> lk(m_mutex);
+    if (entity != NULL && numberOfEntity > 0) {
         for (unsigned int i = 0; i < numberOfEntity; ++i)
         {
             free(entity[i].coordinate);
@@ -32,8 +30,8 @@ void ShpReader::freeMemory()
     }
 }
 
-int ShpReader::read(const char* filename)
-{
+int ShpReader::read(const char* filename) {
+    std::lock_guard<std::recursive_mutex> lk(m_mutex);
     SHPHandle hSHP;
     int nShapeType, nEntities, i, iPart, bValidate = 0, nInvalidCount = 0;
     int bHeaderOnly = 0;
@@ -158,8 +156,8 @@ int ShpReader::read(const char* filename)
     return 0;
 }
 
-int ShpReader::readLayer(const char* filename, DBFReader& layer)
-{
+int ShpReader::readLayer(const char* filename, DBFReader& layer) {
+    std::lock_guard<std::recursive_mutex> lk(m_mutex);
     SHPHandle hSHP;
     int nShapeType, nEntities, i, iPart, bValidate = 0, nInvalidCount = 0;
     int bHeaderOnly = 0;

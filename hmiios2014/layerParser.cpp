@@ -35,6 +35,15 @@ LayerGeometry ShapefileLayerParser::parseImpl(const Options& a_options, bool der
     LayerGeometry geo;
     geo.property = a_options.baseProperty;
 
+    // Serialize access to the raw readers' buffers. The render thread may call
+    // freeMemory() (e.g. when vsync is toggled and GPU resources are released)
+    // while this worker thread is parsing, so hold both readers' locks for the
+    // whole read -> consume -> release span to keep `entity` from being freed
+    // or reallocated mid-parse.
+    std::lock_guard<std::recursive_mutex> dbfLock(m_dbfFileReader.mutex());
+    std::lock_guard< std::recursive_mutex> shapeLock(m_shapeFileReader.mutex());
+
+
     // Read the raw source layer (shapefile + dbf).
     const QString l_qsShpFileName = m_fileName + QString(".shp");
     const QString l_qsDbfFileName = m_fileName + QString(".dbf");

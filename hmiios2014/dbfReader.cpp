@@ -2,8 +2,8 @@
 
 DBFReader::DBFReader(void) : entity(NULL) {}
 
-DBFReader::~DBFReader(void)
-{
+DBFReader::~DBFReader(void) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     // free memory
     if (entity != NULL && numberOfEntity > 0)
     {
@@ -25,8 +25,9 @@ DBFReader::~DBFReader(void)
 
 void DBFReader::freeMemory()
 {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (entity != NULL && numberOfEntity > 0)
-    {
+{
         for (unsigned int i = 0; i < numberOfEntity; ++i)
         {
             if (entity[i].type == FTString)
@@ -44,8 +45,9 @@ void DBFReader::freeMemory()
     }
 }
 
-int DBFReader::read(const char* filename)
+int DBFReader::read(const char *filename)
 {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     DBFHandle hDBF;
     int i, iRecord;
     char szFormat[32];
@@ -120,8 +122,9 @@ int DBFReader::read(const char* filename)
     return (0);
 }
 
-int DBFReader::readLayer(const char* filename, const char* layername)
+int DBFReader::readLayer(const char *filename, const char *layername)
 {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     DBFHandle hDBF;
     int i, iRecord;
     char szFormat[32];

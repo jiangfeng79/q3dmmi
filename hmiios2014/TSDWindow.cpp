@@ -292,10 +292,15 @@ void TSDWindow::initialize()
 
     m_program->bind();
     this->initializeOpenGLFunctions();
-    this->glGenVertexArrays(1, &m_vao);
+    // Guard against re-initialization without an intervening resetGpuResources():
+    // orphaning the previous GL objects would leak them.
+    if (!m_vao)
+        this->glGenVertexArrays(1, &m_vao);
     this->glBindVertexArray(m_vao);
-    glGenBuffers(1, &m_mrtVBO);
-    glGenBuffers(1, &m_eblVBO);
+    if (!m_mrtVBO)
+        glGenBuffers(1, &m_mrtVBO);
+    if (!m_eblVBO)
+        glGenBuffers(1, &m_eblVBO);
 
     for (BaseMapLayer* layer : m_baseLayers)
     {
@@ -305,7 +310,8 @@ void TSDWindow::initialize()
     {
         layer->buildLayer(m_sgCoastal.m_property, 0);
     }
-    m_mrt = (GLfloat*)malloc(sizeof(mrt));
+    if (!m_mrt)
+        m_mrt = (GLfloat*)malloc(sizeof(mrt));
     for (int i = 0; i < sizeof(mrt) / sizeof(GLfloat) / 2; ++i)
     {
         m_mrt[i * 2] = X_WGS84_COORD_TO_MAP_COORD(mrt[i * 2]);
