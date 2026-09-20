@@ -7,6 +7,7 @@
 #include <QTranslator>
 
 #include "TSDWindow.h"
+#include "appConfig.h"
 #include "busArrivalWidget.h"
 #include "mapFilterWidget.h"
 #include "ui_hmiios2014.h"
@@ -36,6 +37,12 @@ private:
     QString getOrPromptAccountKey();
     void syncMapFilterCheckboxes();
 
+    // Persist / restore user-configurable state to config.json.
+    AppConfig::Data m_config;
+    QString m_language = QStringLiteral("en");
+    bool loadConfig();
+    void saveConfig();
+
 signals:
     void signal_widget_resize(QRect rect);
 
@@ -46,6 +53,7 @@ protected:
     bool forwardTsdKeyEvent(QEvent* event) const;
     void switchTranslator(QTranslator& translator, const QString& filename);
     void changeEvent(QEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 
 private slots:
     void slot_setFps(int a_iFps);

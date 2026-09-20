@@ -25,6 +25,7 @@ SOURCES += \
     dbfReader.cpp \
     flightLayerParser.cpp \
     hmiios2014.cpp \
+    appConfig.cpp \
     layerParser.cpp \
     main.cpp \
     mapFilterWidget.cpp \
@@ -44,6 +45,7 @@ HEADERS += \
     flightTracker.h \
     geoTransform.h \
     hmiios2014.h \
+    appConfig.h \
     layerGeometry.h \
     layerParser.h \
     mapFilterWidget.h \

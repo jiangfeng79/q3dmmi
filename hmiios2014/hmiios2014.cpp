@@ -1,14 +1,15 @@
 #include "hmiios2014.h"
 
-#include <QFile>
+#include <QCloseEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QFile>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLibraryInfo>
 #include <QLineEdit>
-#include <QVBoxLayout>
 #include <QMessageBox>
+#include <QVBoxLayout>
 
 hmiios2014::hmiios2014(QWidget* parent) : QMainWindow(parent), m_tsd(nullptr)
 {
@@ -49,9 +50,108 @@ hmiios2014::hmiios2014(QWidget* parent) : QMainWindow(parent), m_tsd(nullptr)
     ui.dockBusArrival->hide();
     connect(m_tsd, &TSDWindow::busArrivalSnapshotUpdated, this, &hmiios2014::slot_busArrivalSnapshotUpdated);
     connect(m_tsd, &TSDWindow::busInfoCleared, this, &hmiios2014::slot_busInfoCleared);
+    loadConfig();
 }
 
 hmiios2014::~hmiios2014() {}
+
+
+bool hmiios2014::loadConfig()
+{
+    if (!m_tsd)
+    {
+        return false;
+    }
+
+    // Seed with the current state so any field absent from the JSON keeps its
+    // default value.
+    m_config.centerX = m_tsd->mapCenterX();
+    m_config.centerY = m_tsd->mapCenterY();
+    m_config.scale = m_tsd->scaleFactor();
+    m_config.rotationAngle = m_tsd->rotationAngle();
+    m_config.displayMask = m_tsd->getDisplayMask();
+    m_config.autoZoom = m_tsd->getAutoZoom();
+    m_config.autoSwing = m_tsd->getAutoSwing();
+    m_config.shaderToys = m_tsd->getShaderToys();
+    m_config.vsync = m_tsd->vsyncEnabled();
+    m_config.mapOpMode = static_cast<int>(m_tsd->mapOpMask());
+    m_config.language = m_language;
+
+    if (!AppConfig::load(AppConfig::configPath(), m_config))
+    {
+        return false;
+    }
+
+    // Apply the restored state to the map window.
+    m_tsd->setMapCenter(m_config.centerX, m_config.centerY);
+    m_tsd->setScaleFactor(m_config.scale);
+    m_tsd->setRotationAngle(m_config.rotationAngle);
+    m_tsd->setDisplayMask(m_config.displayMask);
+    m_tsd->setAutoZoom(m_config.autoZoom);
+    m_tsd->setAutoSwing(m_config.autoSwing);
+    m_tsd->setShaderToys(m_config.shaderToys);
+    m_tsd->setVsyncEnabled(m_config.vsync);
+    ui.actionVsync->setChecked(m_config.vsync);
+
+    // Restore the active map tool.
+    if (m_config.mapOpMode == static_cast<int>(OpenglWindow::EBL))
+    {
+        m_tsd->setMapOpMask(OpenglWindow::EBL);
+        ui.actionSelect->setChecked(false);
+        ui.actionEBL->setChecked(true);
+    }
+    else
+    {
+        m_tsd->setMapOpMask(OpenglWindow::PAN);
+        ui.actionSelect->setChecked(true);
+        ui.actionEBL->setChecked(false);
+    }
+
+    // Restore the language.
+    if (m_config.language == QStringLiteral("zh"))
+    {
+        switchTranslator(m_translatorChinese, QStringLiteral(":/hmiios2014/hmiios2014_zh.qm"));
+    }
+    else
+    {
+        switchTranslator(m_translatorDefault, QStringLiteral(":/hmiios2014/hmiios2014_en.qm"));
+    }
+
+    // Sync the map filter checkboxes with the restored display mask.
+    syncMapFilterCheckboxes();
+
+    return true;
+}
+
+void hmiios2014::saveConfig()
+{
+    if (!m_tsd)
+    {
+        return;
+    }
+
+    m_config.centerX = m_tsd->mapCenterX();
+    m_config.centerY = m_tsd->mapCenterY();
+    m_config.scale = m_tsd->scaleFactor();
+    m_config.rotationAngle = m_tsd->rotationAngle();
+    m_config.displayMask = m_tsd->getDisplayMask();
+    m_config.autoZoom = m_tsd->getAutoZoom();
+    m_config.autoSwing = m_tsd->getAutoSwing();
+    m_config.shaderToys = m_tsd->getShaderToys();
+    m_config.vsync = m_tsd->vsyncEnabled();
+    m_config.mapOpMode = static_cast<int>(m_tsd->mapOpMask());
+    m_config.language = m_language;
+    m_config.windowGeometry = geometry();
+    m_config.maximized = isMaximized();
+
+    AppConfig::save(AppConfig::configPath(), m_config);
+}
+
+void hmiios2014::closeEvent(QCloseEvent* event)
+{
+    saveConfig();
+    QMainWindow::closeEvent(event);
+}
 
 void hmiios2014::slot_setFps(int a_iFps)
 {
@@ -226,6 +326,7 @@ void hmiios2014::on_actionChineseLang_triggered()
 {
     const QString languageName = QStringLiteral("zh");
     switchTranslator(m_translatorChinese, QStringLiteral(":/hmiios2014/hmiios2014_%1.qm").arg(languageName));
+    m_language = languageName;
     ui.statusBar->showMessage(tr("Current Language changed to %1").arg(languageName));
 }
 
@@ -233,6 +334,7 @@ void hmiios2014::on_actionDefaultLang_triggered()
 {
     const QString languageName = QStringLiteral("en");
     switchTranslator(m_translatorDefault, QStringLiteral(":/hmiios2014/hmiios2014_%1.qm").arg(languageName));
+    m_language = languageName;
     ui.statusBar->showMessage(tr("Current Language changed to %1").arg(languageName));
 }
 
@@ -294,8 +396,7 @@ QString hmiios2014::getOrPromptAccountKey()
 void hmiios2014::on_actionBusRoute_triggered()
 {
     bool ok = false;
-    QString busNo = QInputDialog::getText(this, tr("Bus route"),
-                                          tr("Enter bus number:"), QLineEdit::Normal,
+    QString busNo = QInputDialog::getText(this, tr("Bus route"), tr("Enter bus number:"), QLineEdit::Normal,
                                           QStringLiteral("0"), &ok);
     if (ok && !busNo.trimmed().isEmpty())
     {
@@ -310,8 +411,7 @@ void hmiios2014::on_actionBusRoute_triggered()
 void hmiios2014::on_actionBusTrack_triggered()
 {
     bool ok = false;
-    QString stopCode = QInputDialog::getText(this, tr("Bus track"),
-                                             tr("Enter bus stop number:"), QLineEdit::Normal,
+    QString stopCode = QInputDialog::getText(this, tr("Bus track"), tr("Enter bus stop number:"), QLineEdit::Normal,
                                              QStringLiteral("0"), &ok);
     if (ok && !stopCode.trimmed().isEmpty())
     {

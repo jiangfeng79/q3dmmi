@@ -76,7 +76,7 @@ public:
         FLIGHT_TRAILS = 1 << 28,       // live airflight trails (SHPT_ARC)
         FLIGHT_TRAILS_TEXT = 1 << 29,
         BUS_ROUTES = 1 << 30,          // bus route lines
-        BUS_ROUTES2 = 1ULL << 31,         // bus route lines2
+        BUS_ROUTES2 = 1ULL << 31,      // bus route lines2
         BUS_ROUTES_TEXT = 1ULL << 32,  // bus route stop labels
         BUS_STOPS = 1ULL << 33,        // bus stop nodes
         BUS_STOPS_TEXT = 1ULL << 34,   // bus stop labels
@@ -112,6 +112,8 @@ public:
     void centerMap();
     void setDisplayMask(DisplayMaskBits layer, bool b);
     std::uint64_t getDisplayMask() const { return m_displayMask; }
+    // Set the entire display mask at once (used to restore persisted state).
+    void setDisplayMask(std::uint64_t mask) { m_displayMask = mask; }
     inline void setAutoZoom(bool value) { m_bAutoZoom = value; }
     inline bool getAutoZoom() { return m_bAutoZoom; }
 
@@ -220,7 +222,7 @@ private:
     QVector<LiveMapLayer*> m_liveLayers;
     QVector<LiveMapLayer*> m_busRouteLayers;
     QVector<LiveMapLayer*> m_busArrivalTimeLayers;
-    
+
     GLfloat* m_mrt;
     bool m_bAutoZoom;
     bool m_bAutoSwing;

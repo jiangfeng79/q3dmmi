@@ -50,6 +50,30 @@ public:
     // the current context; renderNow() rebuilds it lazily on the next frame.
     void toggleVsync();
     bool vsyncEnabled() const { return m_bVsyncEnabled; }
+    // Set vsync directly (used to restore persisted state at startup). The
+    // swap interval is applied when the GL context is (re)created.
+    void setVsyncEnabled(bool enabled) { m_bVsyncEnabled = enabled; }
+
+    // Accessors for the camera / view state, exposed so the application can
+    // persist it to a config file and restore it on the next launch.
+    float mapCenterX() const { return m_fMapCenterDeltaX; }
+    float mapCenterY() const { return m_fMapCenterDeltaY; }
+    void setMapCenter(float x, float y)
+    {
+        m_fMapCenterDeltaX = x;
+        m_fMapCenterDeltaY = y;
+        m_fMapPrevCenterDeltaX = x;  // keep the "prev" values in sync so a
+        m_fMapPrevCenterDeltaY = y;  // subsequent pan does not jump.
+    }
+    float scaleFactor() const { return m_fScaleFactor; }
+    void setScaleFactor(float value) { m_fScaleFactor = value; }
+    double rotationAngle() const { return m_dRotationAngle; }
+    void setRotationAngle(double value)
+    {
+        m_dRotationAngle = value;
+        m_dPrevRotationAngle = value;  // keep the "prev" value in sync.
+    }
+    unsigned int mapOpMask() const { return m_uiMapOpMask; }
 
 public slots:
     void renderLater();
