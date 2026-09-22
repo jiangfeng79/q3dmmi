@@ -41,13 +41,17 @@ void MapLayer::buildLayer(const MapProperty& baseProperty, int layerDepth)
     options.baseProperty = baseProperty;
     options.layerDepth = layerDepth;
     options.useWgs84BuildTransform = (m_id == TSDWindow::MAN_MADE || m_id == TSDWindow::MRT);
+    const std::uint64_t resourceGeneration = m_resourceGeneration.load(std::memory_order_relaxed);
 
-    QThread* thread = QThread::create([this, options] {
+    QThread* thread = QThread::create([this, options, resourceGeneration] {
         LayerGeometry parsed = m_parser->parse(options);
 
         QMetaObject::invokeMethod(
             this,
-            [this, parsed = std::move(parsed)]() mutable {
+            [this, parsed = std::move(parsed), resourceGeneration]() mutable {
+                if (resourceGeneration != m_resourceGeneration.load(std::memory_order_relaxed))
+                    return;
+
                 // Publish atomically so the draw path (which may be running
                 // concurrently) always sees a complete geometry.
                 publishGeometry(std::move(parsed));
@@ -93,6 +97,7 @@ void MapLayer::uploadGeometry(GLenum usage)
 
 void MapLayer::releaseGpuResources()
 {
+    ++m_resourceGeneration;
     if (m_VBO_ID[0] || m_VBO_ID[1])
         m_window.glDeleteBuffers(2, m_VBO_ID);
     m_VBO_ID[0] = m_VBO_ID[1] = 0;

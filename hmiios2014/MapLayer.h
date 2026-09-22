@@ -107,6 +107,7 @@ protected:
     const std::uint64_t& m_displayMask;
     TSDWindow& m_window;
     FillMode m_fillMode;
+    std::atomic<std::uint64_t> m_resourceGeneration{0};
 
     std::atomic<std::shared_ptr<const LayerGeometry>> m_geometry{
         std::make_shared<const LayerGeometry>()};

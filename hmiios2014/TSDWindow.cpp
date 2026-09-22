@@ -66,7 +66,8 @@
 #define SCALE (m_sgCoastal.m_property.scale * m_fScaleFactor)
 
 TSDWindow::TSDWindow()
-    : m_program(0),
+        : m_vao(0),
+            m_program(0),
       m_bgProgram(0),
       m_lineProgram(0),
       m_bgMouse(0),
@@ -730,7 +731,10 @@ void TSDWindow::resetGpuResources()
     for (StaticMapLayer* layer : m_staticLayers)
         layer->releaseGpuResources();
     for (LiveMapLayer* layer : m_liveLayers)
+    {
         layer->releaseGpuResources();
+        layer->markDirty();
+    }
 }
 
 void TSDWindow::fetchBusRoute(const QString& busNo, const QString& accountKey)
