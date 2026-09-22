@@ -1,6 +1,6 @@
 
-if (CMAKE_VERSION VERSION_LESS 4.2.0)
-    message(FATAL_ERROR "Hmiios framework requires at least CMake version 4.2.0")
+if (CMAKE_VERSION VERSION_LESS 4.1.0)
+    message(FATAL_ERROR "Hmiios framework requires at least CMake version 4.1.0")
 endif()
 
 # The following three lines will be set by dist-helper.py
