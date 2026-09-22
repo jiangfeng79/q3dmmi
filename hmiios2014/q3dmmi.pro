@@ -30,7 +30,6 @@ SOURCES += \
     shpReader.cpp \
     MapLayer.cpp \
     roadGraph.cpp \
-    appConfigEvents.cpp \
     ../build/generated/appConfig/appConfig.cpp \
     ../build/generated/appConfig/appConfigView.cpp
 
@@ -67,14 +66,42 @@ TRANSLATIONS = hmiios2014_en.ts \
 
 INCLUDEPATH += $$PWD/../../shapelib-1.6.3/ $$PWD/../build/generated/appConfig
 
+APP_CONFIG_DIR = $$clean_path($$PWD/../build/generated/appConfig)
+APP_CONFIG_SCHEMA = $$clean_path($$PWD/config.json)
+APP_CONFIG_EVENTS = $$clean_path($$PWD/appConfigEvents.cpp)
+APP_CONFIG_HEADER = $$APP_CONFIG_DIR/appConfig.h
+APP_CONFIG_GENERATOR = $$clean_path($$PWD/../build/bin/appConfigCodegen.exe)
+
+win32 {
+    !exists($$APP_CONFIG_HEADER) {
+        # AppVeyor / Visual Studio 2022 builds use cmd.exe, not MSYS2 bash.
+        # Generate the AppConfig sources before qmake tries to compile them.
+        system("cd /d \"$$PWD/..\" && cmake -S . -B build && cmake --build build --target appConfigCodegen --config Release && \"$$APP_CONFIG_GENERATOR\" \"$$APP_CONFIG_SCHEMA\" \"$$APP_CONFIG_DIR\" \"$$APP_CONFIG_EVENTS\"")
+    }
+    PRE_TARGETDEPS += $$APP_CONFIG_HEADER
+}
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../shapelib-1.6.3/ -lshapelib opengl32.lib
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../shapelib-1.6.3/ -lshapelib opengl32.lib
-else:unix: LIBS += -L/usr/local/lib -lshp
+win32 {
+    SHAPELIB_DIR = $$PWD/../../shapelib-1.6.3
+    exists($$SHAPELIB_DIR/shapefil.h) {
+        INCLUDEPATH += $$SHAPELIB_DIR
+        exists($$SHAPELIB_DIR/libshp.a): LIBS += -L$$SHAPELIB_DIR -lshp
+        else:exists($$SHAPELIB_DIR/shapelib.lib): LIBS += -L$$SHAPELIB_DIR -lshapelib
+        else:exists($$SHAPELIB_DIR/shp.lib): LIBS += -L$$SHAPELIB_DIR -lshp
+    }
+    LIBS += -lopengl32
+}
+else:unix {
+    exists(/usr/local/include/shapelib/shapefil.h) {
+        INCLUDEPATH += /usr/local/include/shapelib
+    }
+    exists(/usr/local/lib/libshp.so): LIBS += -L/usr/local/lib -lshp
+}
 
 DISTFILES += \
     fshader.glsl \
