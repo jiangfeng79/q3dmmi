@@ -108,30 +108,32 @@ void MapFilterWidget::syncFromMask(std::uint64_t mask)
     // from the actual mask so the GUI reflects what is really being drawn.
     // Signals are blocked so this does not re-emit the (already correct) mask
     // back through signal_checkBox_state.
-    auto setChecked = [this, mask](QCheckBox* box, TSDWindow::DisplayMaskBits bit) {
+    auto setCheckState = [this, mask](QCheckBox* box, TSDWindow::DisplayMaskBits bit) {
         if (box)
         {
             box->blockSignals(true);
-            box->setChecked(mask & static_cast<std::uint64_t>(bit));
+            const std::uint64_t layer = static_cast<std::uint64_t>(bit);
+            const std::uint64_t text = layer << 1;
+            box->setCheckState(!(mask & layer) ? Qt::Unchecked : (mask & text) ? Qt::Checked : Qt::PartiallyChecked);
             box->blockSignals(false);
         }
     };
 
-    setChecked(checkBoxLand, TSDWindow::COASTAL);
-    setChecked(checkBoxWaterArea, TSDWindow::WATER_AREA);
-    setChecked(checkBoxLandUsage, TSDWindow::LAND_USAGE);
-    setChecked(checkBoxBuildings, TSDWindow::BUILDING);
-    setChecked(checkBoxPlaces, TSDWindow::PLACES);
-    setChecked(checkBoxMotorWays, TSDWindow::MOTOR_WAYS);
-    setChecked(checkBoxRailways, TSDWindow::MRT);
-    setChecked(checkBoxMainRoads, TSDWindow::MAIN_ROADS);
-    setChecked(checkBoxMinorRoads, TSDWindow::MINOR_ROADS);
-    setChecked(checkBoxAeroWays, TSDWindow::AIR_WAYS);
-    setChecked(checkBoxAmenities, TSDWindow::AMENITIES);
-    setChecked(checkBoxManMade, TSDWindow::MAN_MADE);
-    setChecked(checkBoxFlights, TSDWindow::FLIGHTS);
-    setChecked(checkBoxBusRoutes, TSDWindow::BUS_ROUTES);
-    setChecked(checkBoxBusTracks, TSDWindow::BUS_TRACKS);
+    setCheckState(checkBoxLand, TSDWindow::COASTAL);
+    setCheckState(checkBoxWaterArea, TSDWindow::WATER_AREA);
+    setCheckState(checkBoxLandUsage, TSDWindow::LAND_USAGE);
+    setCheckState(checkBoxBuildings, TSDWindow::BUILDING);
+    setCheckState(checkBoxPlaces, TSDWindow::PLACES);
+    setCheckState(checkBoxMotorWays, TSDWindow::MOTOR_WAYS);
+    setCheckState(checkBoxRailways, TSDWindow::MRT);
+    setCheckState(checkBoxMainRoads, TSDWindow::MAIN_ROADS);
+    setCheckState(checkBoxMinorRoads, TSDWindow::MINOR_ROADS);
+    setCheckState(checkBoxAeroWays, TSDWindow::AIR_WAYS);
+    setCheckState(checkBoxAmenities, TSDWindow::AMENITIES);
+    setCheckState(checkBoxManMade, TSDWindow::MAN_MADE);
+    setCheckState(checkBoxFlights, TSDWindow::FLIGHTS);
+    setCheckState(checkBoxBusRoutes, TSDWindow::BUS_ROUTES);
+    setCheckState(checkBoxBusTracks, TSDWindow::BUS_TRACKS);
 }
 
 void MapFilterWidget::retranslate()
