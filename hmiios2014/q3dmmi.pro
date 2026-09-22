@@ -70,13 +70,12 @@ APP_CONFIG_DIR = $$clean_path($$PWD/../build/generated/appConfig)
 APP_CONFIG_SCHEMA = $$clean_path($$PWD/config.json)
 APP_CONFIG_EVENTS = $$clean_path($$PWD/appConfigEvents.cpp)
 APP_CONFIG_HEADER = $$APP_CONFIG_DIR/appConfig.h
-APP_CONFIG_GENERATOR = $$clean_path($$PWD/../build/bin/appConfigCodegen.exe)
 
 win32 {
     !exists($$APP_CONFIG_HEADER) {
         # AppVeyor / Visual Studio 2022 builds use cmd.exe, not MSYS2 bash.
-        # Generate the AppConfig sources before qmake tries to compile them.
-        system("cd /d \"$$PWD/..\" && cmake -S . -B build && cmake --build build --target appConfigCodegen --config Release && \"$$APP_CONFIG_GENERATOR\" \"$$APP_CONFIG_SCHEMA\" \"$$APP_CONFIG_DIR\" \"$$APP_CONFIG_EVENTS\"")
+        # Let CMake resolve the Visual Studio configuration-specific executable path.
+        system("cd /d \"$$PWD/..\" && cmake -S . -B build && cmake --build build --target generateAppConfig --config Release")
     }
     PRE_TARGETDEPS += $$APP_CONFIG_HEADER
 }
