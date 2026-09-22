@@ -482,22 +482,21 @@ void TSDWindow::render()
     // checkGL("after drawMRTStation");
 
     EblRenderContext ctx{
-        gl : this,
-        program : m_program,
-        colorIdUniform : m_colorId,
-        posAttr : m_posAttr,
-        vbo : m_eblVBO,
-        active : (m_uiMapOpMask == EBL),
-        mousePosX : m_iMousePosX,
-        mousePosY : m_iMousePosY,
-        mouseInitX : m_iMouseInitX,
-        mouseInitY : m_iMouseInitY,
-        mouseMapX : X_SCREEN_COORD_TO_MAP_COORD(m_iMousePosX),
-        mouseMapY : Y_SCREEN_COORD_TO_MAP_COORD(m_iMousePosY),
-        mousePressing : m_bMouseIsPressing,
-        devicePixelRatio : devicePixelRatio(),
-        renderText :
-            [this](int px, int py, const QString& text, const QString& font) { renderText(px, py, text, font); },
+        this,
+        m_program,
+        m_colorId,
+        m_posAttr,
+        m_eblVBO,
+        m_uiMapOpMask == EBL,
+        m_iMousePosX,
+        m_iMousePosY,
+        m_iMouseInitX,
+        m_iMouseInitY,
+        X_SCREEN_COORD_TO_MAP_COORD(m_iMousePosX),
+        Y_SCREEN_COORD_TO_MAP_COORD(m_iMousePosY),
+        m_bMouseIsPressing,
+        devicePixelRatio(),
+        [this](int px, int py, const QString& text, const QString& font) { renderText(px, py, text, font); },
     };
 
     drawEbl(ctx, X_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitX), Y_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitY),
