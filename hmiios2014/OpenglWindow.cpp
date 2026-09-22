@@ -118,34 +118,15 @@ bool OpenglWindow::event(QEvent* event)
                 m_iMouseDeltaY = m_iMousePosY - m_iMouseInitY;
                 if (l_mouseEvent->buttons() == Qt::RightButton)
                 {
-                    /*
-                    //calculate angle
-                    //qDebug() << "prev angle: " << m_dPrevRotationAngle << "angle:" <<m_dRotationAngle;
-                    double a = sqrt(m_iMouseDeltaY*m_iMouseDeltaY+m_iMouseDeltaX*m_iMouseDeltaX);
-                    double b = sqrt((m_iMousePosY-m_fMapCenterDeltaY)*(m_iMousePosY-m_fMapCenterDeltaY) +
-                    (m_iMousePosX-m_fMapCenterDeltaX)*(m_iMousePosX-m_fMapCenterDeltaX)); double c =
-                    sqrt((m_iMouseInitY-m_fMapCenterDeltaY)*(m_iMouseInitY-m_fMapCenterDeltaY) +
-                    (m_iMouseInitX-m_fMapCenterDeltaX)*(m_iMouseInitX-m_fMapCenterDeltaX));
-                    //b^2+c^2-a^2)/2bc
-                    //m_dRotationAngle = m_dPrevRotationAngle+atan2(m_iMouseDeltaY,(m_iMouseInitX-m_fMapCenterDeltaX));
-                    float y = (float)m_iMouseInitY*((float)m_iMousePosX -
-                    m_fMapCenterDeltaX)-m_fMapCenterDeltaY*(float)m_iMouseDeltaX; float x =
-                    (float)m_iMouseInitX-m_fMapCenterDeltaX; qDebug() << "y:" <<y << "x:" << x; if(y*x >0)
-                    {
-
-                        m_dRotationAngle = m_dPrevRotationAngle-acos((b*b+c*c-a*a)/(2*b*c));
-                    }
-                    else
-                        m_dRotationAngle = m_dPrevRotationAngle+acos((b*b+c*c-a*a)/(2*b*c));
-                    qDebug() << "prev angle: " << m_dPrevRotationAngle << "angle:" <<m_dRotationAngle;
-                    //m_dPrevRotationAngle += m_dRotationAngle;
-                    */
+                    m_dRotationAngle = m_dPrevRotationAngle + static_cast<double>(m_iMouseDeltaX) * 0.005;
+                    emit cameraChanged();
                 }
             }
             if (m_uiMapOpMask == PAN && l_mouseEvent->buttons() & Qt::LeftButton)
             {
                 m_fMapCenterDeltaX = m_fMapPrevCenterDeltaX + m_iMouseDeltaX / m_fScaleFactor;
                 m_fMapCenterDeltaY = m_fMapPrevCenterDeltaY + m_iMouseDeltaY / m_fScaleFactor;
+                emit cameraChanged();
             }
 
             return true;
@@ -182,7 +163,7 @@ bool OpenglWindow::event(QEvent* event)
             m_bMouseIsPressing = false;
             // m_iCenterDeltaX += m_iMouseDeltaX;
             // m_iCenterDeltaY += m_iMouseDeltaY;
-            if (m_uiMapOpMask == PAN)
+            if (m_uiMapOpMask == PAN && l_mouseEvent->button() == Qt::LeftButton)
             {
                 m_fMapPrevCenterDeltaX = m_fMapCenterDeltaX;
                 m_fMapPrevCenterDeltaY = m_fMapCenterDeltaY;
@@ -212,6 +193,7 @@ bool OpenglWindow::event(QEvent* event)
             QWheelEvent* l_wheelEvent = static_cast<QWheelEvent*>(event);
             int numDegrees = l_wheelEvent->angleDelta().y() / 8;
             int numSteps = numDegrees / 15;
+            const float previousScale = m_fScaleFactor;
             m_fScaleFactor *= pow(1.2, numSteps);
             if (m_fScaleFactor > 1600.0)
             {
@@ -220,6 +202,10 @@ bool OpenglWindow::event(QEvent* event)
             if (m_fScaleFactor < .0001)
             {
                 m_fScaleFactor = .0001;
+            }
+            if (m_fScaleFactor != previousScale)
+            {
+                emit cameraChanged();
             }
 
             return true;

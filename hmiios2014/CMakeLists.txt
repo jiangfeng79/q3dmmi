@@ -1,10 +1,18 @@
 
 file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS *.cpp *.h *ui *.rc *.qrc)
+list(APPEND PROJECT_SOURCES
+    "${APP_CONFIG_GENERATED_HEADER}"
+    "${APP_CONFIG_GENERATED_SOURCE}"
+    "${APP_CONFIG_VIEW_HEADER}"
+    "${APP_CONFIG_VIEW_SOURCE}"
+)
 
 hmiios_add_app_executable(NAME HMIIOS WIN32
     SRC ${PROJECT_SOURCES}
-    QT5LIBS Core Gui Widgets Network OpenGLWidgets
+    QT6LIBS Core Gui Widgets Network OpenGLWidgets
 )
+add_dependencies(HMIIOS generateAppConfig)
+target_include_directories(HMIIOS PRIVATE "${APP_CONFIG_GENERATED_DIR}")
 
 # Copy sgMap files to the build output directory
 add_custom_command(TARGET HMIIOS POST_BUILD

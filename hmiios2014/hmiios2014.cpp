@@ -3,17 +3,31 @@
 #include <QCloseEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDockWidget>
 #include <QFile>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLibraryInfo>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QMoveEvent>
+#include <QResizeEvent>
+#include <QTimer>
 #include <QVBoxLayout>
+
+#include <limits>
+
+#include "appConfigView.h"
 
 hmiios2014::hmiios2014(QWidget* parent) : QMainWindow(parent), m_tsd(nullptr)
 {
     ui.setupUi(this);
+    resize(1280, 800);
+
+    disconnect(ui.actionFullscreen, nullptr, this, nullptr);
+    disconnect(ui.actionNormalscreen, nullptr, this, nullptr);
+    connect(ui.actionFullscreen, &QAction::triggered, this, [this] { setFullscreenRequested(true); });
+    connect(ui.actionNormalscreen, &QAction::triggered, this, [this] { setFullscreenRequested(false); });
 
     // ui.widget->installEventFilter(this);
     // installEventFilter(this);
@@ -50,11 +64,309 @@ hmiios2014::hmiios2014(QWidget* parent) : QMainWindow(parent), m_tsd(nullptr)
     ui.dockBusArrival->hide();
     connect(m_tsd, &TSDWindow::busArrivalSnapshotUpdated, this, &hmiios2014::slot_busArrivalSnapshotUpdated);
     connect(m_tsd, &TSDWindow::busInfoCleared, this, &hmiios2014::slot_busInfoCleared);
+
+    m_configObserverId = m_config.addObserver(
+        [this](AppConfig::Field field, const AppConfig::Data& config) { applyConfigChange(field, config); });
     loadConfig();
+    QTimer::singleShot(0, this, [this] {
+        m_configReady = true;
+        syncWindowConfig();
+    });
+    connect(m_tsd, &OpenglWindow::cameraChanged, this, &hmiios2014::syncCameraConfig);
+
+    auto* configDock = new QDockWidget(tr("Configuration Database"), this);
+    configDock->setObjectName(QStringLiteral("configurationDatabaseDock"));
+    configDock->setWidget(new AppConfigView(m_config, configDock));
+    addDockWidget(Qt::RightDockWidgetArea, configDock);
+    ui.menuDebug->addAction(configDock->toggleViewAction());
+    configDock->hide();
 }
 
-hmiios2014::~hmiios2014() {}
+hmiios2014::~hmiios2014()
+{
+    m_config.removeObserver(m_configObserverId);
+}
 
+AppConfig::Data hmiios2014::currentConfig() const
+{
+    AppConfig::Data config = m_config.data();
+    if (!m_tsd)
+    {
+        return config;
+    }
+
+    auto setValue = [&config](const QString& group, const QString& name, const QString& value) {
+        for (AppConfig::Field field : AppConfig::fields())
+        {
+            if (AppConfig::fieldGroup(field) == group && AppConfig::fieldName(field) == name)
+            {
+                AppConfig::setFieldValue(config, field, value);
+                return;
+            }
+        }
+    };
+    setValue(QStringLiteral("camera"), QStringLiteral("centerX"), QString::number(m_tsd->mapCenterX()));
+    setValue(QStringLiteral("camera"), QStringLiteral("centerY"), QString::number(m_tsd->mapCenterY()));
+    setValue(QStringLiteral("camera"), QStringLiteral("scale"), QString::number(m_tsd->scaleFactor()));
+    setValue(QStringLiteral("camera"), QStringLiteral("rotationAngle"), QString::number(m_tsd->rotationAngle()));
+    setValue(QStringLiteral("display"), QStringLiteral("mask"),
+             QStringLiteral("0x%1").arg(m_tsd->getDisplayMask(), 16, 16, QLatin1Char('0')));
+    setValue(QStringLiteral("display"), QStringLiteral("autoZoom"), m_tsd->getAutoZoom() ? QStringLiteral("true") : QStringLiteral("false"));
+    setValue(QStringLiteral("display"), QStringLiteral("autoSwing"), m_tsd->getAutoSwing() ? QStringLiteral("true") : QStringLiteral("false"));
+    setValue(QStringLiteral("display"), QStringLiteral("shaderToys"), m_tsd->getShaderToys() ? QStringLiteral("true") : QStringLiteral("false"));
+    setValue(QStringLiteral("display"), QStringLiteral("vsync"), m_tsd->vsyncEnabled() ? QStringLiteral("true") : QStringLiteral("false"));
+    setValue(QStringLiteral("display"), QStringLiteral("mapOpMode"), QString::number(m_tsd->mapOpMask()));
+    setValue(QStringLiteral("app"), QStringLiteral("language"), m_language);
+    if (m_fullscreenRequested)
+    {
+        const QRect savedGeometry = normalGeometry();
+        setValue(QStringLiteral("app"), QStringLiteral("windowGeometry"),
+                 QStringLiteral("%1,%2,%3,%4")
+                     .arg(savedGeometry.x()).arg(savedGeometry.y()).arg(savedGeometry.width()).arg(savedGeometry.height()));
+        setValue(QStringLiteral("app"), QStringLiteral("maximized"), QStringLiteral("false"));
+        setValue(QStringLiteral("app"), QStringLiteral("fullscreen"), QStringLiteral("true"));
+    }
+    else
+    {
+        const QRect savedGeometry = isMaximized() ? normalGeometry() : geometry();
+        setValue(QStringLiteral("app"), QStringLiteral("windowGeometry"),
+                 QStringLiteral("%1,%2,%3,%4")
+                     .arg(savedGeometry.x()).arg(savedGeometry.y()).arg(savedGeometry.width()).arg(savedGeometry.height()));
+        setValue(QStringLiteral("app"), QStringLiteral("maximized"), isMaximized() ? QStringLiteral("true") : QStringLiteral("false"));
+        setValue(QStringLiteral("app"), QStringLiteral("fullscreen"), QStringLiteral("false"));
+    }
+    return config;
+}
+
+QString hmiios2014::configValue(const AppConfig::Data& config, const QString& group, const QString& name) const
+{
+    for (AppConfig::Field field : AppConfig::fields())
+    {
+        if (AppConfig::fieldGroup(field) == group && AppConfig::fieldName(field) == name)
+        {
+            return AppConfig::fieldValue(field, config);
+        }
+    }
+    return {};
+}
+
+void hmiios2014::updateConfigValue(const QString& group, const QString& name, const QString& value)
+{
+    AppConfig::Data config = m_config.data();
+    for (AppConfig::Field field : AppConfig::fields())
+    {
+        if (AppConfig::fieldGroup(field) == group && AppConfig::fieldName(field) == name)
+        {
+            if (AppConfig::setFieldValue(config, field, value))
+            {
+                m_config.replace(config);
+            }
+            return;
+        }
+    }
+}
+
+void hmiios2014::syncCameraConfig()
+{
+    if (!m_configReady || !m_tsd)
+    {
+        return;
+    }
+
+    AppConfig::Data config = m_config.data();
+    for (AppConfig::Field field : AppConfig::fields())
+    {
+        if (AppConfig::fieldGroup(field) != QStringLiteral("camera"))
+        {
+            continue;
+        }
+
+        switch (field)
+        {
+        case AppConfig::Field::CenterX:
+            AppConfig::setFieldValue(config, field, QString::number(m_tsd->mapCenterX(), 'g', std::numeric_limits<float>::max_digits10));
+            break;
+        case AppConfig::Field::CenterY:
+            AppConfig::setFieldValue(config, field, QString::number(m_tsd->mapCenterY(), 'g', std::numeric_limits<float>::max_digits10));
+            break;
+        case AppConfig::Field::Scale:
+            AppConfig::setFieldValue(config, field, QString::number(m_tsd->scaleFactor(), 'g', std::numeric_limits<float>::max_digits10));
+            break;
+        case AppConfig::Field::RotationAngle:
+            AppConfig::setFieldValue(config, field, QString::number(m_tsd->rotationAngle(), 'g', std::numeric_limits<double>::max_digits10));
+            break;
+        default:
+            break;
+        }
+    }
+    m_config.replace(config);
+}
+
+void hmiios2014::syncWindowConfig()
+{
+    if (!m_configReady || m_syncingWindowConfig)
+    {
+        return;
+    }
+
+    m_syncingWindowConfig = true;
+    const QRect savedGeometry = (isMaximized() || m_fullscreenRequested) ? normalGeometry() : geometry();
+    updateConfigValue(QStringLiteral("app"), QStringLiteral("windowGeometry"),
+                      QStringLiteral("%1,%2,%3,%4")
+                          .arg(savedGeometry.x()).arg(savedGeometry.y())
+                          .arg(savedGeometry.width()).arg(savedGeometry.height()));
+    updateConfigValue(QStringLiteral("app"), QStringLiteral("maximized"),
+                      isMaximized() ? QStringLiteral("true") : QStringLiteral("false"));
+    updateConfigValue(QStringLiteral("app"), QStringLiteral("fullscreen"),
+                      m_fullscreenRequested ? QStringLiteral("true") : QStringLiteral("false"));
+    m_syncingWindowConfig = false;
+}
+
+void hmiios2014::setFullscreenRequested(bool fullscreen)
+{
+    m_fullscreenRequested = fullscreen;
+    if (m_configReady)
+    {
+        updateConfigValue(QStringLiteral("app"), QStringLiteral("fullscreen"),
+                          fullscreen ? QStringLiteral("true") : QStringLiteral("false"));
+    }
+
+    if (fullscreen)
+    {
+        showFullScreen();
+    }
+    else
+    {
+        showNormal();
+    }
+}
+
+void hmiios2014::applyConfigChange(AppConfig::Field field, const AppConfig::Data& config)
+{
+    if (!m_tsd)
+    {
+        return;
+    }
+
+    const QString value = AppConfig::fieldValue(field, config);
+    switch (field)
+    {
+    case AppConfig::Field::CenterX:
+    case AppConfig::Field::CenterY:
+        m_tsd->setMapCenter(configValue(config, QStringLiteral("camera"), QStringLiteral("centerX")).toFloat(),
+                            configValue(config, QStringLiteral("camera"), QStringLiteral("centerY")).toFloat());
+        break;
+    case AppConfig::Field::Scale:
+        m_tsd->setScaleFactor(value.toFloat());
+        break;
+    case AppConfig::Field::RotationAngle:
+        m_tsd->setRotationAngle(value.toDouble());
+        break;
+    case AppConfig::Field::DisplayMask:
+        m_tsd->setDisplayMask(value.toULongLong(nullptr, 0));
+        syncMapFilterCheckboxes();
+        break;
+    case AppConfig::Field::AutoZoom:
+        m_tsd->setAutoZoom(value == QStringLiteral("true"));
+        break;
+    case AppConfig::Field::AutoSwing:
+        m_tsd->setAutoSwing(value == QStringLiteral("true"));
+        break;
+    case AppConfig::Field::ShaderToys:
+        m_tsd->setShaderToys(value == QStringLiteral("true"));
+        break;
+    case AppConfig::Field::Vsync:
+    {
+        const bool enabled = value == QStringLiteral("true");
+        m_tsd->setVsyncEnabled(enabled);
+        ui.actionVsync->setChecked(enabled);
+        break;
+    }
+    case AppConfig::Field::MapOpMode:
+        if (value.toInt() == static_cast<int>(OpenglWindow::EBL))
+        {
+            m_tsd->setMapOpMask(OpenglWindow::EBL);
+            ui.actionEBL->setChecked(true);
+        }
+        else
+        {
+            m_tsd->setMapOpMask(OpenglWindow::PAN);
+            ui.actionSelect->setChecked(true);
+        }
+        break;
+    case AppConfig::Field::Fullscreen:
+        if (m_syncingWindowConfig)
+        {
+            return;
+        }
+        m_fullscreenRequested = value == QStringLiteral("true");
+        if (m_fullscreenRequested)
+        {
+            QTimer::singleShot(0, this, [this] {
+                if (configValue(m_config.data(), QStringLiteral("app"), QStringLiteral("fullscreen")) ==
+                    QStringLiteral("true"))
+                {
+                    showFullScreen();
+                }
+            });
+        }
+        else if (isFullScreen())
+        {
+            showNormal();
+        }
+        break;
+    case AppConfig::Field::Language:
+        m_language = value;
+        if (value == QStringLiteral("zh"))
+        {
+            switchTranslator(m_translatorChinese, QStringLiteral(":/hmiios2014/hmiios2014_zh.qm"));
+        }
+        else
+        {
+            switchTranslator(m_translatorDefault, QStringLiteral(":/hmiios2014/hmiios2014_en.qm"));
+        }
+        break;
+    case AppConfig::Field::WindowGeometry:
+        if (m_syncingWindowConfig)
+        {
+            return;
+        }
+        {
+            const QStringList parts = value.split(QLatin1Char(','));
+            if (parts.size() == 4)
+            {
+                const QRect geometry(parts[0].toInt(), parts[1].toInt(), parts[2].toInt(), parts[3].toInt());
+                if (geometry.isValid())
+                {
+                    setGeometry(geometry);
+                }
+            }
+        }
+        break;
+    case AppConfig::Field::Maximized:
+        if (m_syncingWindowConfig)
+        {
+            return;
+        }
+        if (value == QStringLiteral("true"))
+        {
+            QTimer::singleShot(0, this, [this] {
+                if (configValue(m_config.data(), QStringLiteral("app"), QStringLiteral("maximized")) ==
+                    QStringLiteral("true"))
+                {
+                    showMaximized();
+                }
+            });
+        }
+        else if (isMaximized())
+        {
+            showNormal();
+        }
+        break;
+    default:
+        break;
+    }
+}
 
 bool hmiios2014::loadConfig()
 {
@@ -63,64 +375,18 @@ bool hmiios2014::loadConfig()
         return false;
     }
 
-    // Seed with the current state so any field absent from the JSON keeps its
-    // default value.
-    m_config.centerX = m_tsd->mapCenterX();
-    m_config.centerY = m_tsd->mapCenterY();
-    m_config.scale = m_tsd->scaleFactor();
-    m_config.rotationAngle = m_tsd->rotationAngle();
-    m_config.displayMask = m_tsd->getDisplayMask();
-    m_config.autoZoom = m_tsd->getAutoZoom();
-    m_config.autoSwing = m_tsd->getAutoSwing();
-    m_config.shaderToys = m_tsd->getShaderToys();
-    m_config.vsync = m_tsd->vsyncEnabled();
-    m_config.mapOpMode = static_cast<int>(m_tsd->mapOpMask());
-    m_config.language = m_language;
-
-    if (!AppConfig::load(AppConfig::configPath(), m_config))
+    if (m_config.load(AppConfig::configPath()))
     {
-        return false;
+        return true;
     }
 
-    // Apply the restored state to the map window.
-    m_tsd->setMapCenter(m_config.centerX, m_config.centerY);
-    m_tsd->setScaleFactor(m_config.scale);
-    m_tsd->setRotationAngle(m_config.rotationAngle);
-    m_tsd->setDisplayMask(m_config.displayMask);
-    m_tsd->setAutoZoom(m_config.autoZoom);
-    m_tsd->setAutoSwing(m_config.autoSwing);
-    m_tsd->setShaderToys(m_config.shaderToys);
-    m_tsd->setVsyncEnabled(m_config.vsync);
-    ui.actionVsync->setChecked(m_config.vsync);
-
-    // Restore the active map tool.
-    if (m_config.mapOpMode == static_cast<int>(OpenglWindow::EBL))
+    // On first launch, publish the defaults generated from the source
+    // config.json even though no persisted runtime file exists yet.
+    for (AppConfig::Field field : AppConfig::fields())
     {
-        m_tsd->setMapOpMask(OpenglWindow::EBL);
-        ui.actionSelect->setChecked(false);
-        ui.actionEBL->setChecked(true);
+        applyConfigChange(field, m_config.data());
     }
-    else
-    {
-        m_tsd->setMapOpMask(OpenglWindow::PAN);
-        ui.actionSelect->setChecked(true);
-        ui.actionEBL->setChecked(false);
-    }
-
-    // Restore the language.
-    if (m_config.language == QStringLiteral("zh"))
-    {
-        switchTranslator(m_translatorChinese, QStringLiteral(":/hmiios2014/hmiios2014_zh.qm"));
-    }
-    else
-    {
-        switchTranslator(m_translatorDefault, QStringLiteral(":/hmiios2014/hmiios2014_en.qm"));
-    }
-
-    // Sync the map filter checkboxes with the restored display mask.
-    syncMapFilterCheckboxes();
-
-    return true;
+    return false;
 }
 
 void hmiios2014::saveConfig()
@@ -130,21 +396,8 @@ void hmiios2014::saveConfig()
         return;
     }
 
-    m_config.centerX = m_tsd->mapCenterX();
-    m_config.centerY = m_tsd->mapCenterY();
-    m_config.scale = m_tsd->scaleFactor();
-    m_config.rotationAngle = m_tsd->rotationAngle();
-    m_config.displayMask = m_tsd->getDisplayMask();
-    m_config.autoZoom = m_tsd->getAutoZoom();
-    m_config.autoSwing = m_tsd->getAutoSwing();
-    m_config.shaderToys = m_tsd->getShaderToys();
-    m_config.vsync = m_tsd->vsyncEnabled();
-    m_config.mapOpMode = static_cast<int>(m_tsd->mapOpMask());
-    m_config.language = m_language;
-    m_config.windowGeometry = geometry();
-    m_config.maximized = isMaximized();
-
-    AppConfig::save(AppConfig::configPath(), m_config);
+    m_config.replace(currentConfig());
+    m_config.save(AppConfig::configPath());
 }
 
 void hmiios2014::closeEvent(QCloseEvent* event)
@@ -158,11 +411,28 @@ void hmiios2014::slot_setFps(int a_iFps)
     ui.statusBar->showMessage(QString("Fps: %1").arg(a_iFps));
 }
 
-bool hmiios2014::forwardTsdKeyEvent(QEvent* event) const
+bool hmiios2014::forwardTsdKeyEvent(QEvent* event)
 {
     if (!m_tsd)
     {
         return false;
+    }
+
+    if (event->type() == QEvent::KeyPress)
+    {
+        const auto* keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_F)
+        {
+            setFullscreenRequested(!m_fullscreenRequested);
+            event->accept();
+            return true;
+        }
+        if (keyEvent->key() == Qt::Key_Escape && m_fullscreenRequested)
+        {
+            setFullscreenRequested(false);
+            event->accept();
+            return true;
+        }
     }
 
     QCoreApplication::sendEvent(m_tsd, event);
@@ -199,22 +469,28 @@ void hmiios2014::keyReleaseEvent(QKeyEvent* event)
     QMainWindow::keyReleaseEvent(event);
 }
 
+void hmiios2014::moveEvent(QMoveEvent* event)
+{
+    QMainWindow::moveEvent(event);
+    syncWindowConfig();
+}
+
+void hmiios2014::resizeEvent(QResizeEvent* event)
+{
+    QMainWindow::resizeEvent(event);
+    syncWindowConfig();
+}
+
 void hmiios2014::on_actionSelect_triggered()
 {
     qDebug() << "action pan triggered";
-    if (m_tsd)
-    {
-        m_tsd->setMapOpMask(TSDWindow::PAN);
-    }
+    updateConfigValue(QStringLiteral("display"), QStringLiteral("mapOpMode"), QString::number(TSDWindow::PAN));
 }
 
 void hmiios2014::on_actionEBL_triggered()
 {
     qDebug() << "action EBL triggered";
-    if (m_tsd)
-    {
-        m_tsd->setMapOpMask(TSDWindow::EBL);
-    }
+    updateConfigValue(QStringLiteral("display"), QStringLiteral("mapOpMode"), QString::number(TSDWindow::EBL));
 }
 
 void hmiios2014::on_actionMapLayerFilter_triggered()
@@ -283,30 +559,26 @@ void hmiios2014::slot_setMapFilter(TSDWindow::DisplayMaskBits layer, int state)
         m_tsd->setDisplayMask(layer, true);
         m_tsd->setDisplayMask(static_cast<TSDWindow::DisplayMaskBits>(layerText), false);
     }
+    updateConfigValue(QStringLiteral("display"), QStringLiteral("mask"),
+                      QStringLiteral("0x%1").arg(m_tsd->getDisplayMask(), 16, 16, QLatin1Char('0')));
 }
 
 void hmiios2014::on_actionAutoZoom_triggered()
 {
-    if (m_tsd)
-    {
-        m_tsd->setAutoZoom(!m_tsd->getAutoZoom());
-    }
+    const bool enabled = configValue(m_config.data(), QStringLiteral("display"), QStringLiteral("autoZoom")) == QStringLiteral("true");
+    updateConfigValue(QStringLiteral("display"), QStringLiteral("autoZoom"), enabled ? QStringLiteral("false") : QStringLiteral("true"));
 }
 
 void hmiios2014::on_actionAutoSwing_triggered()
 {
-    if (m_tsd)
-    {
-        m_tsd->setAutoSwing(!m_tsd->getAutoSwing());
-    }
+    const bool enabled = configValue(m_config.data(), QStringLiteral("display"), QStringLiteral("autoSwing")) == QStringLiteral("true");
+    updateConfigValue(QStringLiteral("display"), QStringLiteral("autoSwing"), enabled ? QStringLiteral("false") : QStringLiteral("true"));
 }
 
 void hmiios2014::on_actionShaderToys_triggered()
 {
-    if (m_tsd)
-    {
-        m_tsd->setShaderToys(!m_tsd->getShaderToys());
-    }
+    const bool enabled = configValue(m_config.data(), QStringLiteral("display"), QStringLiteral("shaderToys")) == QStringLiteral("true");
+    updateConfigValue(QStringLiteral("display"), QStringLiteral("shaderToys"), enabled ? QStringLiteral("false") : QStringLiteral("true"));
 }
 
 void hmiios2014::on_actionVsync_triggered()
@@ -316,25 +588,21 @@ void hmiios2014::on_actionVsync_triggered()
         return;
     }
 
-    // toggleVsync() flips the internal state, so sync the menu check state
-    // from the window afterwards.
-    m_tsd->toggleVsync();
-    ui.actionVsync->setChecked(m_tsd->vsyncEnabled());
+    const bool enabled = configValue(m_config.data(), QStringLiteral("display"), QStringLiteral("vsync")) == QStringLiteral("true");
+    updateConfigValue(QStringLiteral("display"), QStringLiteral("vsync"), enabled ? QStringLiteral("false") : QStringLiteral("true"));
 }
 
 void hmiios2014::on_actionChineseLang_triggered()
 {
     const QString languageName = QStringLiteral("zh");
-    switchTranslator(m_translatorChinese, QStringLiteral(":/hmiios2014/hmiios2014_%1.qm").arg(languageName));
-    m_language = languageName;
+    updateConfigValue(QStringLiteral("app"), QStringLiteral("language"), languageName);
     ui.statusBar->showMessage(tr("Current Language changed to %1").arg(languageName));
 }
 
 void hmiios2014::on_actionDefaultLang_triggered()
 {
     const QString languageName = QStringLiteral("en");
-    switchTranslator(m_translatorDefault, QStringLiteral(":/hmiios2014/hmiios2014_%1.qm").arg(languageName));
-    m_language = languageName;
+    updateConfigValue(QStringLiteral("app"), QStringLiteral("language"), languageName);
     ui.statusBar->showMessage(tr("Current Language changed to %1").arg(languageName));
 }
 
@@ -470,7 +738,16 @@ void hmiios2014::changeEvent(QEvent* event)
         ui.retranslateUi(this);
         ui.widgetMapFilter->retranslate();
         ui.widgetBusArrival->retranslate();
+        if (auto* configDock = findChild<QDockWidget*>(QStringLiteral("configurationDatabaseDock")))
+        {
+            configDock->setWindowTitle(tr("Configuration Database"));
+        }
     }
 
     QMainWindow::changeEvent(event);
+
+    if (event && event->type() == QEvent::WindowStateChange)
+    {
+        syncWindowConfig();
+    }
 }

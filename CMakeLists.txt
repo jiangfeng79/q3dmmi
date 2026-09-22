@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 4.2)
 project(HMIIOS VERSION 0.1)
 
+include(CTest)
+
 # Include the file so the function is defined globally
 include(cmake/hmiios001-config.cmake)
 
@@ -65,6 +67,39 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+set(APP_CONFIG_SCHEMA "${CMAKE_CURRENT_SOURCE_DIR}/hmiios2014/config.json")
+set(APP_CONFIG_EVENTS "${CMAKE_CURRENT_SOURCE_DIR}/hmiios2014/appConfigEvents.cpp")
+set(APP_CONFIG_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/appConfig")
+set(APP_CONFIG_GENERATED_HEADER "${APP_CONFIG_GENERATED_DIR}/appConfig.h")
+set(APP_CONFIG_GENERATED_SOURCE "${APP_CONFIG_GENERATED_DIR}/appConfig.cpp")
+set(APP_CONFIG_VIEW_HEADER "${APP_CONFIG_GENERATED_DIR}/appConfigView.h")
+set(APP_CONFIG_VIEW_SOURCE "${APP_CONFIG_GENERATED_DIR}/appConfigView.cpp")
+
+add_executable(appConfigCodegen codegen.cpp)
+target_link_libraries(appConfigCodegen PRIVATE Qt6::Core)
+
+add_custom_command(
+    OUTPUT
+        "${APP_CONFIG_GENERATED_HEADER}"
+        "${APP_CONFIG_GENERATED_SOURCE}"
+        "${APP_CONFIG_VIEW_HEADER}"
+        "${APP_CONFIG_VIEW_SOURCE}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${APP_CONFIG_GENERATED_DIR}"
+    COMMAND $<TARGET_FILE:appConfigCodegen>
+        "${APP_CONFIG_SCHEMA}"
+        "${APP_CONFIG_GENERATED_DIR}"
+        "${APP_CONFIG_EVENTS}"
+    DEPENDS appConfigCodegen "${APP_CONFIG_SCHEMA}"
+    VERBATIM
+)
+
+add_custom_target(generateAppConfig DEPENDS
+    "${APP_CONFIG_GENERATED_HEADER}"
+    "${APP_CONFIG_GENERATED_SOURCE}"
+    "${APP_CONFIG_VIEW_HEADER}"
+    "${APP_CONFIG_VIEW_SOURCE}"
+)
+
 if (MSVC)
     set(CMAKE_C_FLAGS "/utf-8 ${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "/utf-8 ${CMAKE_CXX_FLAGS}")
@@ -73,3 +108,7 @@ endif()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 add_subdirectory(hmiios2014)
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

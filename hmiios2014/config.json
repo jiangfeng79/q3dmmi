@@ -1,0 +1,22 @@
+{
+    "app": {
+        "fullscreen": false,
+        "language": "en",
+        "maximized": false,
+        "windowGeometry": [457, 193, 1280, 800]
+    },
+    "camera": {
+        "centerX": 10.0,
+        "centerY": 15.0,
+        "rotationAngle": 0.0,
+        "scale": 1.44
+    },
+    "display": {
+        "autoSwing": false,
+        "autoZoom": false,
+        "mapOpMode": 1,
+        "mask": "0x0000007fff5c032b",
+        "shaderToys": false,
+        "vsync": true
+    }
+}

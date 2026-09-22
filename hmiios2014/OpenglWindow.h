@@ -60,18 +60,35 @@ public:
     float mapCenterY() const { return m_fMapCenterDeltaY; }
     void setMapCenter(float x, float y)
     {
+        if (m_fMapCenterDeltaX == x && m_fMapCenterDeltaY == y)
+        {
+            return;
+        }
         m_fMapCenterDeltaX = x;
         m_fMapCenterDeltaY = y;
         m_fMapPrevCenterDeltaX = x;  // keep the "prev" values in sync so a
         m_fMapPrevCenterDeltaY = y;  // subsequent pan does not jump.
+        emit cameraChanged();
     }
     float scaleFactor() const { return m_fScaleFactor; }
-    void setScaleFactor(float value) { m_fScaleFactor = value; }
+    void setScaleFactor(float value)
+    {
+        if (m_fScaleFactor != value)
+        {
+            m_fScaleFactor = value;
+            emit cameraChanged();
+        }
+    }
     double rotationAngle() const { return m_dRotationAngle; }
     void setRotationAngle(double value)
     {
+        if (m_dRotationAngle == value)
+        {
+            return;
+        }
         m_dRotationAngle = value;
         m_dPrevRotationAngle = value;  // keep the "prev" value in sync.
+        emit cameraChanged();
     }
     unsigned int mapOpMask() const { return m_uiMapOpMask; }
 
@@ -146,6 +163,7 @@ private:
 
 signals:
     void signal_setFps(int a_iFps);
+    void cameraChanged();
 };
 //! [1]
 

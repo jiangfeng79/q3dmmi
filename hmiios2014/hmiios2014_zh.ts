@@ -2,6 +2,34 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
 <context>
+    <name>BusArrivalWidget</name>
+    <message>
+        <location filename="busArrival.ui" line="20"/>
+        <source>Bus Arrival Times</source>
+        <translation type="unfinished">巴士到达时间</translation>
+    </message>
+    <message>
+        <location filename="busArrival.ui" line="57"/>
+        <source>Service</source>
+        <translation type="unfinished">路线</translation>
+    </message>
+    <message>
+        <location filename="busArrival.ui" line="62"/>
+        <source>1st Bus</source>
+        <translation type="unfinished">第1班车</translation>
+    </message>
+    <message>
+        <location filename="busArrival.ui" line="67"/>
+        <source>2nd Bus</source>
+        <translation type="unfinished">第2班车</translation>
+    </message>
+    <message>
+        <location filename="busArrival.ui" line="72"/>
+        <source>3rd Bus</source>
+        <translation type="unfinished">第3班车</translation>
+    </message>
+</context>
+<context>
     <name>MapFilterWidget</name>
     <message>
         <location filename="mapFilter.ui" line="20"/>
@@ -95,6 +123,11 @@
 <context>
     <name>hmiios2014</name>
     <message>
+        <location filename="hmiios2014.cpp" line="77"/>
+        <source>Configuration Database</source>
+        <translation type="unfinished">配置数据库</translation>
+    </message>
+    <message>
         <location filename="hmiios2014.cpp" line="206"/>
         <location filename="hmiios2014.cpp" line="213"/>
         <source>Current Language changed to %1</source>
@@ -129,6 +162,16 @@
         <location filename="hmiios2014.cpp" line="291"/>
         <source>Enter bus stop number:</source>
         <translation type="unfinished">输入巴士站号码</translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.cpp" line="690"/>
+        <source>Bus Arrival Times - Stop %1</source>
+        <translation type="unfinished">巴士到达时间 - 车站 %1</translation>
+    </message>
+    <message>
+        <location filename="hmiios2014.cpp" line="698"/>
+        <source>Bus Arrival Times</source>
+        <translation type="unfinished">巴士到达时间</translation>
     </message>
     <message>
         <location filename="hmiios2014.cpp" line="309"/>

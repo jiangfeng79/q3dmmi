@@ -37,11 +37,22 @@ private:
     QString getOrPromptAccountKey();
     void syncMapFilterCheckboxes();
 
-    // Persist / restore user-configurable state to config.json.
-    AppConfig::Data m_config;
+    // Observable in-memory database persisted to config.json.
+    AppConfig::Database m_config;
+    AppConfig::Database::ObserverId m_configObserverId = 0;
+    bool m_configReady = false;
+    bool m_syncingWindowConfig = false;
+    bool m_fullscreenRequested = false;
     QString m_language = QStringLiteral("en");
     bool loadConfig();
     void saveConfig();
+    AppConfig::Data currentConfig() const;
+    void applyConfigChange(AppConfig::Field field, const AppConfig::Data& config);
+    QString configValue(const AppConfig::Data& config, const QString& group, const QString& name) const;
+    void updateConfigValue(const QString& group, const QString& name, const QString& value);
+    void syncCameraConfig();
+    void syncWindowConfig();
+    void setFullscreenRequested(bool fullscreen);
 
 signals:
     void signal_widget_resize(QRect rect);
@@ -50,7 +61,9 @@ protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
-    bool forwardTsdKeyEvent(QEvent* event) const;
+    void moveEvent(QMoveEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
+    bool forwardTsdKeyEvent(QEvent* event);
     void switchTranslator(QTranslator& translator, const QString& filename);
     void changeEvent(QEvent* event) override;
     void closeEvent(QCloseEvent* event) override;

@@ -28,7 +28,6 @@ int main(int argc, char* argv[])
     a.setFont(font);
 
     hmiios2014 w;
-    w.resize(1280, 800);
     w.show();
     return a.exec();
 }

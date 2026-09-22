@@ -1,4 +1,5 @@
-﻿#include "TSDWindow.h"
+﻿#include <QtMath>
+#include "TSDWindow.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -13,6 +14,7 @@
 #include <time.h>    //or #include<ctime> for time function
 
 #include "ebl.h"
+#include "compass.h"
 #include "geoTransform.h"
 #include "hmiios2014.h"
 #include "mrt.h"
@@ -359,23 +361,40 @@ void TSDWindow::render()
         matrix.scale(m_sgCoastal.m_property.scale * m_fScaleFactor);
     }
 
+    matrix.rotate(qRadiansToDegrees(m_dRotationAngle), 0, 0, 1);
+
     if (m_bAutoSwing)
     {
         matrix.rotate(sin(time) * 10, 0, 0, 1);
     }
+
+    const qreal mapRotationDegrees = qRadiansToDegrees(m_dRotationAngle)
+                                     + (m_bAutoSwing ? qSin(time) * 10.0 : 0.0);
+    const qreal mapRotationRadians = qDegreesToRadians(mapRotationDegrees);
+    const qreal cosMapRotation = qCos(mapRotationRadians);
+    const qreal sinMapRotation = qSin(mapRotationRadians);
+    const QPointF viewportCenter(w * retinaScale / 2.0, h * retinaScale / 2.0);
+    const qreal mapScale = m_sgCoastal.m_property.scale * m_fScaleFactor * retinaScale;
+    const QPointF mapTranslation(m_fMapCenterDeltaX * m_fScaleFactor * retinaScale,
+                                 m_fMapCenterDeltaY * m_fScaleFactor * retinaScale);
+    const auto mapPointToScreen = [this, viewportCenter, mapScale, mapTranslation, cosMapRotation,
+                                   sinMapRotation](double longitude, double latitude) {
+        const qreal mapX = X_WGS84_COORD_TO_MAP_COORD(longitude);
+        const qreal mapY = Y_WGS84_COORD_TO_MAP_COORD(latitude);
+        const qreal rotatedMapX = mapX * cosMapRotation - mapY * sinMapRotation;
+        const qreal rotatedMapY = mapX * sinMapRotation + mapY * cosMapRotation;
+        return viewportCenter + mapTranslation + QPointF(rotatedMapX * mapScale, -rotatedMapY * mapScale);
+    };
 
     const MapLayerRenderContext layerContext = {
         m_posAttr,
         retinaScale,
         w,
         h,
-        [this, retinaScale](double longitude, double latitude) {
-            return QPointF(X_WGS84_COORD_TO_SCREEN_COORD(longitude) * retinaScale,
-                           Y_WGS84_COORD_TO_SCREEN_COORD(latitude) * retinaScale);
-        },
+        mapPointToScreen,
         [this](int x, int y, const QString& text) { renderText(x, y, text, QStringLiteral("Tahoma")); },
-        [this](int x, int y, const QString& text, float angle) {
-            renderText(x, y, text, QStringLiteral("Tahoma"), angle);
+        [this, mapRotationDegrees](int x, int y, const QString& text, float angle) {
+            renderText(x, y, text, QStringLiteral("Tahoma"), angle - mapRotationDegrees);
         },
         [this, retinaScale](const QString& text) {
             return getCachedFont(QStringLiteral("Tahoma"), 12 * retinaScale, false)->metrics.horizontalAdvance(text);
@@ -497,6 +516,19 @@ void TSDWindow::render()
 
     m_inTextFrame = true;
 
+    {
+        bool shared = false;
+        QPainter* painter = activeTextPainter(shared);
+        if (painter)
+        {
+            drawCompass(*painter, width(), devicePixelRatio(), mapRotationDegrees);
+            if (!shared)
+            {
+                painter->end();
+            }
+        }
+    }
+
     renderShape(QRect(0, 0, 300 * retinaScale, 80 * retinaScale));
     renderText(10, 18 * retinaScale, QString("Coord: [%1,%2]").arg(X).arg(Y));
     renderText(10, 36 * retinaScale, QString("Scale: [%1]").arg(qScale));
@@ -512,8 +544,9 @@ void TSDWindow::render()
     {
         for (int i = 0; i < sizeof(mrt) / sizeof(GLfloat) / 2; ++i)
         {
-            int x = X_WGS84_COORD_TO_SCREEN_COORD(mrt[i * 2]) * retinaScale;
-            int y = Y_WGS84_COORD_TO_SCREEN_COORD(mrt[i * 2 + 1]) * retinaScale;
+            const QPointF point = mapPointToScreen(mrt[i * 2], mrt[i * 2 + 1]);
+            int x = point.x();
+            int y = point.y();
             if (x > 0 && x < width() * retinaScale && y > 0 && y < height() * retinaScale)
             {
                 renderText(x + 7, y + 5, QString(mrt_name[i]), QString("Tahoma"));
@@ -594,6 +627,7 @@ void TSDWindow::render()
         m_fMapPrevCenterDeltaX = m_fMapCenterDeltaX;
         m_fMapPrevCenterDeltaY = m_fMapCenterDeltaY;
         m_fMotionSpeed -= 50 / m_fScaleFactor;
+        emit cameraChanged();
     }
 }
 //! [5]
@@ -632,11 +666,8 @@ void TSDWindow::rebuildLiveLayers()
 
 void TSDWindow::centerMap()
 {
-    m_fMapCenterDeltaX = 0;
-    m_fMapCenterDeltaY = 0;
-    m_fMapPrevCenterDeltaX = 0;
-    m_fMapPrevCenterDeltaY = 0;
-    m_fScaleFactor = 1;
+    setMapCenter(0, 0);
+    setScaleFactor(1);
 }
 
 void TSDWindow::setDisplayMask(DisplayMaskBits layer, bool b)

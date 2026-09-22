@@ -18,7 +18,7 @@ function(hmiios_add_app_library)
     parsered
     "STATIC"
     "NAME;OUTPUTDIR"
-    "SRC;DEFINES;QTLIBS;QT5LIBS;HMIIOSLIBS;OTHERLIBS"
+    "SRC;DEFINES;QTLIBS;QT6LIBS;HMIIOSLIBS;OTHERLIBS"
     ${ARGN})
 
     if (NOT parsered_NAME)
@@ -35,10 +35,10 @@ function(hmiios_add_app_library)
     if (parsered_DEFINES)
         add_compile_definitions(${parsered_DEFINES})
     endif()
-    if (parsered_QT5LIBS)
+    if (parsered_QT6LIBS)
         # in order to make old code work
         # remove me when all code port to QTLIBS
-        set(parsered_QTLIBS ${parsered_QTLIBS} ${parsered_QT5LIBS})
+        set(parsered_QTLIBS ${parsered_QTLIBS} ${parsered_QT6LIBS})
     endif()
     if (parsered_QTLIBS)
 	    find_package(Qt${HMIIOS_QT_MAJOR_VERSION} COMPONENTS ${parsered_QTLIBS} REQUIRED)
@@ -74,7 +74,7 @@ function(hmiios_add_app_executable)
     parsered
     "WIN32"
     "NAME;OUTPUTDIR"
-    "SRC;DEFINES;QTLIBS;QT5LIBS;HMIIOSLIBS;OTHERLIBS"
+    "SRC;DEFINES;QTLIBS;QT6LIBS;HMIIOSLIBS;OTHERLIBS"
     ${ARGN})
 
     if (NOT parsered_NAME)
@@ -90,10 +90,10 @@ function(hmiios_add_app_executable)
     if (parsered_DEFINES)
         add_compile_definitions(${parsered_DEFINES})
     endif()
-    if (parsered_QT5LIBS)
+    if (parsered_QT6LIBS)
         # in order to make old code work
         # remove me when all code port to QTLIBS
-        set(parsered_QTLIBS ${parsered_QTLIBS} ${parsered_QT5LIBS})
+        set(parsered_QTLIBS ${parsered_QTLIBS} ${parsered_QT6LIBS})
     endif()
     if (parsered_QTLIBS)
 	    find_package(Qt${HMIIOS_QT_MAJOR_VERSION} COMPONENTS ${parsered_QTLIBS} REQUIRED)
@@ -127,7 +127,7 @@ function(hmiios_add_device_library)
     parsered
     ""
     "BASENAME;OUTPUTDIR"
-    "SRC;DEFINES;QTLIBS;QT5LIBS;HMIIOSLIBS;OTHERLIBS"
+    "SRC;DEFINES;QTLIBS;QT6LIBS;HMIIOSLIBS;OTHERLIBS"
     ${ARGN})
 
     if (NOT parsered_BASENAME)
@@ -142,7 +142,7 @@ function(hmiios_add_device_library)
     hmiios_add_app_library(NAME ${name}
         SRC ${parsered_SRC}
         DEFINES HMIIOSDEVICE_BUILD_${uppername}_LIB ${parsered_DEFINES}
-        QTLIBS ${parsered_QTLIBS} ${parsered_QT5LIBS}
+        QTLIBS ${parsered_QTLIBS} ${parsered_QT6LIBS}
         HMIIOSLIBS ${parsered_HMIIOSLIBS}
         OTHERLIBS ${parsered_OTHERLIBS}
         OUTPUTDIR ${parsered_OUTPUTDIR}
