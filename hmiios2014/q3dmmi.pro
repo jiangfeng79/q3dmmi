@@ -1,8 +1,7 @@
-QT       += core widgets gui opengl network
+QT += core gui widgets network opengl
+greaterThan(QT_MAJOR_VERSION, 5): QT += openglwidgets
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
-CONFIG += qt c++20
+CONFIG += qt c++20 warn_on
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -30,7 +29,10 @@ SOURCES += \
     mapFilterWidget.cpp \
     shpReader.cpp \
     MapLayer.cpp \
-    roadGraph.cpp
+    roadGraph.cpp \
+    appConfigEvents.cpp \
+    ../build/generated/appConfig/appConfig.cpp \
+    ../build/generated/appConfig/appConfigView.cpp
 
 HEADERS += \
     OpenglWindow.h \
@@ -51,7 +53,9 @@ HEADERS += \
     shpReader.h \
     MapLayer.h \
     WorkerEntry.h \
-    roadGraph.h
+    roadGraph.h \
+    ../build/generated/appConfig/appConfig.h \
+    ../build/generated/appConfig/appConfigView.h
 
 FORMS += \
     hmiios2014.ui \
@@ -61,7 +65,7 @@ FORMS += \
 TRANSLATIONS = hmiios2014_en.ts \
                hmiios2014_zh.ts
 
-INCLUDEPATH += $$PWD/../../shapelib-1.6.3/
+INCLUDEPATH += $$PWD/../../shapelib-1.6.3/ $$PWD/../build/generated/appConfig
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
