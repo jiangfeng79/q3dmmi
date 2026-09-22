@@ -23,6 +23,7 @@ SOURCES += \
     busLayerParser.cpp \
     dbfReader.cpp \
     flightLayerParser.cpp \
+    appConfigEvents.cpp \
     hmiios2014.cpp \
     layerParser.cpp \
     main.cpp \
