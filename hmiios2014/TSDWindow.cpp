@@ -1,4 +1,4 @@
-﻿#include <QtMath>
+#include <QtMath>
 #include "TSDWindow.h"
 
 #include <QCoreApplication>
@@ -482,6 +482,21 @@ void TSDWindow::render()
     drawMrtStations(*this, m_program, m_posAttr, m_colorId, m_mrtVBO, m_displayMask);
     // checkGL("after drawMRTStation");
 
+    // The EBL is drawn in map space through `matrix`, which also carries the
+    // camera rotation (matrix.rotate() above). The screen->map macros ignore
+    // rotation, so without compensation the bearing origin/ring/line drift away
+    // from the cursor whenever the map is rotated or the view is transformed.
+    // Invert the rotation here so the EBL stays anchored to the mouse at any
+    // scale, pan or rotation. cosMapRotation/sinMapRotation already include the
+    // manual rotation angle plus any auto-swing.
+    const auto screenToMapCoord = [this, cosMapRotation, sinMapRotation](int sx, int sy) -> QPointF {
+        const qreal u = X_SCREEN_COORD_TO_MAP_COORD(sx);
+        const qreal v = Y_SCREEN_COORD_TO_MAP_COORD(sy);
+        return QPointF(u * cosMapRotation + v * sinMapRotation, -u * sinMapRotation + v * cosMapRotation);
+    };
+    const QPointF eblCenter = screenToMapCoord(m_iMouseInitX, m_iMouseInitY);
+    const QPointF eblMouse = screenToMapCoord(m_iMousePosX, m_iMousePosY);
+
     EblRenderContext ctx{
         this,
         m_program,
@@ -493,14 +508,14 @@ void TSDWindow::render()
         m_iMousePosY,
         m_iMouseInitX,
         m_iMouseInitY,
-        X_SCREEN_COORD_TO_MAP_COORD(m_iMousePosX),
-        Y_SCREEN_COORD_TO_MAP_COORD(m_iMousePosY),
+        float(eblMouse.x()),
+        float(eblMouse.y()),
         m_bMouseIsPressing,
         devicePixelRatio(),
         [this](int px, int py, const QString& text, const QString& font) { renderText(px, py, text, font); },
     };
 
-    drawEbl(ctx, X_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitX), Y_SCREEN_COORD_TO_MAP_COORD(m_iMouseInitY),
+    drawEbl(ctx, float(eblCenter.x()), float(eblCenter.y()),
             sqrt(m_iMouseDeltaX * m_iMouseDeltaX + m_iMouseDeltaY * m_iMouseDeltaY) / SCALE);
     // checkGL("after drawEBL");
 

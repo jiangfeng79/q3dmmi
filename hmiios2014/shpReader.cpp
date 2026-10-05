@@ -10,7 +10,14 @@ ShpReader::~ShpReader(void) {
     {
         for (unsigned int i = 0; i < numberOfEntity; ++i)
         {
-            free(entity[i].coordinate);
+            if (entity[i].coordinate != NULL)
+            {
+                for (unsigned int j = 0; j < entity[i].totalVertex; ++j)
+                {
+                    free(entity[i].coordinate[j]);
+                }
+                free(entity[i].coordinate);
+            }
             free(entity[i].isRing);
         }
         free(entity);
@@ -22,7 +29,14 @@ void ShpReader::freeMemory() {
     if (entity != NULL && numberOfEntity > 0) {
         for (unsigned int i = 0; i < numberOfEntity; ++i)
         {
-            free(entity[i].coordinate);
+            if (entity[i].coordinate != NULL)
+            {
+                for (unsigned int j = 0; j < entity[i].totalVertex; ++j)
+                {
+                    free(entity[i].coordinate[j]);
+                }
+                free(entity[i].coordinate);
+            }
             free(entity[i].isRing);
         }
         free(entity);
@@ -33,14 +47,9 @@ void ShpReader::freeMemory() {
 int ShpReader::read(const char* filename) {
     std::lock_guard<std::recursive_mutex> lk(m_mutex);
     SHPHandle hSHP;
-    int nShapeType, nEntities, i, iPart, bValidate = 0, nInvalidCount = 0;
-    int bHeaderOnly = 0;
-    const char* pszPlus;
+    int nShapeType, nEntities, i, iPart;
     double adfMinBound[4], adfMaxBound[4];
 
-    /* -------------------------------------------------------------------- */
-    /*      Open the passed shapefile.                                      */
-    /* -------------------------------------------------------------------- */
     hSHP = SHPOpen(filename, "rb");
 
     if (hSHP == NULL)
@@ -48,17 +57,8 @@ int ShpReader::read(const char* filename) {
         printf("Unable to open:%s\n", filename);
         exit(1);
     }
-    // else
-    //     printf("Opened shp file: %s\n", filename);
 
-    /* -------------------------------------------------------------------- */
-    /*      Print out the file bounds.                                      */
-    /* -------------------------------------------------------------------- */
     SHPGetInfo(hSHP, &nEntities, &nShapeType, adfMinBound, adfMaxBound);
-
-    // printf("Shapefile Type: %s   # of Shapes: %d\n\n", SHPTypeName(nShapeType), nEntities);
-    // printf("File Bounds: (%f,%f,%f,%f) to  (%f,%f,%f,%f)\n\n", adfMinBound[0], adfMinBound[1], adfMinBound[2],
-    // adfMinBound[3], adfMaxBound[0], adfMaxBound[1], adfMaxBound[2], adfMaxBound[3]);
 
     // jiangfeng: create the memory
     entity = (ShpEntity*)malloc(sizeof(ShpEntity) * nEntities);
@@ -71,10 +71,7 @@ int ShpReader::read(const char* filename) {
 
     if (entity)
     {
-        /* -------------------------------------------------------------------- */
-        /*	Skim over the list of shapes, printing all the vertices.	*/
-        /* -------------------------------------------------------------------- */
-        for (i = 0; i < nEntities && !bHeaderOnly; i++)
+        for (i = 0; i < nEntities; i++)
         {
             int j;
             SHPObject* psShape;
@@ -106,23 +103,13 @@ int ShpReader::read(const char* filename) {
             entity[i].totalVertex = psShape->nVertices;
             for (j = 0, iPart = 1; j < psShape->nVertices; j++)
             {
-                const char* pszPartType = "";
-
-                if (j == 0 && psShape->nParts > 0)
-                {
-                    pszPartType = SHPPartTypeName(psShape->panPartType[0]);
-                }
-
                 if (iPart < psShape->nParts && psShape->panPartStart[iPart] == j)
                 {
-                    pszPartType = SHPPartTypeName(psShape->panPartType[iPart]);
                     iPart++;
-                    pszPlus = "+";
                     entity[i].isRing[j] = 1;
                 }
                 else
                 {
-                    pszPlus = " ";
                     entity[i].isRing[j] = 0;
                 }
 
@@ -131,60 +118,28 @@ int ShpReader::read(const char* filename) {
                 entity[i].coordinate[j][2] = psShape->padfZ[j];
             }
 
-            if (bValidate)
-            {
-                int nAltered = SHPRewindObject(hSHP, psShape);
-
-                if (nAltered > 0)
-                {
-                    nInvalidCount++;
-                }
-            }
             SHPDestroyObject(psShape);
         }
 
         SHPClose(hSHP);
-
-        if (bValidate)
-        {
-            printf("%d object has invalid ring orderings.\n", nInvalidCount);
-        }
     }
-#ifdef USE_DBMALLOC
-    malloc_dump(2);
-#endif
     return 0;
 }
 
 int ShpReader::readLayer(const char* filename, DBFReader& layer) {
     std::lock_guard<std::recursive_mutex> lk(m_mutex);
     SHPHandle hSHP;
-    int nShapeType, nEntities, i, iPart, bValidate = 0, nInvalidCount = 0;
-    int bHeaderOnly = 0;
-    const char* pszPlus;
+    int nShapeType, nEntities, i, iPart;
     double adfMinBound[4], adfMaxBound[4];
 
-    /* -------------------------------------------------------------------- */
-    /*      Open the passed shapefile.                                      */
-    /* -------------------------------------------------------------------- */
     hSHP = SHPOpen(filename, "rb");
 
     if (hSHP == NULL)
     {
-        // printf("Unable to open:%s\n", filename);
         exit(1);
     }
-    // else
-    // printf("Opened shp file: %s\n", filename);
 
-    /* -------------------------------------------------------------------- */
-    /*      Print out the file bounds.                                      */
-    /* -------------------------------------------------------------------- */
     SHPGetInfo(hSHP, &nEntities, &nShapeType, adfMinBound, adfMaxBound);
-
-    // printf("Shapefile Type: %s   # of Shapes: %d\n\n", SHPTypeName(nShapeType), nEntities);
-    // printf("File Bounds: (%f,%f,%f,%f) to  (%f,%f,%f,%f)\n\n", adfMinBound[0], adfMinBound[1], adfMinBound[2],
-    // adfMinBound[3], adfMaxBound[0], adfMaxBound[1], adfMaxBound[2], adfMaxBound[3]);
 
     nEntities = layer.getNumberOfRecords();
 
@@ -199,10 +154,7 @@ int ShpReader::readLayer(const char* filename, DBFReader& layer) {
 
     if (entity)
     {
-        /* -------------------------------------------------------------------- */
-        /*	Skim over the list of shapes, printing all the vertices.	*/
-        /* -------------------------------------------------------------------- */
-        for (i = 0; i < nEntities && !bHeaderOnly; i++)
+        for (i = 0; i < nEntities; i++)
         {
             int j;
             SHPObject* psShape;
@@ -234,23 +186,13 @@ int ShpReader::readLayer(const char* filename, DBFReader& layer) {
             entity[i].totalVertex = psShape->nVertices;
             for (j = 0, iPart = 1; j < psShape->nVertices; j++)
             {
-                const char* pszPartType = "";
-
-                if (j == 0 && psShape->nParts > 0)
-                {
-                    pszPartType = SHPPartTypeName(psShape->panPartType[0]);
-                }
-
                 if (iPart < psShape->nParts && psShape->panPartStart[iPart] == j)
                 {
-                    pszPartType = SHPPartTypeName(psShape->panPartType[iPart]);
                     iPart++;
-                    pszPlus = "+";
                     entity[i].isRing[j] = 1;
                 }
                 else
                 {
-                    pszPlus = " ";
                     entity[i].isRing[j] = 0;
                 }
 
@@ -259,27 +201,10 @@ int ShpReader::readLayer(const char* filename, DBFReader& layer) {
                 entity[i].coordinate[j][2] = psShape->padfZ[j];
             }
 
-            if (bValidate)
-            {
-                int nAltered = SHPRewindObject(hSHP, psShape);
-
-                if (nAltered > 0)
-                {
-                    nInvalidCount++;
-                }
-            }
             SHPDestroyObject(psShape);
         }
 
         SHPClose(hSHP);
-
-        if (bValidate)
-        {
-            printf("%d object has invalid ring orderings.\n", nInvalidCount);
-        }
     }
-#ifdef USE_DBMALLOC
-    malloc_dump(2);
-#endif
     return 0;
 }
