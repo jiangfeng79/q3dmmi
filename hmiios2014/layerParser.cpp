@@ -145,6 +145,8 @@ LayerGeometry ShapefileLayerParser::parseImpl(const Options& a_options, bool der
                 }
                 v.z = (float)a_options.layerDepth;
                 geo.vertices[idx] = v;
+                if (l_shapeEntity[n].isRing[i] == 1 && i > 0)
+                    geo.lineIndices.push_back(0xFFFFFFFF);  // break the strip between parts
                 geo.lineIndices.push_back(static_cast<unsigned int>(idx));
 
                 if (l_shapeEntity[n].isRing[i] == 1)
